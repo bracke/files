@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -20,7 +22,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
-      Files.Model.Clear_Search_Results (Model);
+      Files.Model.Filtering.Clear_Search_Results (Model);
       Select_Name (Model, "a.txt");
       declare
          --  The fault is injected for this duplicate only; the guard puts
@@ -41,7 +43,7 @@ separate (Files_Suite.Recovery)
          Files.Operation_Results.Operation_Failed,
          "a helper result whose operation kind differs from its request is rejected: status");
       Assert
-        (not Files.Model.Search_Results_Are_Active (Model),
+        (not Files.Model.Filtering.Search_Results_Are_Active (Model),
          "a helper result whose operation kind differs from its request is rejected: no search results");
       Assert
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
@@ -77,7 +79,7 @@ separate (Files_Suite.Recovery)
          Files.Operation_Results.Operation_Failed,
          "a helper result whose Recent-view flag differs from its request is rejected: status");
       Assert
-        (not Files.Model.In_Recent_View (Model),
+        (not Files.Model.Recent.In_Recent_View (Model),
          "a helper result whose Recent-view flag differs from its request is rejected: not the Recent view");
       Assert
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -15,7 +16,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "two folders are selected");
 
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);

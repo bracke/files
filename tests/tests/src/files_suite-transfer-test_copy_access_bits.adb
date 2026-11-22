@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,7 @@ separate (Files_Suite.Transfer)
          end if;
          Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#750#);
          Assert (Mutation.Success, "prepare source access bits");
-         Mutation := Files.File_System.Copy_Tree (Source, Dest);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          Mode := Files.File_System.Permissions.Permission_Bits_Of (Dest, Available);
          Assert (Mutation.Success, "copy preserves ordinary access bits on files and directories: copied");
          Assert (Available, "copy preserves ordinary access bits on files and directories: mode readable");
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Directory (Source);
       Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#7777#);
       Assert (Mutation.Success, "prepare sticky and privilege bits");
-      Mutation := Files.File_System.Copy_Tree (Source, Dest);
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
       Mode := Files.File_System.Permissions.Permission_Bits_Of (Dest, Available);
       Assert (Mutation.Success,
               "directory copies preserve sticky deletion protection while stripping setuid and setgid: copied");

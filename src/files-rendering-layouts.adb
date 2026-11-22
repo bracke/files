@@ -121,10 +121,6 @@ package body Files.Rendering.Layouts is
       return Conflict_Dialog_Layout
  is separate;
 
-   function Calculate_Context_Menu_Layout
-     (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Context_Menu_Layout
-   is separate;
-
    procedure Marquee_Rect
      (Start_X   : Natural;
       Start_Y   : Natural;
@@ -213,19 +209,6 @@ package body Files.Rendering.Layouts is
       return Breadcrumb_Segment_Layout_Vectors.Vector
  is separate;
 
-   --  Height of the Choose/Cancel footer the tree panel reserves in pick
-   --  mode; zero otherwise or when the panel is too short to spare a row.
-   function Tree_Footer_Height
-     (Snapshot : View_Snapshot;
-      Layout   : Tree_Panel_Layout)
-      return Natural is
-     (if Snapshot.Tree_Pick_Active
-        and then Layout.Width > 0
-        and then Layout.Row_Height > 0
-        and then Layout.Height > Saturating_Multiply (Layout.Row_Height, 2)
-      then Layout.Row_Height
-      else 0);
-
    --  Height left for folder rows below the header and above any footer.
    function Tree_Content_Height
      (Snapshot : View_Snapshot;
@@ -263,15 +246,6 @@ package body Files.Rendering.Layouts is
 
    function Tree_Max_Scroll (Snapshot : View_Snapshot; Layout : Tree_Panel_Layout) return Natural is separate;
 
-   function Calculate_Tree_Row_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Tree_Panel_Layout;
-      Line_Height : Positive)
-      return Tree_Row_Layout_Vectors.Vector
- is separate;
-
-   function Tree_Pick_Buttons (Panel : Tree_Panel_Layout) return Tree_Pick_Button_Layout is separate;
-
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
@@ -286,11 +260,6 @@ package body Files.Rendering.Layouts is
       return Guikit.Layout.Bottom_Bar_Layout
    is separate;
 
-   function Sort_Menu_Width
-     (Line_Height : Positive)
-      return Natural
-   is separate;
-
    function Toolbar_Height (Line_Height : Positive) return Natural is
      (Guikit.Layout.Saturating_Multiply (Line_Height, 2));
 
@@ -302,31 +271,6 @@ package body Files.Rendering.Layouts is
         (Line_Height,
          Guikit.Layout.Saturating_Multiply
            (Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height), 2)));
-
-   function Sort_Menu_Row_Top
-     (Menu : Sort_Menu_Layout;
-      Row  : Positive)
-      return Natural is
-     (Guikit.Layout.Saturating_Add (Menu.Rows_Y, Guikit.Layout.Saturating_Multiply (Row - 1, Menu.Row_Height)));
-
-   function Sort_Menu_Row_At
-     (Menu : Sort_Menu_Layout;
-      X    : Natural;
-      Y    : Natural)
-      return Natural
-   is separate;
-
-   function Calculate_Sort_Menu_Layout
-     (Width       : Natural;
-      Height      : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive)
-      return Sort_Menu_Layout
-   is separate;
-
-   function Sort_Menu_Row_Field
-     (Row : Positive)
-      return Files.Types.Sort_Field renames Files.UI_Types.Sort_Menu_Field;
 
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector
    is separate;
@@ -365,31 +309,6 @@ package body Files.Rendering.Layouts is
    function Details_Header_Height
      (Content_H   : Natural;
       Line_Height : Positive)
-      return Natural
- is separate;
-
-   function Details_Header_Geometry
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Details_Header_Layout
- is separate;
-
-   function Context_Menu_Row_Top
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
- is separate;
-
-   function Context_Menu_Row_Left
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
- is separate;
-
-   function Context_Menu_Row_Width
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
       return Natural
  is separate;
 

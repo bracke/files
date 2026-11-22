@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Rendering.Testing;
 with Files.Extra_Info;
 with Files.Text_Basics;
@@ -28,7 +29,7 @@ separate (Files_Suite.Info)
          Items.Append (Item);
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),

@@ -1,3 +1,4 @@
+with Files.File_System.Roots;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,7 +20,7 @@ separate (Files_Suite.Model)
          Ada.Directories.Create_Path (Drive_Profile_Path);
          Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
          Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile-root");
-         Entries := Files.File_System.Available_Root_Entries;
+         Entries := Files.File_System.Roots.Available_Root_Entries;
          for Root_Entry_Value of Entries loop
             if To_String (Root_Entry_Value.Path) = Ada.Directories.Full_Name (Drive_Profile_Path)
               and then Root_Entry_Value.Kind = Files.File_System.Root_User_Mount
@@ -55,7 +56,7 @@ separate (Files_Suite.Model)
          Shared_Profile_Full := To_Unbounded_String (Ada.Directories.Full_Name (Shared_Profile_Path));
          Ada.Environment_Variables.Set ("HOME", Shared_Profile_Path);
          Ada.Environment_Variables.Set ("USERPROFILE", To_String (Shared_Profile_Full));
-         Entries := Files.File_System.Available_Root_Entries;
+         Entries := Files.File_System.Roots.Available_Root_Entries;
          for Root_Entry_Value of Entries loop
             if To_String (Root_Entry_Value.Path) = To_String (Shared_Profile_Full) then
                Shared_Profile_Count := Shared_Profile_Count + 1;

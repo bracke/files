@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
@@ -37,7 +38,7 @@ separate (Files_Suite.Model)
         (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "untitled name generation creates its first temporary item (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
          "create uses the first suffix without an existing directory entry");
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -61,7 +62,7 @@ separate (Files_Suite.Model)
         (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "untitled name generation creates its next temporary item (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          "untitled 11.txt",
          "create uses explicit spaced suffix text after single digits");
    end Test_Untitled_Name_Generation;

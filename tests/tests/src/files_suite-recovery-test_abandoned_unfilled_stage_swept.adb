@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Ada.Calendar.Formatting;
 with GNAT.OS_Lib;
 with Files.Protocol_Names;
@@ -20,8 +21,8 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "original");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          use type Ada.Calendar.Time;
@@ -44,9 +45,9 @@ separate (Files_Suite.Recovery)
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Owner,
             GNAT.OS_Lib.GM_Time_Of (Year, Month, Day, Hour, Minute, Second));
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Assert (not Ada.Directories.Exists (Stage), "the abandoned, unfilled stage goes");
-         Assert (not Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+         Assert (not Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
                  "and its record with it");
          Assert (File_Has_Bytes (Dest, "original"), "the original it never took is kept");
       end;

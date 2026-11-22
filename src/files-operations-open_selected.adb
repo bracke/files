@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.File_Types;
 with Files.Settings.Open_Actions;
 separate (Files.Operations)
@@ -61,7 +62,7 @@ begin
             Settle_Current_Is_Trash (Model);
             Files.Model.Set_Directory_Signature (Model, Load.Signature);
             --  Opening a folder records it too: recent folders are useful.
-            Files.Model.Note_Recent_Open (Model, To_String (Load.Path));
+            Files.Model.Recent.Note_Recent_Open (Model, To_String (Load.Path));
             Files.Model.Set_Error (Model, "");
             --  Last, once the listing it refreshes is the current one.
             Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);

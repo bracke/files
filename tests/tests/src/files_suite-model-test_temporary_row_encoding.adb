@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 separate (Files_Suite.Model)
    procedure Test_Temporary_Row_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -37,7 +38,7 @@ separate (Files_Suite.Model)
       Items.Append (Files.File_System.Make_Item (Root, "b.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "create adds the pending row");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "create adds the pending row");
 
       Files.Model.For_Each_Visible_Row (Model, Visit'Access);
       Files_Suite.Support.Assert_Equal (Rows, 3, "two items and the pending row are visible");

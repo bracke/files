@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_Identities;
 with Files.File_System.Testing;
 with Files.Protocol_Names;
@@ -28,7 +29,7 @@ separate (Files_Suite.Recovery)
       Assert (Ada.Directories.Exists (Stage), "its stage would not go");
       Assert (Ada.Directories.Exists (Join (Stage, Files.Protocol_Names.Recovery_Vacated)),
               "the stage was marked before the entry left it");
-      Files.File_System.Sweep_Recovery_Registry;
+      Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
       Assert (not Ada.Directories.Exists (Stage), "the sweep finishes the marked, emptied stage");
    exception
       when others =>

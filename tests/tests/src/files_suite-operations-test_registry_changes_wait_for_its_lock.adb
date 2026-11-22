@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Ada.Exceptions;
 with Hostkit.Locks;
 with Files.Protocol_Names;
@@ -74,7 +75,7 @@ separate (Files_Suite.Operations)
          task body Sweeper is
          begin
             Sweep_State.Start;
-            Files.File_System.Sweep_Recovery_Registry;
+            Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
             Sweep_State.Finish;
          exception
             when Raised : others =>

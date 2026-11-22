@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
@@ -16,7 +17,7 @@ separate (Files_Suite.Interaction)
       end loop;
       Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
       Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
-      Files.Model.Note_Path_Move (Model, "/d", Longer);
+      Files.Model.Recent.Note_Path_Move (Model, "/d", Longer);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (not Followed, "a move the settings file cannot hold is not followed");
       Assert (Files.Settings.Path_References.Label_Of (Settings,

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -39,7 +40,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal (Size_Label_Rows, 0, "a single selected folder shows no Filesize field");
@@ -51,7 +52,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "two folders are selected");
@@ -64,7 +65,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal

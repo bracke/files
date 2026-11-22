@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -12,7 +13,7 @@ separate (Files_Suite.Transfer)
       Sources.Clear;
       Write_File (Join (Root, "stay.txt"), "stay");
       Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
-      Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Move);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Move);
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "same-directory move succeeds");
       Assert (Ada.Directories.Exists (Join (Root, "stay.txt")), "same-directory move keeps the file in place");
@@ -22,7 +23,7 @@ separate (Files_Suite.Transfer)
 
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
-      Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Copy);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Copy);
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "same-directory copy succeeds");
       Assert
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Join (Root, "tree")));
       Plans :=
-        Files.File_System.Plan_Drop_Import
+        Files.File_System.Transfer.Plan_Drop_Import
           (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Move);
       Assert (not Plans.Success,
               "moving a directory into its own subtree is rejected; error was "
@@ -45,11 +46,11 @@ separate (Files_Suite.Transfer)
          "error.drop.into_self",
          "into-self drop reports a deterministic diagnostic");
       Plans :=
-        Files.File_System.Plan_Drop_Import
+        Files.File_System.Transfer.Plan_Drop_Import
           (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Copy);
       Assert (not Plans.Success, "copying a directory into its own subtree is rejected");
       Plans :=
-        Files.File_System.Plan_Drop_Import
+        Files.File_System.Transfer.Plan_Drop_Import
           (Sources, Join (Root, "tree"), Files.File_System.Drop_Copy);
       Assert (not Plans.Success, "copying a directory into itself is rejected");
 
@@ -57,13 +58,13 @@ separate (Files_Suite.Transfer)
       --  names fold case, or through a link into the tree.
       if Hostkit.Fs.Folds_Name_Case (Root) then
          Plans :=
-           Files.File_System.Plan_Drop_Import
+           Files.File_System.Transfer.Plan_Drop_Import
              (Sources, Join (Join (Root, "TREE"), "Sub"), Files.File_System.Drop_Copy);
          Assert (not Plans.Success, "a destination spelled in another case is still inside the tree");
       end if;
       if Hostkit.Fs.Create_Link (Join (Join (Root, "tree"), "sub"), Join (Root, "alias")) then
          Plans :=
-           Files.File_System.Plan_Drop_Import (Sources, Join (Root, "alias"), Files.File_System.Drop_Copy);
+           Files.File_System.Transfer.Plan_Drop_Import (Sources, Join (Root, "alias"), Files.File_System.Drop_Copy);
          Assert (not Plans.Success, "a destination reached through a link is still inside the tree");
          --  The link alone: a link to a folder is a directory entry on
          --  Windows, which a file delete does not remove.
@@ -77,7 +78,7 @@ separate (Files_Suite.Transfer)
          --  starts with the source name but is not inside the source tree.
          Ada.Directories.Create_Path (Join (Root, "tree\peer"));
          Plans :=
-           Files.File_System.Plan_Drop_Import
+           Files.File_System.Transfer.Plan_Drop_Import
              (Sources, Join (Root, "tree\peer"), Files.File_System.Drop_Copy);
          Assert
            (Plans.Success,
@@ -95,7 +96,7 @@ separate (Files_Suite.Transfer)
       Sources.Append (To_Unbounded_String (Join (Join (Root, "src-a"), "dup.txt")));
       Sources.Append (To_Unbounded_String (Join (Join (Root, "src-b"), "dup.txt")));
       Plans :=
-        Files.File_System.Plan_Drop_Import
+        Files.File_System.Transfer.Plan_Drop_Import
           (Sources, Join (Root, "dup-dest"), Files.File_System.Drop_Copy);
       Assert (Plans.Success, "same-name batch drop plans successfully");
       Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "batch drop plans both sources");

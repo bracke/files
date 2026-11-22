@@ -1,0 +1,61 @@
+with Files.Model.Support;
+
+package body Files.Model.Ownership_Input is
+
+   use Files.Model.Support;
+   use Ada.Strings.Unbounded;
+
+   procedure Focus_Ownership_Input
+     (Model         : in out Window_Model;
+      Editing_Group : Boolean;
+      Account_Name  : String)
+   is
+      Item : constant Files.Items.Directory_Item := Selected_Item (Model);
+   begin
+      if Selected_Count (Model) /= 1
+        or else Selection_Includes_Temporary (Model)
+        or else not Item.Ownership_Available
+        or else Model.Current_Is_Trash_Value
+      then
+         return;
+      end if;
+
+      Touch_Header (Model);
+      Reset_Type_Ahead (Model);
+      Model.Focus_Value := Files.UI_Types.Focus_Ownership_Input;
+      Model.Ownership_Input.Editing_Group := Editing_Group;
+      declare
+         Id : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
+      begin
+         --  Seed with the resolved name so the field matches its display; the
+         --  commit path accepts a name or a number. Fall back to the number.
+         Model.Ownership_Input.Edit.Text :=
+           To_Unbounded_String
+             (if Account_Name /= "" then Account_Name
+              else Files.Types.Account_Image (Id));
+      end;
+      Model.Ownership_Input.Edit.Cursor := Length (Model.Ownership_Input.Edit.Text);
+      Clear_Root_Selector_State (Model);
+      Hide_Command_Palette (Model);
+   end Focus_Ownership_Input;
+
+   function Ownership_Input_Text
+     (Model : Window_Model)
+      return String is
+     (To_String (Model.Ownership_Input.Edit.Text));
+
+   procedure Set_Ownership_Input_Text
+     (Model : in out Window_Model;
+      Text  : String) is
+   begin
+      Touch_Header (Model);
+      Model.Ownership_Input.Edit.Text := To_Unbounded_String (Text);
+      Model.Ownership_Input.Edit.Cursor := Text'Length;
+   end Set_Ownership_Input_Text;
+
+   function Ownership_Editing_Group
+     (Model : Window_Model)
+      return Boolean is
+     (Model.Ownership_Input.Editing_Group);
+
+end Files.Model.Ownership_Input;

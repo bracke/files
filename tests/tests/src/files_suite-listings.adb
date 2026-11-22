@@ -1,3 +1,4 @@
+with Files.File_System.Search;
 with Files.File_Types;
 with Files.Types;
 
@@ -39,13 +40,13 @@ package body Files_Suite.Listings is
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Natural := Files.File_System.Max_Search_Results)
       return Files.File_System.Recursive_Search_Result is
-     (Files.File_System.Search_Names (Root_Path, Query, Classes (Settings), Options (Settings), Max_Items));
+     (Files.File_System.Search.Search_Names (Root_Path, Query, Classes (Settings), Options (Settings), Max_Items));
 
    function Search_Contents
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model)
       return Files.File_System.Recursive_Search_Result is
-     (Files.File_System.Search_Contents (Root_Path, Query, Classes (Settings), Options (Settings)));
+     (Files.File_System.Search.Search_Contents (Root_Path, Query, Classes (Settings), Options (Settings)));
 
 end Files_Suite.Listings;

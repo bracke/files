@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -76,7 +77,7 @@ separate (Files_Suite.Names)
       begin
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Begin_Create_File (Model, "existing.txt");
+         Files.Model.Creation.Begin_Create_File (Model, "existing.txt");
 
          Result := Files.Operations.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
@@ -99,10 +100,10 @@ separate (Files_Suite.Names)
            (Project_Tools.Files.Read_Raw_File (Existing_Path),
             Original_Content,
             "failed create leaves existing file content unchanged");
-         Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed create keeps temporary item active");
+         Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "failed create keeps temporary item active");
          Assert (Files.Model.Rename.Is_Active (Model), "failed create keeps rename mode active");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Temporary_Item_Name (Model),
+           (Files.Model.Creation.Temporary_Item_Name (Model),
             "existing.txt",
             "failed create keeps attempted name");
 
@@ -117,14 +118,14 @@ separate (Files_Suite.Names)
            (Project_Tools.Files.Read_Raw_File (Existing_Path),
             Original_Content,
             "create retry preserves original existing file");
-         Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create retry clears temporary state");
+         Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "create retry clears temporary state");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Name (Model),
             "retry.txt",
             "create retry selects created file");
       end;
 
-      Files.Model.Begin_Create_File (Model, Utf8_Two_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Two_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -136,7 +137,7 @@ separate (Files_Suite.Names)
          Utf8_Two_Name,
          "two-byte UTF-8 create selects file");
 
-      Files.Model.Begin_Create_File (Model, Utf8_Three_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Three_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -148,7 +149,7 @@ separate (Files_Suite.Names)
          Utf8_Three_Name,
          "three-byte UTF-8 create selects file");
 
-      Files.Model.Begin_Create_File (Model, Utf8_Four_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Four_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

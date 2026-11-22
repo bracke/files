@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
             Make_Directory (To_String (Leaf));
          end loop;
          Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
-         Mutation := Files.File_System.Copy_Tree (Source, Dest);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          if Depth < 3 then
             Assert (Mutation.Success and then File_Is (Dest & To_String (Relative) & "/child", "deep bytes"),
                     "copying a valid deep directory tree completes without a stack overflow");
@@ -79,7 +80,7 @@ separate (Files_Suite.Transfer)
             end loop;
             Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
             Paths.Append (To_Unbounded_String (Source));
-            Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
+            Plans := Files.File_System.Transfer.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
             Moved := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
             Assert (Moved.Success and then not Ada.Directories.Exists (Source),
                     "a 1000-level tree moves across devices");

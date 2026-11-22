@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Preference_Types;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
@@ -74,7 +75,7 @@ separate (Files_Suite.Rendering)
                declare
                   Probe_X : constant Natural := Menu.X + Menu.Width / 2;
                   Probe_Y : constant Natural :=
-                    Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row) + Menu.Separator_Height / 2;
+                    Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Row) + Menu.Separator_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
                     (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
@@ -87,7 +88,7 @@ separate (Files_Suite.Rendering)
                declare
                   Probe_X : constant Natural := Menu.X + Menu.Width / 2;
                   Probe_Y : constant Natural :=
-                    Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
+                    Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
                     (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
@@ -138,10 +139,10 @@ separate (Files_Suite.Rendering)
             if Menu.Rows (Row).Kind = Files.Commands.Menu_Command then
                declare
                   Probe_X : constant Natural :=
-                    Files.Rendering.Layouts.Context_Menu_Row_Left (Menu, Row)
-                    + Files.Rendering.Layouts.Context_Menu_Row_Width (Menu, Row) / 2;
+                    Files.Rendering.Layouts.Menus.Context_Menu_Row_Left (Menu, Row)
+                    + Files.Rendering.Layouts.Menus.Context_Menu_Row_Width (Menu, Row) / 2;
                   Probe_Y : constant Natural :=
-                    Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
+                    Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
                     (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),

@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -120,7 +121,7 @@ separate (Files_Suite.Refresh)
          Start_Refresh (True);
          Await_Refresh (True);
          Assert
-           (Files.Model.In_Recent_View (Model),
+           (Files.Model.Recent.In_Recent_View (Model),
             "successful Recent refresh clears load errors while retaining operation errors: still in Recent");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Item_Count (Model),

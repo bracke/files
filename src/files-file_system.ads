@@ -329,58 +329,6 @@ package Files.File_System is
    --  unsearched and makes the answer Truncated.
    Max_Search_Depth : constant := 64;
 
-   --  Search a directory tree recursively for item names matching Query.
-   --  A folder below the root that cannot be read is skipped (Incomplete),
-   --  and a limit reached ends the walk (Truncated); both keep what was found.
-   --
-   --  @param Root_Path Directory where recursive search starts.
-   --  @param Query Case-insensitive name fragment to match.
-   --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
-   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
-   --  @param Max_Items Maximum number of matching items to return.
-   --  @return Deterministic recursive search result or recoverable error.
-   function Search_Names
-     (Root_Path : String;
-      Query     : String;
-      Classes   : Files.File_Types.Classification;
-      Options   : Files.Types.Listing_Options;
-      Max_Items : Natural := Max_Search_Results)
-      return Recursive_Search_Result;
-
-   --  Whether Bytes, text and not binary, contain Query, ignoring case.
-   --  UTF-16 and Windows-1252 text is searched as what it says
-   --  (Files.Text_Encoding.Searchable_Text).
-   --
-   --  @param Bytes A file's first bytes.
-   --  @param Query Text to look for; "" matches nothing.
-   --  @return True for a text match.
-   function Content_Matches
-     (Bytes : String;
-      Query : String)
-      return Boolean;
-
-   --  Search a directory tree for text files whose first 64 KiB contain
-   --  Query, ignoring case, with Search_Names's walk: real folders only
-   --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
-   --  deep, and cancellable. Past its limits (Max_Search_Results matches,
-   --  20,000 files read) the answer is Truncated; a file it could not read,
-   --  or a text file larger than it reads with no match in what it read,
-   --  makes it Incomplete.
-   --
-   --  @param Root_Path Directory where the search starts.
-   --  @param Query Text to look for.
-   --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
-   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
-   --  @return The matching files, or why the search failed.
-   function Search_Contents
-     (Root_Path : String;
-      Query     : String;
-      Classes   : Files.File_Types.Classification;
-      Options   : Files.Types.Listing_Options)
-      return Recursive_Search_Result;
-
    --  Compute a shallow signature for polling-based directory change detection.
    --
    --  @param Path Directory to inspect.
@@ -398,28 +346,6 @@ package Files.File_System is
      (Before_State : Directory_Signature;
       Path         : String)
       return Directory_Change_Result;
-
-   --  Return available filesystem root locations with labels and source kind.
-   --
-   --  @return Root entries available on the host platform.
-   function Available_Root_Entries return Root_Entry_Vectors.Vector;
-
-   --  Return the label of a root location: a localization key (e.g.
-   --  "root.home", or "root.mount", whose pattern takes Root_Name as {name}),
-   --  or, for a plain filesystem root, its path.
-   --
-   --  @param Path Root path.
-   --  @param Kind Root classification.
-   --  @return Label key or literal text.
-   function Root_Label (Path : String; Kind : Root_Kind) return String;
-
-   --  Return the {name} a root's label pattern takes: a mount's or a
-   --  favorite's leaf name, a drive's path; empty for kinds with no name.
-   --
-   --  @param Path Root path.
-   --  @param Kind Root classification.
-   --  @return The name, which may hold any character a file name can.
-   function Root_Name (Path : String; Kind : Root_Kind) return String;
 
    --  Build an item value for tests and pure model setup, reading no disk
    --  (Files.Item_Lists.Make_Item): hidden when its name starts with a dot.
@@ -495,31 +421,6 @@ package Files.File_System is
    function Next_Untitled_Name
      (Directory_Path : String)
       return String;
-
-   --  Return whether Path is an application-owned replacement recovery payload.
-   --  @param Path Possible recovery payload path.
-   --  @return True only for a recognized application recovery payload.
-   function Is_Recovery_Payload (Path : String) return Boolean;
-
-   --  Move a recovery payload nothing will restore any more -- its undo
-   --  history is ending with the window -- to the system trash under its
-   --  original name, and remove the hidden folder that held it.
-   --  @param Path Recognized application recovery payload.
-   --  @return Success when the payload is in the trash.
-   function Release_Recovery_Payload (Path : String) return Mutation_Result;
-
-   --  Return recoverable replacement payloads recorded across directories.
-   --  Stale or damaged registry entries are omitted. A pure query: it
-   --  changes nothing on disk (see Sweep_Recovery_Registry).
-   --  @return Valid registered replacement-recovery payload paths.
-   function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector;
-
-   --  Finish interrupted recovery work the registry records: drop stale and
-   --  duplicate records, resume a stopped release, and remove a stage whose
-   --  payload a restore or release moved out on purpose. A stage another
-   --  operation is still filling is left alone, so this is safe to run while
-   --  other processes preserve, restore or release.
-   procedure Sweep_Recovery_Registry;
 
    --  Create an empty regular file without replacing an existing entry.
    --
@@ -599,59 +500,6 @@ package Files.File_System is
       Max_Entries : Natural := 50_000;
       Max_Depth   : Natural := 64)
       return Directory_Size_Result;
-
-   --  Recursively copy a file or directory tree to a new destination path.
-   --
-   --  The destination must not already exist. Directories are copied with their
-   --  full contents. Used by the duplicate command.
-   --
-   --  @param Source_Path Existing file or directory to copy.
-   --  @param Destination_Path New path to create.
-   --  @param Batch Shared hard-link journal for consecutive copies.
-   --  @return Mutation result with a localized error key on failure.
-   function Copy_Tree
-     (Source_Path      : String;
-      Destination_Path : String;
-      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
-
-   --  Copy while returning snapshots captured before atomic publication.
-   --  @param Source_Path Existing file or directory to copy.
-   --  @param Destination_Path New path to create.
-   --  @param Identity Published entry identity.
-   --  @param Tree_Revision_Value Directory or regular-file revision, empty for links.
-   --  @param Batch Shared hard-link journal for consecutive copies.
-   --  @return Mutation result with a localized error key on failure.
-   function Copy_Tree
-     (Source_Path, Destination_Path : String;
-      Identity, Tree_Revision_Value : out Files.Types.UString;
-      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
-
-   --  Put a staged file or folder at Target, never over an entry already
-   --  there: its identity and tree revision taken first, the whole of it
-   --  flushed to the device (a power cut leaves no recorded but empty or cut
-   --  short output), named as intended (Files.Jobs.Context.Intend_Created),
-   --  renamed into place, given the access its new folder hands down (as a
-   --  published copy is, its revision read again where that changed it and
-   --  named again with it), recorded as created, and its new name flushed --
-   --  the publication Copy_Tree's copies share (Support.Publish_From_Stage). A failure of that last
-   --  flush is traced, not returned: the entry is published and recorded,
-   --  as a Durable_Writes publication that is Published_Not_Durable. The one
-   --  way Compress and Extract publish what they made.
-   --
-   --  @param Staged The finished file or folder inside a stage.
-   --  @param Target Where it is published.
-   --  @param Identity Set to its identity token, for its Undo.
-   --  @param Revision Set to its tree revision, for its Undo.
-   --  @return False when it was not published; Staged is then left for the
-   --    caller to discard with its stage.
-   function Publish_Staged
-     (Staged   : String;
-      Target   : String;
-      Identity : out UString;
-      Revision : out UString)
-      return Boolean;
 
    --  Create a symbolic link at Link_Path that refers to Source_Path.
    --
@@ -749,26 +597,6 @@ package Files.File_System is
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean := False) return Boolean;
 
-   --  Preserve an overwritten destination in a location this application can restore.
-   --  Native trash backends use an adjacent recovery backup instead of the OS bin.
-   --  @param Path Destination to preserve before replacement.
-   --  @param Recovery_Path Payload for rollback and Undo.
-   --  @return Result of preserving the destination.
-   function Preserve_For_Replace
-     (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result;
-
-   --  Build deterministic copy/move plans for paths dropped into a directory.
-   --
-   --  @param Source_Paths Paths received from a drag-and-drop operation.
-   --  @param Destination_Directory Directory receiving the dropped entries.
-   --  @param Mode Copy or move mode for all valid plans.
-   --  @return Planned destination paths and validation diagnostics.
-   function Plan_Drop_Import
-     (Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Drop_Import_Mode := Drop_Copy)
-      return Drop_Import_Result;
-
    --  Optional cooperative cancellation, checked between copy chunks and entries.
    type Cancellation_Check is access function return Boolean;
 
@@ -790,6 +618,182 @@ package Files.File_System is
    --    gives it), so "error.drop.failed" there is a failure of its own (a
    --    destination that appeared).
    type Failure_Reading is (Copy_Step, Finished_Job);
+
+   --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
+   --  bounded text preview. Returns an empty string when the file cannot be
+   --  opened or read. Never blocks beyond the capped read.
+   --
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @return Leading bytes as a String, or an empty string on failure.
+   function Read_Preview_Text
+     (Path      : String;
+      Max_Bytes : Natural)
+      return String;
+
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @param Success False on an open or read failure, True for valid empty files.
+   --  @return Leading bytes; ignore them when Success is False.
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
+
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @param Success False on an open or read failure, True for valid empty files.
+   --  @param Complete False when the file is longer than the bytes returned.
+   --  @return Leading bytes; ignore them when Success is False.
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
+private
+
+   --  Declared for Roots (renamed there) and for the parent's own
+   --  bodies and private children, which keep calling them by these names.
+
+   --  Return available filesystem root locations with labels and source kind.
+   --
+   --  @return Root entries available on the host platform.
+   function Available_Root_Entries return Root_Entry_Vectors.Vector;
+
+   --  Return the label of a root location: a localization key (e.g.
+   --  "root.home", or "root.mount", whose pattern takes Root_Name as {name}),
+   --  or, for a plain filesystem root, its path.
+   --
+   --  @param Path Root path.
+   --  @param Kind Root classification.
+   --  @return Label key or literal text.
+   function Root_Label (Path : String; Kind : Root_Kind) return String;
+
+   --  Return the {name} a root's label pattern takes: a mount's or a
+   --  favorite's leaf name, a drive's path; empty for kinds with no name.
+   --
+   --  @param Path Root path.
+   --  @param Kind Root classification.
+   --  @return The name, which may hold any character a file name can.
+   function Root_Name (Path : String; Kind : Root_Kind) return String;
+
+   --  Declared for Search (renamed there) and for the parent's own
+   --  bodies and private children, which keep calling them by these names.
+
+   --  Search a directory tree recursively for item names matching Query.
+   --  A folder below the root that cannot be read is skipped (Incomplete),
+   --  and a limit reached ends the walk (Truncated); both keep what was found.
+   --
+   --  @param Root_Path Directory where recursive search starts.
+   --  @param Query Case-insensitive name fragment to match.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
+   --  @param Max_Items Maximum number of matching items to return.
+   --  @return Deterministic recursive search result or recoverable error.
+   function Search_Names
+     (Root_Path : String;
+      Query     : String;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options;
+      Max_Items : Natural := Max_Search_Results)
+      return Recursive_Search_Result;
+
+   --  Whether Bytes, text and not binary, contain Query, ignoring case.
+   --  UTF-16 and Windows-1252 text is searched as what it says
+   --  (Files.Text_Encoding.Searchable_Text).
+   --
+   --  @param Bytes A file's first bytes.
+   --  @param Query Text to look for; "" matches nothing.
+   --  @return True for a text match.
+   function Content_Matches
+     (Bytes : String;
+      Query : String)
+      return Boolean;
+
+   --  Search a directory tree for text files whose first 64 KiB contain
+   --  Query, ignoring case, with Search_Names's walk: real folders only
+   --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
+   --  deep, and cancellable. Past its limits (Max_Search_Results matches,
+   --  20,000 files read) the answer is Truncated; a file it could not read,
+   --  or a text file larger than it reads with no match in what it read,
+   --  makes it Incomplete.
+   --
+   --  @param Root_Path Directory where the search starts.
+   --  @param Query Text to look for.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
+   --  @return The matching files, or why the search failed.
+   function Search_Contents
+     (Root_Path : String;
+      Query     : String;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options)
+      return Recursive_Search_Result;
+
+   --  Declared for Transfer (renamed there) and for the parent's own
+   --  bodies and private children, which keep calling them by these names.
+
+   --  Recursively copy a file or directory tree to a new destination path.
+   --
+   --  The destination must not already exist. Directories are copied with their
+   --  full contents. Used by the duplicate command.
+   --
+   --  @param Source_Path Existing file or directory to copy.
+   --  @param Destination_Path New path to create.
+   --  @param Batch Shared hard-link journal for consecutive copies.
+   --  @return Mutation result with a localized error key on failure.
+   function Copy_Tree
+     (Source_Path      : String;
+      Destination_Path : String;
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
+   --  Copy while returning snapshots captured before atomic publication.
+   --  @param Source_Path Existing file or directory to copy.
+   --  @param Destination_Path New path to create.
+   --  @param Identity Published entry identity.
+   --  @param Tree_Revision_Value Directory or regular-file revision, empty for links.
+   --  @param Batch Shared hard-link journal for consecutive copies.
+   --  @return Mutation result with a localized error key on failure.
+   function Copy_Tree
+     (Source_Path, Destination_Path : String;
+      Identity, Tree_Revision_Value : out Files.Types.UString;
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
+   --  Put a staged file or folder at Target, never over an entry already
+   --  there: its identity and tree revision taken first, the whole of it
+   --  flushed to the device (a power cut leaves no recorded but empty or cut
+   --  short output), named as intended (Files.Jobs.Context.Intend_Created),
+   --  renamed into place, given the access its new folder hands down (as a
+   --  published copy is, its revision read again where that changed it and
+   --  named again with it), recorded as created, and its new name flushed --
+   --  the publication Copy_Tree's copies share (Support.Publish_From_Stage). A failure of that last
+   --  flush is traced, not returned: the entry is published and recorded,
+   --  as a Durable_Writes publication that is Published_Not_Durable. The one
+   --  way Compress and Extract publish what they made.
+   --
+   --  @param Staged The finished file or folder inside a stage.
+   --  @param Target Where it is published.
+   --  @param Identity Set to its identity token, for its Undo.
+   --  @param Revision Set to its tree revision, for its Undo.
+   --  @return False when it was not published; Staged is then left for the
+   --    caller to discard with its stage.
+   function Publish_Staged
+     (Staged   : String;
+      Target   : String;
+      Identity : out UString;
+      Revision : out UString)
+      return Boolean;
+
+   --  Build deterministic copy/move plans for paths dropped into a directory.
+   --
+   --  @param Source_Paths Paths received from a drag-and-drop operation.
+   --  @param Destination_Directory Directory receiving the dropped entries.
+   --  @param Mode Copy or move mode for all valid plans.
+   --  @return Planned destination paths and validation diagnostics.
+   function Plan_Drop_Import
+     (Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Drop_Import_Mode := Drop_Copy)
+      return Drop_Import_Result;
 
    --  The one rule for telling a cancel from a failure of its own: whether a
    --  failure key says no more than that the work stopped -- no key, a
@@ -864,33 +868,41 @@ package Files.File_System is
       Destination                 : String;
       Result                      : in out Mutation_Result);
 
-   --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
-   --  bounded text preview. Returns an empty string when the file cannot be
-   --  opened or read. Never blocks beyond the capped read.
-   --
-   --  @param Path File to read.
-   --  @param Max_Bytes Maximum number of leading bytes to return.
-   --  @return Leading bytes as a String, or an empty string on failure.
-   function Read_Preview_Text
-     (Path      : String;
-      Max_Bytes : Natural)
-      return String;
+   --  Declared for Recovery_Registry (renamed there) and for the parent's own
+   --  bodies and private children, which keep calling them by these names.
 
-   --  @param Path File to read.
-   --  @param Max_Bytes Maximum number of leading bytes to return.
-   --  @param Success False on an open or read failure, True for valid empty files.
-   --  @return Leading bytes; ignore them when Success is False.
-   function Read_Preview_Text
-     (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
+   --  Return whether Path is an application-owned replacement recovery payload.
+   --  @param Path Possible recovery payload path.
+   --  @return True only for a recognized application recovery payload.
+   function Is_Recovery_Payload (Path : String) return Boolean;
 
-   --  @param Path File to read.
-   --  @param Max_Bytes Maximum number of leading bytes to return.
-   --  @param Success False on an open or read failure, True for valid empty files.
-   --  @param Complete False when the file is longer than the bytes returned.
-   --  @return Leading bytes; ignore them when Success is False.
-   function Read_Preview_Text
-     (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
-private
+   --  Move a recovery payload nothing will restore any more -- its undo
+   --  history is ending with the window -- to the system trash under its
+   --  original name, and remove the hidden folder that held it.
+   --  @param Path Recognized application recovery payload.
+   --  @return Success when the payload is in the trash.
+   function Release_Recovery_Payload (Path : String) return Mutation_Result;
+
+   --  Return recoverable replacement payloads recorded across directories.
+   --  Stale or damaged registry entries are omitted. A pure query: it
+   --  changes nothing on disk (see Sweep_Recovery_Registry).
+   --  @return Valid registered replacement-recovery payload paths.
+   function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector;
+
+   --  Finish interrupted recovery work the registry records: drop stale and
+   --  duplicate records, resume a stopped release, and remove a stage whose
+   --  payload a restore or release moved out on purpose. A stage another
+   --  operation is still filling is left alone, so this is safe to run while
+   --  other processes preserve, restore or release.
+   procedure Sweep_Recovery_Registry;
+
+   --  Preserve an overwritten destination in a location this application can restore.
+   --  Native trash backends use an adjacent recovery backup instead of the OS bin.
+   --  @param Path Destination to preserve before replacement.
+   --  @param Recovery_Path Payload for rollback and Undo.
+   --  @return Result of preserving the destination.
+   function Preserve_For_Replace
+     (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result;
 
    --  Whether an entry is hidden: a leading dot in its name, or the host's
    --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's

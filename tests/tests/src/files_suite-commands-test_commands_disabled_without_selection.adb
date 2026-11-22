@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Models;
@@ -78,11 +79,11 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
          "info toggle executes with no selection");
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "info toggle opens the info pane with no selection");
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info toggle opens the info pane with no selection");
       --  Restore the closed state so later assertions see no transient panes.
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info toggle closes the pane again");
+      Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "a second info toggle closes the pane again");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

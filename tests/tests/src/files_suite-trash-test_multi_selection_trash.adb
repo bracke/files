@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Trash)
@@ -26,7 +27,7 @@ separate (Files_Suite.Trash)
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,
             "refresh loads multi-delete targets");
-         Files.Model.Set_Filter (Model, "multi-");
+         Files.Model.Filtering.Set_Filter (Model, "multi-");
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
@@ -47,7 +48,7 @@ separate (Files_Suite.Trash)
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,
             "refresh loads partial-delete targets");
-         Files.Model.Set_Filter (Model, "partial-");
+         Files.Model.Filtering.Set_Filter (Model, "partial-");
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
          Ada.Directories.Delete_File (Join (Root, "partial-b.txt"));

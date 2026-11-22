@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -68,7 +69,7 @@ separate (Files_Suite.Transfer)
       declare
          Backup : Files.Types.UString;
       begin
-         Mutation := Files.File_System.Preserve_For_Replace (Join (Parent, "copy"), Backup);
+         Mutation := Files.File_System.Recovery_Registry.Preserve_For_Replace (Join (Parent, "copy"), Backup);
          Assert (Mutation.Success and then Is_Owner_Only
                  (Ada.Directories.Containing_Directory (To_String (Backup))),
                  "replacement recovery directories are private too");

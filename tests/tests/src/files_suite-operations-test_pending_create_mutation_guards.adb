@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -26,7 +27,7 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
-            Files.Model.Begin_Create_File (Model, "pending.txt");
+            Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
             Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
             Assert
               (Files.Model.Selection.Includes_Temporary (Model)
@@ -53,7 +54,8 @@ separate (Files_Suite.Operations)
                  (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": status");
                Files_Suite.Support.Assert_Equal
                  (Files.Model.Last_Error_Key (Model), "error.create.pending", Context & ": error key");
-               Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
+               Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
+                       Context & ": the inline creation stays active");
                Assert (not Files.Model.History.Undo_Available (Model), Context & ": no Undo entry");
                Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Operation (Model)),
                        Context & ": no background operation");
@@ -91,7 +93,7 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
       Load := Files_Suite.Listings.Load_Directory (Join (Root, "view"), Settings);
       Files.Model.Initialize (Model, Join (Root, "view"), Load.Items, Root);
-      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       declare
          Sources : Files.Types.String_Vectors.Vector;
          Outcome : Files.Controller.Controller_Result;
@@ -106,7 +108,8 @@ separate (Files_Suite.Operations)
               (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": status");
             Files_Suite.Support.Assert_Equal
               (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
-            Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
+            Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
+                    Context & ": the inline creation stays active");
             Assert (not Files.Model.Foreground_Job_Is_Active (Model), Context & ": no paste execution");
             Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), Context & ": no paste conflict");
             Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
@@ -123,7 +126,7 @@ separate (Files_Suite.Operations)
             "error.create.pending",
             "external drops share the pending-create paste guard: error key");
          Assert
-           (Files.Model.Temporary_Item_Is_Active (Model),
+           (Files.Model.Creation.Temporary_Item_Is_Active (Model),
             "external drops share the pending-create paste guard: the inline creation stays active");
          Assert
            (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
@@ -20,7 +21,7 @@ separate (Files_Suite.Trash)
          Write_File (Join (Root, "nowhere-b.txt"));
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Filter (Model, "nowhere-");
+         Files.Model.Filtering.Set_Filter (Model, "nowhere-");
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
          --  The Finder may take an item without saying where it put it:

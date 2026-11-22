@@ -1,8 +1,10 @@
+with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The Details view's column header row: its labels, sort marks, dividers
    --  and accessibility nodes.
    procedure Draw_Details_Header is
+      use Files.Rendering.Layouts.Details;
       Header    : constant Details_Header_Layout :=
         Details_Header_Geometry (Snapshot, Layout, Line_Height);
       Content_X : constant Natural := Header.Content.X;

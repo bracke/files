@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Details)
    function Details_Header_Geometry
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;

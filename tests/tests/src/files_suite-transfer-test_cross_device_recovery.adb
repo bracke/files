@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System.Testing;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -54,7 +55,7 @@ separate (Files_Suite.Transfer)
         (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success,
          "lock source deletion but permit copying");
       Paths.Append (To_Unbounded_String (Tree));
-      Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
       Result := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Result.Success and then not Ada.Directories.Exists (Tree),
               "a copied directory move commits by atomically vacating the source pathname");

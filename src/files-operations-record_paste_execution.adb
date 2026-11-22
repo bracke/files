@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Paste_States;
 with Files.Model.Clipboard;
 separate (Files.Operations)
@@ -36,7 +37,7 @@ begin
    --  the moves recorded below, so the item now at the path does not end
    --  up with two of each.
    for Given of Replaced loop
-      Files.Model.Note_Path_Move (Model, To_String (Given.Original.Target), To_String (Given.Original.Trash));
+      Files.Model.Recent.Note_Path_Move (Model, To_String (Given.Original.Target), To_String (Given.Original.Trash));
    end loop;
    if not Written.Is_Empty or else Has_Kept then
       if Mode = Files.File_System.Drop_Move then

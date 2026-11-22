@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Model.Jobs;
 with Files.Input_Actions;
 with Files.Application.Window_Polls;
@@ -49,9 +50,9 @@ package body Files_Suite.Operations_Support is
       for Attempt in Polling loop
          Files.Application.Window_Polls.Poll_Selected_Item_Extra
            (Model, Files.Application.Extra_Info_Reader.Requester (77));
-         exit when not Files.Model.Selected_Item_Needs_Extra (Model);
+         exit when not Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model);
       end loop;
-      Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
+      Assert (not Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
    end Await_Item_Details;
 
    procedure Unlock_Directory (Directory : String) is

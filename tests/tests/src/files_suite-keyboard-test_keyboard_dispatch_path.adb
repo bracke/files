@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Model.Settings_Pane;
@@ -99,7 +100,7 @@ separate (Files_Suite.Keyboard)
       begin
          Files_Suite.Support.Models.Select_Name (Model, "Gamma.md");
          Assert
-           (not Files.Model.Info_Pane_Is_Open (Model),
+           (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model),
             "the info pane starts closed before the toggle key");
          Files.Interaction.Handle_Key
            (Model             => Model,
@@ -113,7 +114,7 @@ separate (Files_Suite.Keyboard)
             Files.Commands.Toggle_Info_Pane_Command,
             "Ctrl+4 dispatched through Handle_Key reports the toggle-info-pane command");
          Assert
-           (Files.Model.Info_Pane_Is_Open (Model),
+           (Files.Model.Info_Pane.Info_Pane_Is_Open (Model),
             "the key seam toggles the info pane open in the model");
       end;
 

@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
@@ -33,14 +35,14 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model), "error.command.recent_view",
          "disabled recent-view create reports the recent view without starting an edit (error key)");
       Assert
-        (not Files.Model.Temporary_Item_Is_Active (Model),
+        (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
          "disabled recent-view create reports the recent view without starting an edit (no edit started)");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operation_Results.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.command.recent_view",
          "disabled recent-view paste reports the recent view");
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model)
          and then not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Contents_Command, Model),

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 separate (Files.Job_Drivers.Operation.Advance)
 procedure Apply_Snapshot is
 begin
@@ -8,12 +9,12 @@ begin
    end if;
    Files.Model.Set_Directory_Signature (Model, Done.Signature);
    if Done.Kind in Search_Names | Search_Contents then
-      Files.Model.Note_Search_Results
+      Files.Model.Filtering.Note_Search_Results
         (Model,
          (if Done.Kind = Search_Names then Files.UI_Types.Search_Names
           else Files.UI_Types.Search_Contents));
    else
-      Files.Model.Clear_Search_Results (Model);
+      Files.Model.Filtering.Clear_Search_Results (Model);
       if Length (Done.Selection) > 0 then
          declare
             Selected : constant Boolean :=

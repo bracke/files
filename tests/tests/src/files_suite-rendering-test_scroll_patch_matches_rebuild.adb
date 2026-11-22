@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Model.Tree_Panel;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
@@ -15,7 +16,8 @@ separate (Files_Suite.Rendering)
          Revision : constant Natural := Files.Model.Revision (Model);
          Scroll   : constant Natural := Files.Model.Scroll_Revision (Model);
          function Offsets return String is
-           (Files.Model.Main_View_Scroll_Lines (Model)'Image & Files.Model.Info_Pane_Scroll_Lines (Model)'Image
+           (Files.Model.Main_View_Scroll_Lines (Model)'Image & Files.Model.Info_Pane.Info_Pane_Scroll_Lines
+             (Model)'Image
             & Files.Model.Tree_Panel.Scroll_Rows (Model)'Image);
          Before   : constant String := Offsets;
       begin
@@ -29,7 +31,7 @@ separate (Files_Suite.Rendering)
             Step & ": the scroll revision moves exactly when an offset did");
          --  What Refresh_Snapshot does for Patch_Scroll.
          Patched.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
-         Patched.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
+         Patched.Info_Pane_Scroll_Lines := Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
          Patched.Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel.Scroll_Rows (Model);
          Assert
            (Patched = Files.Rendering.Build_Snapshot (Model, Settings),
@@ -38,8 +40,8 @@ separate (Files_Suite.Rendering)
 
       procedure Main is begin Files.Model.Scroll_Main_View (Model, 2); end Main;
       procedure Main_Set is begin Files.Model.Set_Main_View_Scroll_Lines (Model, 0); end Main_Set;
-      procedure Info is begin Files.Model.Scroll_Info_Pane (Model, 3); end Info;
-      procedure Info_Set is begin Files.Model.Set_Info_Pane_Scroll_Lines (Model, 0); end Info_Set;
+      procedure Info is begin Files.Model.Info_Pane.Scroll_Info_Pane (Model, 3); end Info;
+      procedure Info_Set is begin Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 0); end Info_Set;
       procedure Tree is begin Files.Model.Tree_Panel.Scroll (Model, 1); end Tree;
       procedure Tree_Set is begin Files.Model.Tree_Panel.Set_Scroll_Rows (Model, 0); end Tree_Set;
    begin
@@ -71,8 +73,8 @@ separate (Files_Suite.Rendering)
          Files.Model.Tree_Panel.Seed (Model, Roots);
       end;
       Files.Model.Selection.Select_Visible (Model, 1);
-      if not Files.Model.Info_Pane_Is_Open (Model) then
-         Files.Model.Toggle_Info_Pane (Model);
+      if not Files.Model.Info_Pane.Info_Pane_Is_Open (Model) then
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       end if;
       Check ("scroll the view", Main'Access);
       Check ("set the view's offset", Main_Set'Access);

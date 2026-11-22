@@ -1,3 +1,6 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Command_Reasons; use Files.Command_Reasons;
 with Files.IO.Fs_Primitives;
 with Files.File_System.Trash;
@@ -52,7 +55,7 @@ separate (Files.Commands.Status)
 
       --  No inline file or folder creation is pending.
       function No_Pending_Create return Command_Status is
-        (Require (not Files.Model.Temporary_Item_Is_Active (Model), Create_Pending_Reason));
+        (Require (not Files.Model.Creation.Temporary_Item_Is_Active (Model), Create_Pending_Reason));
 
       --  The view is not the trash payload directory.
       function Not_Trash_View return Command_Status is
@@ -60,7 +63,7 @@ separate (Files.Commands.Status)
 
       --  The view is not the virtual recent-items list.
       function Not_Recent_View return Command_Status is
-        (Require (not Files.Model.In_Recent_View (Model), Recent_View_Reason));
+        (Require (not Files.Model.Recent.In_Recent_View (Model), Recent_View_Reason));
 
       --  An ordinary directory view: neither the trash nor the recent list.
       function Ordinary_View return Command_Status is
@@ -165,11 +168,11 @@ separate (Files.Commands.Status)
                       (Model, Files.Model.Root_Selector.Selected_Index (Model)),
                     Eject_Unavailable_Reason));
          when Clear_Filter_Command =>
-            return Require (Files.Model.Filter_Text (Model) /= "", Filter_Empty_Reason);
+            return Require (Files.Model.Filtering.Filter_Text (Model) /= "", Filter_Empty_Reason);
          when Search_Recursive_Command | Search_Contents_Command =>
             return
               All_Of
-                (Require (Files.Model.Filter_Text (Model) /= "", Filter_Empty_Reason),
+                (Require (Files.Model.Filtering.Filter_Text (Model) /= "", Filter_Empty_Reason),
                  Not_Recent_View, Has_Directory);
          when Select_All_Command | Invert_Selection_Command =>
             return All_Of (Require (Files.Model.Visible_Count (Model) > 0), No_Pending_Create);
@@ -205,7 +208,7 @@ separate (Files.Commands.Status)
          when Clear_Recent_Command =>
             --  Stale recent paths are omitted from the virtual listing, so an
             --  empty view can still have persisted entries that need clearing.
-            return Require (Files.Model.In_Recent_View (Model));
+            return Require (Files.Model.Recent.In_Recent_View (Model));
          when Undo_Command =>
             return Require (Files.Model.History.Undo_Available (Model));
          when Redo_Command =>

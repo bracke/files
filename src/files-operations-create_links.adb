@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Name_Parts;
 
 separate (Files.Operations)
@@ -37,7 +38,7 @@ begin
    if Files.Model.Selection.Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Directory = ""
-     or else Files.Model.In_Recent_View (Model)
+     or else Files.Model.Recent.In_Recent_View (Model)
      or else Is_Trash_Directory (Directory)
    then
       return Disabled (Model, "error.link.failed");

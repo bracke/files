@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Model.Context_Menu;
@@ -91,8 +92,8 @@ separate (Files_Suite.Context_Menu)
             declare
                Menu_Snapshot : constant Files.Rendering.View_Snapshot :=
                  Files.Rendering.Build_Snapshot (Model, Settings);
-               Menu : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-                 Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Menu_Snapshot, Window_W, Window_H, Line);
+               Menu : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+                 Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Menu_Snapshot, Window_W, Window_H, Line);
                On_Menu : constant Files.Input_Actions.Input_Action :=
                  Right_Click (Menu.X + Menu.Width / 2, Menu.Y + Menu.Height / 2);
             begin

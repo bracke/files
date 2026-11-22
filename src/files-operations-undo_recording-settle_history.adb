@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 separate (Files.Operations.Undo_Recording)
 procedure Settle_History (Model : in out Files.Model.Window_Model) is
    Discarded, Released : Files.Types.String_Vectors.Vector;
@@ -7,7 +8,7 @@ begin
    --  The model queues a payload only once no stack holds its entry, so
    --  nothing can still restore it from here.
    for Payload of Discarded loop
-      if Files.File_System.Is_Recovery_Payload (To_String (Payload)) then
+      if Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Payload)) then
          declare
             Result : constant Files.File_System.Mutation_Result :=
               Files.File_System.Trash.Delete_Trashed_Item (To_String (Payload));
@@ -18,10 +19,10 @@ begin
       end if;
    end loop;
    for Payload of Released loop
-      if Files.File_System.Is_Recovery_Payload (To_String (Payload)) then
+      if Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Payload)) then
          declare
             Result : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Release_Recovery_Payload (To_String (Payload));
+              Files.File_System.Recovery_Registry.Release_Recovery_Payload (To_String (Payload));
             pragma Unreferenced (Result);
          begin
             null;

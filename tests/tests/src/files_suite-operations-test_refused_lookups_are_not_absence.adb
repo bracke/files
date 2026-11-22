@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.IO.Fs_Primitives.Testing;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -63,7 +64,7 @@ separate (Files_Suite.Operations)
          Plan    : Files.File_System.Drop_Import_Result;
       begin
          Sources.Append (To_Unbounded_String (Join (Incoming, "kept.txt")));
-         Plan := Files.File_System.Plan_Drop_Import (Sources, Root);
+         Plan := Files.File_System.Transfer.Plan_Drop_Import (Sources, Root);
          Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          Assert (Natural (Plan.Plans.Length) = 1, "one plan for one source");
          Assert (not Plan.Plans.First_Element.Valid

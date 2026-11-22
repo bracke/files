@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.Name_Parts;
 
 separate (Files.Operations)
@@ -130,7 +131,7 @@ begin
                Replaced_Trash, Replaced_Identity : Files.Types.UString;
                Created_Identity, Created_Tree_Revision : Files.Types.UString;
                Mutation : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Import_Replacing
+                 Files.File_System.Transfer.Import_Replacing
                    (Source                => To_String (Action.Source_Path),
                     Destination           => To_String (Action.Dest_Path),
                     Mode                  => Files.Model.Pasting.Execution_Mode (Model),

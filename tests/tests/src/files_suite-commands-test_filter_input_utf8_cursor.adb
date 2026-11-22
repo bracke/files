@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -52,7 +53,7 @@ separate (Files_Suite.Commands)
             "filter Right moves over whole UTF-8 input");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "ab",
             "filter Backspace removes whole UTF-8 input");
          Files_Suite.Support.Assert_Equal
@@ -63,7 +64,7 @@ separate (Files_Suite.Commands)
          Files.Model.Set_Text_Cursor_Position (Model, 1);
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "ab",
             "filter Delete removes whole UTF-8 input");
          Files_Suite.Support.Assert_Equal
@@ -100,7 +101,7 @@ separate (Files_Suite.Commands)
             "filter Right moves over base and trailing combining marks together");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "b",
             "filter Backspace removes base and trailing combining marks together");
          Files_Suite.Support.Assert_Equal
@@ -111,7 +112,7 @@ separate (Files_Suite.Commands)
          Files.Model.Set_Text_Cursor_Position (Model, 0);
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "b",
             "filter Delete removes base and trailing combining marks together");
          Files_Suite.Support.Assert_Equal
@@ -123,7 +124,7 @@ separate (Files_Suite.Commands)
            Files.Controller.Append_Focused_Text
              (Model, Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#)));
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             Combining_Text,
             "filter append can add a trailing combining mark");
          Files_Suite.Support.Assert_Equal

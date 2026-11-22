@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.Operation_Results;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -25,7 +26,8 @@ separate (Files_Suite.History)
                begin
                   return
                     (case Kind is
-                        when Files.Undo.History.Create_Copy => Files.File_System.Copy_Tree (Source, Dest).Success,
+                        when Files.Undo.History.Create_Copy => Files.File_System.Transfer.Copy_Tree
+                          (Source, Dest).Success,
                         when Files.Undo.History.Create_Symbolic_Link =>
                           Files.File_System.Create_Symbolic_Link (Source, Dest).Success,
                         when Files.Undo.History.Create_Hard_Link =>

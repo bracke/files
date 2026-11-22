@@ -1,6 +1,8 @@
+with Files.Rendering.Layouts.Menus;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    --  The context menu.
    procedure Draw_Context_Menu is
+      use Files.Rendering.Layouts.Menus;
       use type Files.Commands.Context_Menu_Row_Kind;
       Menu : constant Context_Menu_Layout :=
         Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);

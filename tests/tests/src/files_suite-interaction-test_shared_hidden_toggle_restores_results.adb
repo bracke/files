@@ -1,3 +1,5 @@
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files_Suite.Support.Disk;
@@ -31,31 +33,31 @@ separate (Files_Suite.Interaction)
       begin
          Files.Model.Initialize (Model, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end;
-      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the results hold the hidden match");
       Select_Name (Model, "Beta.txt");
-      Files.Model.Set_Info_Pane_Scroll_Lines (Model, 4);
+      Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 4);
 
       --  Another window hides hidden files.
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
-      Assert (Files.Model.Search_Results_Are_Active (Model), "the window still shows its search results");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the window still shows its search results");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the hidden match leaves the view");
       Assert_Equal (Files.Model.Item_Count (Model), 3, "but stays among the results");
       Assert (Files.Model.Visible_Index_Of (Model, Join (Root, ".hidden_two")) = 0, "the hidden match is not a row");
       Assert (Selected_Name = "Beta.txt", "the selection stays");
-      Assert_Equal (Files.Model.Info_Pane_Scroll_Lines (Model), 4, "the info pane keeps its scroll");
+      Assert_Equal (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 4, "the info pane keeps its scroll");
 
       --  And shows them again: the hidden match comes back without a search.
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
-      Assert (Files.Model.Search_Results_Are_Active (Model), "the results stay when hidden files show again");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the results stay when hidden files show again");
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the hidden match is back in view");
       Assert (Files.Model.Visible_Index_Of (Model, Join (Root, ".hidden_two")) > 0, "as a row of its own");
       Assert (Selected_Name = "Beta.txt", "the selection stays again");
-      Assert_Equal (Files.Model.Info_Pane_Scroll_Lines (Model), 4, "and so does the info pane's scroll");
+      Assert_Equal (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 4, "and so does the info pane's scroll");
 
       --  A selected hidden match that leaves the view leaves the selection.
       Select_Name (Model, ".hidden_two");

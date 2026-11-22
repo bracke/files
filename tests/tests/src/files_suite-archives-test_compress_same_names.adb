@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -19,7 +20,7 @@ separate (Files_Suite.Archives)
       --  under a numbered name, rather than failing on the shared name.
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Filter (Model, "readme");
+      Files.Model.Filtering.Set_Filter (Model, "readme");
       Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success, "the search runs");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the search finds both files");

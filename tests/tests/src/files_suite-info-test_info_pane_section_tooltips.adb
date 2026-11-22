@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -24,7 +25,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tip.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);

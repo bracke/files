@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
@@ -34,7 +35,7 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Child);
          Ada.Directories.Create_Directory (Parent);
          Write_Binary_File (Join (Source, "original"), "original bytes");
-         Mutation := Files.File_System.Copy_Tree (Source, Join (Child, "copy"));
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Child, "copy"));
          Assert (not Mutation.Success, "the copy operation itself refuses its own descendants");
          Check_Source;
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
@@ -55,7 +56,7 @@ separate (Files_Suite.Transfer)
          Assert (Hostkit.Fs.Create_Link (Child, Parent), "redirect the destination parent into the source");
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Source));
-         Plans := Files.File_System.Plan_Drop_Import
+         Plans := Files.File_System.Transfer.Plan_Drop_Import
            (Paths, Parent, Files.File_System.Drop_Copy);
          Assert
            (not Plans.Success
@@ -68,7 +69,7 @@ separate (Files_Suite.Transfer)
             Write_Binary_File (Stay, "stay");
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Stay));
-            Plans := Files.File_System.Plan_Drop_Import
+            Plans := Files.File_System.Transfer.Plan_Drop_Import
               (Paths, Parent, Files.File_System.Drop_Move);
             Assert
               (Plans.Success, "a move through an alias to the same directory is planned as a no-op: planned");
@@ -91,7 +92,7 @@ separate (Files_Suite.Transfer)
                "the aliased same-directory move keeps the original name and bytes: no renamed copy");
             Ada.Directories.Delete_File (Stay);
          end;
-         Mutation := Files.File_System.Copy_Tree (Source, Dest);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          Assert (not Mutation.Success, "direct copies resolve destination-parent aliases");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);

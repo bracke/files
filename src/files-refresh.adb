@@ -1,3 +1,7 @@
+with Files.Model.Recent;
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Model.Jobs;
 with Files.Protocol_Names;
 with Files.Quick_Look.Preparation;
@@ -206,7 +210,7 @@ package body Files.Refresh is
          Previous => Files.Model.Directory_Signature_Of (Model),
          --  A failed listing must be retried even when the directory signature
          --  is unchanged. Preserve operation errors, which a reload cannot fix.
-         Recent => Files.Model.In_Recent_View (Model),
+         Recent => Files.Model.Recent.In_Recent_View (Model),
          Force => Force or else Previous_Error = Files.IO.Errors.Directory_Load_Key,
          --  An empty value means preserve the selection that is current when
          --  the read completes. A nonempty operation-requested name wins.
@@ -214,7 +218,7 @@ package body Files.Refresh is
          Error_Key => (if Previous_Error = Files.IO.Errors.Directory_Load_Key then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
-      if not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)) then
+      if not Force and then (Work.Recent or else Files.Model.Filtering.Search_Results_Are_Active (Model)) then
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       elsif Files.Model.Foreground_Job_Is_Active (Model) then
          --  The modal job's own result may not cover this read (a show-hidden
@@ -223,7 +227,7 @@ package body Files.Refresh is
          Files.Model.Note_Owed_Refresh (Model, Force => Force, Select_Name => Select_Name);
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       elsif not Force
-        and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
+        and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Creation.Temporary_Item_Is_Active (Model)
                   or else Files.Model.Command_Palette.Is_Open (Model))
       then
          --  Replacing the items now would drop the edit or close the palette:
@@ -313,7 +317,7 @@ package body Files.Refresh is
       --  The primary item as the info pane shows it, details and all.
       Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;
-      Previous_Info    : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+      Previous_Info    : constant Natural := Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
       --  A refresh of the folder in view keeps where the user was: its
       --  scroll, and a Quick Look whose item is still there.
       Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
@@ -326,7 +330,7 @@ package body Files.Refresh is
          Files.Model.Navigate_Recent (Model, Items);
       else
          Files.Model.Replace_Items (Model, Items);
-         Files.Model.Clear_Search_Results (Model);
+         Files.Model.Filtering.Clear_Search_Results (Model);
       end if;
       if Length (Work.Selection) > 0 then
          declare
@@ -346,7 +350,7 @@ package body Files.Refresh is
       --  So does the info pane, on the same item: its scroll, and the
       --  details read for it unless a forced reload (a settings change,
       --  an explicit refresh) may have changed what they depend on.
-      Files.Model.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
+      Files.Model.Info_Pane.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
       if Previewing
         and then Previewed /= ""
         and then To_String (Files.Model.Selection.Selected_Item (Model).Full_Path) = Previewed
@@ -393,7 +397,7 @@ package body Files.Refresh is
          return False;
       elsif Files.Model.Command_Palette.Is_Open (Model)
         or else Files.Model.Rename.Is_Active (Model)
-        or else Files.Model.Temporary_Item_Is_Active (Model)
+        or else Files.Model.Creation.Temporary_Item_Is_Active (Model)
       then
          --  Replacing the items would close the palette or drop the edit the
          --  user opened while this read ran: keep the result until they finish.
@@ -406,7 +410,7 @@ package body Files.Refresh is
       Cancel (Model); --  Job keeps the finished transport alive through result collection.
       Work := Read_Request (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Request_File));
       Matching := Work.Root = Files.Model.Current_Path (Model)
-        and then Work.Recent = Files.Model.In_Recent_View (Model)
+        and then Work.Recent = Files.Model.Recent.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
         and then Files.Settings.Same_Listing (Work.Settings, Settings, Work.Recent);
       if not Matching and then not Cancelled
@@ -810,12 +814,12 @@ package body Files.Refresh is
       Show_Hidden : Boolean) is
    begin
       if not Files.Model.Background_Transfers (Model)
-        and then Files.Model.Selected_Item_Needs_Extra (Model)
+        and then Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model)
       then
          declare
             Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
          begin
-            Files.Model.Set_Selected_Item_Extra
+            Files.Model.Info_Pane.Set_Selected_Item_Extra
               (Model,
                Files.File_System.Extra_Info_Of
                  (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));

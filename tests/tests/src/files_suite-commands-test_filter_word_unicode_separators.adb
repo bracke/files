@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Unicode_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -22,7 +23,7 @@ separate (Files_Suite.Commands)
             "Control+Left treats UTF-8 NBSP as word separator");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "beta",
             "Control+Backspace removes previous word across UTF-8 NBSP");
 
@@ -34,7 +35,7 @@ separate (Files_Suite.Commands)
             "filter click positions cursor before UTF-8 NBSP");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "alpha",
             "Control+Delete removes next word across UTF-8 NBSP");
       end;
@@ -55,7 +56,7 @@ separate (Files_Suite.Commands)
             "Control+Left stops before a word of multibyte letters");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             Uber,
             "Control+Backspace removes a whole multibyte word");
 
@@ -66,7 +67,7 @@ separate (Files_Suite.Commands)
          Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             Cafe,
             "Control+Delete removes the next multibyte word");
 
@@ -78,7 +79,7 @@ separate (Files_Suite.Commands)
             "Control+Left stops before a word of CJK letters");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             Tesuto,
             "Control+Backspace removes a whole CJK word");
       end;

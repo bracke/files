@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
@@ -9,7 +10,7 @@ begin
    --  A press on a header separator begins a column resize and takes
    --  precedence over the sort click on the header cell behind it.
    declare
-      Separator : constant Files.Rendering.Layouts.Detail_Column_Separator :=
+      Separator : constant Files.Rendering.Layouts.Details.Detail_Column_Separator :=
         Files.Rendering.Hit.Details_Header_Separator_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Separator.Present then
@@ -26,7 +27,7 @@ begin
    --  release when the press never crossed the drag threshold, so a reorder
    --  drag never also fires a sort click.
    declare
-      Cell : constant Files.Rendering.Layouts.Detail_Header_Cell :=
+      Cell : constant Files.Rendering.Layouts.Details.Detail_Header_Cell :=
         Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Cell.Present then

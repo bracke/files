@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
@@ -75,7 +76,7 @@ separate (Files_Suite.Trash)
                     "guarded rename restores the same dangling link by identity");
             Ada.Directories.Create_Directory (Output);
             Sources.Append (To_Unbounded_String (Link));
-            Planned := Files.File_System.Plan_Drop_Import (Sources, Output);
+            Planned := Files.File_System.Transfer.Plan_Drop_Import (Sources, Output);
             Assert (Planned.Success and then Planned.Plans.First_Element.Valid,
                     "drop planning accepts a dangling source link");
             Result := Files.File_System.Testing.Execute_Drop_Import (Planned.Plans);
@@ -109,7 +110,7 @@ separate (Files_Suite.Trash)
                Ada.Directories.Create_Directory (Nested);
                Assert (Hostkit.Fs.Create_Link ("../missing", Join (Nested, "broken")),
                        "create a nested dangling-link fixture");
-               Result := Files.File_System.Copy_Tree (Output, Copied);
+               Result := Files.File_System.Transfer.Copy_Tree (Output, Copied);
                Assert (Result.Success, "recursive copies preserve every nested dangling link: copied");
                Assert
                  (Hostkit.Fs.Is_Link (Join (Copied, "trash-link")),

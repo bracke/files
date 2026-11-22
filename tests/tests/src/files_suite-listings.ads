@@ -48,7 +48,7 @@ package Files_Suite.Listings is
       Settings  : Files.Settings.Settings_Model)
       return Files.File_System.Item_Load_Result;
 
-   --  Files.File_System.Search_Names by Settings.
+   --  Files.File_System.Search.Search_Names by Settings.
    --
    --  @param Root_Path Directory where the search starts.
    --  @param Query Name fragment.
@@ -62,7 +62,7 @@ package Files_Suite.Listings is
       Max_Items : Natural := Files.File_System.Max_Search_Results)
       return Files.File_System.Recursive_Search_Result;
 
-   --  Files.File_System.Search_Contents by Settings.
+   --  Files.File_System.Search.Search_Contents by Settings.
    --
    --  @param Root_Path Directory where the search starts.
    --  @param Query Text looked for.

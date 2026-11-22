@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.IO.Durability.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -31,7 +32,7 @@ separate (Files_Suite.Transfer)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       --  Syncing the stage once the original has moved into it fails.
       Files.IO.Durability.Testing.Fail_Stage_Sync;
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       Files.IO.Durability.Testing.Clear;
       Assert (not Result.Success, "the preserve reports the failed sync");
       Files_Suite.Support.Assert_Equal (Length (Backup), 0, "no backup is left to recover from");

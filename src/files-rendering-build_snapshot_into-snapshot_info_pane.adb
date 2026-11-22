@@ -1,3 +1,4 @@
+with Files.Model.Ownership_Input;
 with Files.File_System_Types;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The info pane's rows: one per selected item, up to Max_Info_Items, and
@@ -103,8 +104,8 @@ separate (Files.Rendering.Build_Snapshot_Into)
             Editing : Info_Snapshot := Snapshot.Selected_Info.First_Element;
          begin
             Editing.Ownership_Buffer :=
-              To_Unbounded_String (Files.Model.Ownership_Input_Text (Model));
-            if Files.Model.Ownership_Editing_Group (Model) then
+              To_Unbounded_String (Files.Model.Ownership_Input.Ownership_Input_Text (Model));
+            if Files.Model.Ownership_Input.Ownership_Editing_Group (Model) then
                Editing.Group_Editing := True;
             else
                Editing.Owner_Editing := True;

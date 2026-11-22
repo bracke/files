@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.File_System.Search;
 with Files.File_Types;
 with Files.UI_Types;
 separate (Files.Operations)
@@ -8,7 +10,7 @@ function Run_Search
    return Operation_Result
 is
    use type Files.UI_Types.Search_Scope;
-   Query   : constant String := Files.Model.Filter_Text (Model);
+   Query   : constant String := Files.Model.Filtering.Filter_Text (Model);
    Root    : constant String := Files.Model.Current_Path (Model);
    Classes : constant Files.File_Types.Classification := Files.File_Types.Classification_Of (Settings);
    Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
@@ -24,15 +26,15 @@ begin
    declare
       Found : constant Files.File_System.Recursive_Search_Result :=
         (if Scope = Files.UI_Types.Search_Contents
-         then Files.File_System.Search_Contents (Root, Query, Classes, Options)
-         else Files.File_System.Search_Names (Root, Query, Classes, Options));
+         then Files.File_System.Search.Search_Contents (Root, Query, Classes, Options)
+         else Files.File_System.Search.Search_Names (Root, Query, Classes, Options));
    begin
       if not Found.Success then
          Files.Model.Set_Error (Model, To_String (Found.Error_Key));
          return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
       end if;
       Files.Model.Replace_Items (Model, Found.Items);
-      Files.Model.Note_Search_Results (Model, Scope);
+      Files.Model.Filtering.Note_Search_Results (Model, Scope);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
       --  A partial answer is still shown, with a notice that it is one: a
       --  limit cut it short, or something under the root went unsearched.

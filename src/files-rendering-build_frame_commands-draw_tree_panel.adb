@@ -1,8 +1,10 @@
+with Files.Rendering.Layouts.Tree;
 with Guikit.Menu_Tree;
 
 separate (Files.Rendering.Build_Frame_Commands)
    --  The folder tree panel, and its pick bar when choosing a destination.
    procedure Draw_Tree_Panel is
+      use Files.Rendering.Layouts.Tree;
       --  Over everything while it picks a destination.
       As_Overlay : constant Boolean := Snapshot.Tree_Pick_Active;
       --  Drawn here, then added to the layer the panel is on.

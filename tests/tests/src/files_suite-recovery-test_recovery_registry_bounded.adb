@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -83,7 +84,7 @@ separate (Files_Suite.Recovery)
             Ada.Streams.Stream_IO.Close (File);
          end;
       end if;
-      Files.File_System.Sweep_Recovery_Registry;
+      Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
       Assert (not Ada.Directories.Exists (Stale),
               "a registry record whose stage no longer exists is reclaimed");
 
@@ -108,7 +109,7 @@ separate (Files_Suite.Recovery)
                Ada.Streams.Stream_IO.Close (File);
             end;
          end loop;
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          for Copy of Copies loop
             if Ada.Directories.Exists (Join (Registry, ".files-recovery-" & Copy)) then
                Left := Left + 1;

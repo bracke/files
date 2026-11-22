@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
@@ -71,7 +72,7 @@ separate (Files_Suite.Transfer)
          --  stage deleted behind its back leaves that job's lease held open in
          --  the folder TMP names, and Windows cannot delete an open file.
          Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
-         Mutation := Files.File_System.Copy_Tree (Source, Dest);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          Assert
            (Mutation.Success and then File_Has_Bytes (Dest, "copied bytes") and then File_Is (Source, "copied bytes"),
             "copying into the temporary directory succeeds and keeps its source");
@@ -113,7 +114,7 @@ separate (Files_Suite.Transfer)
          begin
             Assert (Add_Inherited_Ace (Name'Address) = 1, "give the destination folder an extra inheritable ACE");
          end;
-         Mutation := Files.File_System.Copy_Tree (Source, Dest);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          Assert (Mutation.Success and then File_Has_Bytes (Dest, "copied bytes"), "copy a file into that folder");
          Assert
            (Inherits (Dest),
@@ -225,7 +226,7 @@ separate (Files_Suite.Transfer)
                   Files.Operation_Results.Operation_Success,
                   "background copy through a restrictive default ACL");
             else
-               Mutation := Files.File_System.Copy_Tree (Source, Dest);
+               Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
                Assert (Mutation.Success, "foreground copy through a restrictive default ACL");
             end if;
             Assert (File_Has_Bytes (Dest, "copied bytes") and then File_Is (Source, "copied bytes"),

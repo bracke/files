@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files_Suite.Listings;
 with Files.Operations.Undo_Recording;
 with Files.File_System.Trash;
@@ -26,12 +27,12 @@ separate (Files_Suite.Model)
       --  A native backend keeps a replaced original in a private recovery
       --  folder that only the undo entry referencing it can restore.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success, "Replace keeps the original");
-      Assert (Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Assert (Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "the kept original is a recovery payload");
       Write_Binary_File (Join (Root, "rejected.txt"), "rejected");
-      Result := Files.File_System.Preserve_For_Replace (Join (Root, "rejected.txt"), Rejected);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Join (Root, "rejected.txt"), Rejected);
       Assert (Result.Success, "Replace keeps the second original");
 
       --  The oldest entry references the payload; pushing past the depth cap

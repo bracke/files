@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -41,14 +42,14 @@ separate (Files_Suite.Search)
          for Contents in Boolean loop
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Set_Filter (Model, "needle");
+            Files.Model.Filtering.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
             Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,
               Files.UI_Types.Search_Contents)
                      else Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
             Step := Complete_Operation (Model, Settings, Step);
             Assert (Step.Status = Files.Operation_Results.Operation_Success
-                    and then Files.Model.Search_Results_Are_Active (Model),
+                    and then Files.Model.Filtering.Search_Results_Are_Active (Model),
                     "a capped search succeeds, background " & Background'Image & ", contents " & Contents'Image);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Item_Count (Model), Files.File_System.Max_Search_Results,

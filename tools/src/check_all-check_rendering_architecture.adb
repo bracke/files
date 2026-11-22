@@ -149,12 +149,17 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model"),
             To_Unbounded_String ("Files.Model.Clipboard"),
             To_Unbounded_String ("Files.Model.Context_Menu"),
+            To_Unbounded_String ("Files.Model.Creation"),
+            To_Unbounded_String ("Files.Model.Filtering"),
             To_Unbounded_String ("Files.Model.Folder_Sizes"),
+            To_Unbounded_String ("Files.Model.Info_Pane"),
             --  The foreground progress the info pane and dialog show, read.
             To_Unbounded_String ("Files.Model.Jobs"),
             To_Unbounded_String ("Files.Model.Label_Picker"),
+            To_Unbounded_String ("Files.Model.Ownership_Input"),
             To_Unbounded_String ("Files.Model.Pasting"),
             To_Unbounded_String ("Files.Model.Quick_Look"),
+            To_Unbounded_String ("Files.Model.Recent"),
             To_Unbounded_String ("Files.Model.Rename"),
             To_Unbounded_String ("Files.Model.Root_Selector"),
             To_Unbounded_String ("Files.Model.Selection"),
@@ -166,6 +171,9 @@ separate (Check_All)
             To_Unbounded_String ("Files.Rendering.Geometry"),
             To_Unbounded_String ("Files.Rendering.Labels"),
             To_Unbounded_String ("Files.Rendering.Layouts"),
+            To_Unbounded_String ("Files.Rendering.Layouts.Details"),
+            To_Unbounded_String ("Files.Rendering.Layouts.Menus"),
+            To_Unbounded_String ("Files.Rendering.Layouts.Tree"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
@@ -273,7 +281,7 @@ separate (Check_All)
          Require_At_Most ("files-rendering.adb", 133);
          Require_At_Most ("files-rendering-layouts.adb", 407);
          Require_At_Most ("files-rendering-geometry.adb", 584);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 670);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 671);
          Require_At_Most ("files-application-windows.adb", 1_000);
       end;
    end Check_Rendering_Architecture;

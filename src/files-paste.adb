@@ -130,7 +130,7 @@ package body Files.Paste is
 
    --  A destination path derived from Desired that collides with neither
    --  Existing nor Claimed, numbered by First_Free_Name -- the numbering a
-   --  drop gives too (Files.File_System.Plan_Drop_Import).
+   --  drop gives too (Files.File_System.Transfer.Plan_Drop_Import).
    function Unique_Path
      (Dir          : String;
       Name         : String;

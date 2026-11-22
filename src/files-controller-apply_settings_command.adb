@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
@@ -138,7 +139,7 @@ begin
             --  Rebuild the (now empty) recent view in place so it reflects the
             --  cleared list without leaving the view or touching history.
             --  Listing clears the error line; the save's report stays on it.
-            if Files.Model.In_Recent_View (Model) then
+            if Files.Model.Recent.In_Recent_View (Model) then
                declare
                   Reported : constant String := Files.Model.Last_Error_Key (Model);
                   Listed   : constant Files.Operation_Results.Operation_Result :=

@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  A file with extended attributes copies onto a volume that holds none
@@ -48,7 +49,7 @@ separate (Files_Suite.Transfer)
          end;
          Remove_Target;
          Ada.Directories.Create_Directory (Target);
-         Mutation := Files.File_System.Copy_Tree (Source, Arrived);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Arrived);
          Assert
            (Mutation.Success, "the copy onto a volume without streams succeeds: " & To_String (Mutation.Error_Key));
          Assert (File_Has_Bytes (Arrived, "downloaded"), "and holds the file's bytes");
@@ -85,7 +86,7 @@ separate (Files_Suite.Transfer)
          Refused_Before : constant Interfaces.C.long_long := Xattr_Refusals;
       begin
          Ada.Environment_Variables.Set ("FILES_TEST_XATTR_UNSUPPORTED", "1");
-         Mutation := Files.File_System.Copy_Tree (Source, Copy);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Copy);
          Ada.Environment_Variables.Clear ("FILES_TEST_XATTR_UNSUPPORTED");
          Assert (Mutation.Success, "the copy succeeds: " & To_String (Mutation.Error_Key));
          Assert (File_Has_Bytes (Copy, "downloaded"), "and holds the file's bytes");

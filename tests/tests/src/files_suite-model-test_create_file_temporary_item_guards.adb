@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
@@ -14,7 +16,7 @@ separate (Files_Suite.Model)
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      Files.Model.Filtering.Set_Filter (Model, "does-not-match-untitled");
       --  Open a gap in the untitled names before creating.
       Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
@@ -22,7 +24,7 @@ separate (Files_Suite.Model)
         (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "create command opens a temporary item at the first name gap (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          "untitled 2.txt",
          "create command uses first name gap");
       Files_Suite.Support.Assert_Equal

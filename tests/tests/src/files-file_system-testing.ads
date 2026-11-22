@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 --  Test-only entry points into the trash backends (the application moves
 --  items with Files.File_System.Move_To_Trash, which picks the backend itself)
 --  and summaries of what the program reports, which only the suite reads.
@@ -233,7 +234,7 @@ package Files.File_System.Testing is
    --  @return Mutation result with a localized error key on failure.
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Job_Cancelled;
+      Cancel : Cancellation_Check := Files.File_System.Transfer.Job_Cancelled;
       Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 

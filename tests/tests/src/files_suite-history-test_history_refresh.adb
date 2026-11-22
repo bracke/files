@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -53,7 +54,7 @@ separate (Files_Suite.History)
                         Error_Key,
                         "refresh preserves the history action's final success or failure state");
                      Files_Suite.Support.Assert_Equal
-                       (Files.Model.In_Recent_View (Model),
+                       (Files.Model.Recent.In_Recent_View (Model),
                         Recent,
                         "history refresh preserves the active view");
                   end Check_Refresh;

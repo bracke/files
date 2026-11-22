@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 separate (Files.Controller)
    function Handle_Targeted_Scroll
      (Model  : in out Files.Model.Window_Model;
@@ -47,7 +48,7 @@ separate (Files.Controller)
                end if;
             end if;
          when Files.Input_Actions.Scroll_Info_Pane =>
-            if Files.Model.Info_Pane_Is_Open (Model) then
+            if Files.Model.Info_Pane.Info_Pane_Is_Open (Model) then
                return Scroll_Result (Model, Target, Lines);
             end if;
          when Files.Input_Actions.Scroll_Tree_Panel =>

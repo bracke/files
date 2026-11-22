@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Tree;
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The folder-tree panel: its close button, rows, scrollbar and pick bar.
@@ -39,8 +40,8 @@ begin
       --  sits over the bottom of the tree and is hit-tested before the rows.
       if Snapshot.Tree_Pick_Active then
          declare
-            Buttons : constant Files.Rendering.Layouts.Tree_Pick_Button_Layout :=
-              Files.Rendering.Layouts.Tree_Pick_Buttons (Tree_Panel_L);
+            Buttons : constant Files.Rendering.Layouts.Tree.Tree_Pick_Button_Layout :=
+              Files.Rendering.Layouts.Tree.Tree_Pick_Buttons (Tree_Panel_L);
          begin
             if Buttons.Visible then
                if Within (X, Buttons.Choose_X, Buttons.Button_Width)
@@ -58,8 +59,8 @@ begin
          end;
       end if;
       declare
-         Tree_Rows_L         : constant Files.Rendering.Layouts.Tree_Row_Layout_Vectors.Vector :=
-           Files.Rendering.Layouts.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
+         Tree_Rows_L         : constant Files.Rendering.Layouts.Tree.Tree_Row_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Tree.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
          Tree_Triangle_Index : constant Natural := Files.Rendering.Hit.Tree_Triangle_At (Tree_Rows_L, X, Y);
          Tree_Node_Index     : constant Natural := Files.Rendering.Hit.Tree_Row_At (Tree_Rows_L, X, Y);
       begin

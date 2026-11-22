@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Folder_Size;
@@ -37,7 +38,7 @@ separate (Files_Suite.Interaction)
       Settings.Show_Hidden_Files := True;
       Load;
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the results hold the hidden item too");
-      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
       Select_Name (Model, "Beta.txt");
       --  On disk only: a reload would list it, the results do not.
       Write_File (Join (Root, "Gamma.txt"));
@@ -46,7 +47,7 @@ separate (Files_Suite.Interaction)
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
-      Assert (Files.Model.Search_Results_Are_Active (Model), "the window still shows its search results");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the window still shows its search results");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the hidden result goes, and nothing is read again");
       Assert (Name_At (1) = "Alpha.txt" and then Name_At (2) = "Beta.txt", "the results keep their order");
       Assert (Ada.Strings.Unbounded.To_String (Files.Model.Selection.Selected_Item (Model).Name) = "Beta.txt",
@@ -56,7 +57,7 @@ separate (Files_Suite.Interaction)
       Shared := Settings;
       Shared.Sort_Ascending := not Settings.Sort_Ascending;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
-      Assert (Files.Model.Search_Results_Are_Active (Model), "the results stay through a new order");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the results stay through a new order");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "with the same items");
       Assert (Name_At (1) = "Beta.txt" and then Name_At (2) = "Alpha.txt", "the new order applies to them");
 

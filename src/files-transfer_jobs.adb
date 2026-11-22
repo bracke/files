@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.Protocol_Names;
 with Files.Jobs.Records;
 with Files.Jobs.Helper_Modes;
@@ -54,7 +55,7 @@ package body Files.Transfer_Jobs is
              and then Has_Created_Identity
            else
              --  A failed move may still have kept its copy (see
-             --  Files.File_System.Import_Replacing); a revision never comes
+             --  Files.File_System.Transfer.Import_Replacing); a revision never comes
              --  without the identity it belongs to.
              (Has_Created_Identity or else not Has_Created_Revision)
              and then (not Result.Cancelled or else not Has_Trash));
@@ -261,11 +262,11 @@ package body Files.Transfer_Jobs is
    end Apply_Replacement_Checkpoint;
 
    --  A failed result that is the cancel: its key, read as a finished job's,
-   --  names no cause of its own (Files.File_System.Says_Only_Stopped), and
+   --  names no cause of its own (Files.File_System.Transfer.Says_Only_Stopped), and
    --  no original is held.
    function Is_Cancellation_Failure (Result : Job_Result) return Boolean is
      (not Result.Mutation.Success and then Length (Result.Trashed) = 0
-      and then Files.File_System.Says_Only_Stopped
+      and then Files.File_System.Transfer.Says_Only_Stopped
         (To_String (Result.Mutation.Error_Key), Files.File_System.Finished_Job));
 
    procedure Start
@@ -294,7 +295,7 @@ package body Files.Transfer_Jobs is
          if Length (Result.Trashed) > 0
            --  Read as a step's: a held original that a stop left held is
            --  what the user must learn, whatever stopped it.
-           and then Files.File_System.Says_Only_Stopped
+           and then Files.File_System.Transfer.Says_Only_Stopped
              (To_String (Result.Mutation.Error_Key), Files.File_System.Copy_Step)
          then
             Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
@@ -399,7 +400,7 @@ package body Files.Transfer_Jobs is
 
       --  The helper's one cancellation check. Import_Replacing is not handed
       --  it, but stops for the same marker through its default Cancel
-      --  (Files.File_System.Job_Cancelled, which is this function).
+      --  (Files.File_System.Transfer.Job_Cancelled, which is this function).
       function Cancelled return Boolean renames Files.Jobs.Context.Cancelled;
 
       procedure Save is
@@ -456,7 +457,7 @@ package body Files.Transfer_Jobs is
             declare
                Replaced, Replaced_Identity, Created_Identity, Created_Tree_Revision : Files.Types.UString;
                Mutation : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Import_Replacing
+                 Files.File_System.Transfer.Import_Replacing
                    (Source                => To_String (Action.Source_Path),
                     Destination           => To_String (Action.Dest_Path),
                     Mode                  => Mode,
@@ -483,7 +484,7 @@ package body Files.Transfer_Jobs is
             --  a raise around it, with the same routine. A kept copy holds
             --  the destination, so the original stays held.
             if Length (Result.Created_Identity) = 0 then
-               Files.File_System.Put_Back_Replaced
+               Files.File_System.Transfer.Put_Back_Replaced
                  (Result.Trashed, Result.Trashed_Identity, To_String (Action.Dest_Path), Result.Mutation);
             end if;
       end;

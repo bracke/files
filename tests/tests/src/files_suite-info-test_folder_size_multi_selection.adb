@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 separate (Files_Suite.Info)
    procedure Test_Folder_Size_Multi_Selection
@@ -20,7 +21,7 @@ separate (Files_Suite.Info)
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
 
       --  Select both folders with the info pane open, then request their sizes.
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Model.Selection.Select_All_Visible (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "both folders are selected");
       Files.Application.Window_Polls.Update_Folder_Size (Model);

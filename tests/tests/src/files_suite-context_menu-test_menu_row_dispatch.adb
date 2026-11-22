@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
@@ -22,8 +23,8 @@ separate (Files_Suite.Context_Menu)
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
-         Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-           Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+         Menu     : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+           Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
          Target_Row : Natural := 0;
          Row_X      : Natural;
          Row_Y      : Natural;
@@ -37,7 +38,7 @@ separate (Files_Suite.Context_Menu)
 
          Row_X := Menu.X + Menu.Width / 2;
          Row_Y :=
-           Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
+           Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
          Files_Suite.Support.Assert_Equal
            (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
             Target_Row,

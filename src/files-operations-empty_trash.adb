@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.File_Types;
 separate (Files.Operations)
 function Empty_Trash
@@ -38,7 +39,7 @@ begin
            Files.File_System.Trash.Delete_Trashed_Item (To_String (Item.Full_Path));
       begin
          if Mutation.Success then
-            Files.Model.Note_Path_Removed (Model, Labeled);
+            Files.Model.Recent.Note_Path_Removed (Model, Labeled);
          end if;
          if not Mutation.Success then
             Failed := Failed + 1;

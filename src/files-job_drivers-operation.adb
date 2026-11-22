@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Model.Jobs;
 with Files.IO.Record_Fields;
@@ -180,7 +182,8 @@ package body Files.Job_Drivers.Operation is
       Job  : Files.Jobs.Process.Session;
       Work : Request :=
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
-         Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
+         Recent => Files.Model.Recent.In_Recent_View (Model),
+         Query => To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model)),
          Selected => Files.Model.Selection.Selected_Items (Model), Settings => Settings,
          Context_Revision => 0,
          View_Incarnation => Files.Model.View_Incarnation (Model),

@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Command_Palette;
@@ -27,7 +28,7 @@ separate (Files_Suite.Commands)
          Files.Commands.Focus_Path_Input_Command,
          "Control+L focuses path input");
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "path focus clears stale error state");
-      Files.Model.Begin_Create_File (Model, "path-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "path-pending.txt");
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, "");
       Files_Suite.Support.Assert_Equal
@@ -102,7 +103,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Path_Input_Error_Key (Model),
          "error.path.missing",
          "invalid path input stores validation diagnostic");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid path input preserves temporary create state");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "invalid path input preserves temporary create state");
       Assert (Files.Model.Rename.Is_Active (Model), "invalid path input preserves rename state");
 
       Files.Controller.Testing.Replace_Focused_Text (Model, Target);
@@ -155,7 +157,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "path input commit clears focus");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "path input success clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "path input success clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "path input success clears rename state");
 
       Files.Model.Initialize (Model, Root, Items, Root);

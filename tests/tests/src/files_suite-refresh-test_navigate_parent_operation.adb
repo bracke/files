@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -215,7 +216,7 @@ separate (Files_Suite.Refresh)
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then Files.Model.Last_Error_Key (Trash_Model) = "error.drop.invalid_source",
                   "direct move cannot detach a trash payload from its metadata");
-               Files.Model.Begin_Create_File (Trash_Model, "orphaned-payload");
+               Files.Model.Creation.Begin_Create_File (Trash_Model, "orphaned-payload");
                Trash_Result := Files.Operations.Commit_Create_File (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled

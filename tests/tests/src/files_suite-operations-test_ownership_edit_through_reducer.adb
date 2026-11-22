@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files.Operation_Results;
@@ -35,7 +36,7 @@ separate (Files_Suite.Operations)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "reducer_own.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -74,7 +75,7 @@ separate (Files_Suite.Operations)
             "clicking the owner value yields an ownership-edit action");
          Assert (not Action.Edit_Group, "the owner action targets the owner (not group)");
 
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
             Settings          => Settings_Var,
@@ -86,7 +87,7 @@ separate (Files_Suite.Operations)
            (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Ownership_Input,
             "a stale ownership action cannot focus an editor in a closed pane");
 
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
          Files.Interaction.Apply_Input_Action
            (Model             => Model,

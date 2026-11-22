@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -32,9 +33,9 @@ separate (Files_Suite.Search)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
-         Files.Model.Set_Filter (Model, Query);
+         Files.Model.Filtering.Set_Filter (Model, Query);
          Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
-         Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
+         Assert (Files.Model.Filtering.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
                  "the search finds the one deep file for " & Query);
          Files.Model.Selection.Select_Visible (Model, 1);
       end Search;
@@ -104,13 +105,13 @@ separate (Files_Suite.Search)
            Files.Controller.Execute_Non_Settings_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
          pragma Unreferenced (Cleared);
       begin
-         Assert (not Files.Model.Search_Results_Are_Active (Model)
+         Assert (not Files.Model.Filtering.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = Entries (Root)
                  and then Files.Model.Selection.Select_By_Name (Model, "a"),
                  "Clear Filter lists the search root again, not the results");
       end;
       Search ("summary (copy).txt");
-      Files.Model.Clear_Filter (Model);
+      Files.Model.Filtering.Clear_Filter (Model);
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "notes.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);

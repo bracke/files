@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Tree;
 with Files.Extension_Labels;
 with Guikit.List_Panel;
 
@@ -62,8 +63,8 @@ separate (Files.Rendering)
         Calculate_Root_Path_Layout (Snapshot, Root_Selector);
       Breadcrumb_Rows : constant Breadcrumb_Segment_Layout_Vectors.Vector :=
         Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
-      Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
-        Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
+      Tree_Rows_Layout : constant Layouts.Tree.Tree_Row_Layout_Vectors.Vector :=
+        Layouts.Tree.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
 
       --  How much of a run starting at Start lies inside [0, Limit).
       function Clipped_Size (Start, Size, Limit : Natural) return Natural renames Guikit.Widgets.Clipped_Size;

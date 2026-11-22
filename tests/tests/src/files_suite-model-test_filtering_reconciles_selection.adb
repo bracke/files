@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
@@ -19,15 +20,15 @@ separate (Files_Suite.Model)
          --  drawn rows agree with the count that clicks and selection use.
          Search_Model : Files.Model.Window_Model := Sample_Model;
       begin
-         Files.Model.Set_Filter (Search_Model, "zzz-not-in-any-name");
-         Files.Model.Note_Search_Results (Search_Model, Files.UI_Types.Search_Contents);
+         Files.Model.Filtering.Set_Filter (Search_Model, "zzz-not-in-any-name");
+         Files.Model.Filtering.Note_Search_Results (Search_Model, Files.UI_Types.Search_Contents);
          Assert
            (Natural (Files.Model.Visible_Rows (Search_Model).Length) = Files.Model.Visible_Count (Search_Model)
             and then Files.Model.Visible_Count (Search_Model) = Files.Model.Item_Count (Search_Model),
             "search results draw every hit, matching the rows clicks map to");
       end;
       Files.Model.Selection.Select_Visible (Model, 3);
-      Files.Model.Set_Filter (Model, "alp");
+      Files.Model.Filtering.Set_Filter (Model, "alp");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Visible_Count (Model),
          1,
@@ -53,7 +54,7 @@ separate (Files_Suite.Model)
          Unicode_Items.Append
            (Files.File_System.Make_Item (Root, Upper_Name, Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize (Unicode_Model, Root, Unicode_Items, Root, Files.Preference_Types.Small_Icons);
-         Files.Model.Set_Filter (Unicode_Model, Lower_Query);
+         Files.Model.Filtering.Set_Filter (Unicode_Model, Lower_Query);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Visible_Count (Unicode_Model),
             1,
@@ -72,7 +73,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Index (Model),
          1,
          "single visible item movement keeps selection");
-      Files.Model.Clear_Filter (Model);
+      Files.Model.Filtering.Clear_Filter (Model);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 3);
@@ -80,7 +81,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Count (Model),
          3,
          "filter reconciliation starts from multi-selection");
-      Files.Model.Set_Filter (Model, "beta");
+      Files.Model.Filtering.Set_Filter (Model, "beta");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Visible_Count (Model),
          1,
@@ -93,7 +94,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Name (Model),
          "Beta.txt",
          "filter reconciliation keeps visible multi-selected item primary");
-      Files.Model.Set_Filter (Model, "zzz");
+      Files.Model.Filtering.Set_Filter (Model, "zzz");
       Files_Suite.Support.Assert_Equal (Files.Model.Visible_Count (Model), 0, "unmatched filter hides all items");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),

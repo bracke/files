@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 with Files.Item_Lists;
 with Guikit.Layout;
 with Guikit.Bidi;
@@ -412,20 +413,6 @@ package body Files.Model is
         (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean))
    is separate;
 
-   function In_Recent_View
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Recent_View_Active);
-
-   procedure Note_Recent_Open
-     (Model : in out Window_Model;
-      Path  : String) is separate;
-
-   function Take_Recent_Opens
-     (Model : in out Window_Model)
-      return Files.Types.String_Vectors.Vector
-   is separate;
-
    function Can_Go_Back
      (Model : Window_Model)
       return Boolean is
@@ -437,38 +424,6 @@ package body Files.Model is
      (not Model.Forward_History.Is_Empty);
 
    function Current_Is_Trash (Model : Window_Model) return Boolean is (Model.Current_Is_Trash_Value);
-
-   procedure Note_Path_Move
-     (Model : in out Window_Model;
-      From  : String;
-      To    : String) is
-   begin
-      if From /= "" and then To /= "" and then From /= To then
-         Model.Path_Move_Queue.Append
-           (Files.Types.Path_Move'
-              (From => To_Unbounded_String (From), To => To_Unbounded_String (To), Kind => Files.Types.Moved));
-      end if;
-   end Note_Path_Move;
-
-   procedure Note_Path_Removed
-     (Model : in out Window_Model;
-      Path  : String) is
-   begin
-      if Path /= "" then
-         Model.Path_Move_Queue.Append
-           (Files.Types.Path_Move'
-              (From => To_Unbounded_String (Path), To => Null_Unbounded_String, Kind => Files.Types.Removed));
-      end if;
-   end Note_Path_Removed;
-
-   function Take_Path_Moves
-     (Model : in out Window_Model)
-      return Files.Types.Path_Move_Vectors.Vector is
-   begin
-      return Moves : constant Files.Types.Path_Move_Vectors.Vector := Model.Path_Move_Queue do
-         Model.Path_Move_Queue.Clear;
-      end return;
-   end Take_Path_Moves;
 
    function View_Mode_Of
      (Model : Window_Model)
@@ -511,39 +466,6 @@ package body Files.Model is
          Sync_Grouping (Result, Settings);
       end return;
    end Grouped;
-
-   procedure Set_Filter
-     (Model : in out Window_Model;
-      Text  : String) is separate;
-
-   function Filter_Text
-     (Model : Window_Model)
-      return String is
-     (To_String (Model.Filter.Text));
-
-   procedure Clear_Filter
-     (Model : in out Window_Model) is separate;
-
-   function Search_Scope_Of
-     (Model : Window_Model)
-      return Files.UI_Types.Search_Scope is
-     (Model.Search_Scope_Value);
-
-   procedure Set_Search_Scope
-     (Model : in out Window_Model;
-      Scope : Files.UI_Types.Search_Scope) is separate;
-
-   function Search_Results_Are_Active
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Search_Results_Active);
-
-   procedure Note_Search_Results
-     (Model : in out Window_Model;
-      Scope : Files.UI_Types.Search_Scope) is separate;
-
-   procedure Clear_Search_Results
-     (Model : in out Window_Model) is separate;
 
    procedure Focus_Filter_Input
      (Model : in out Window_Model) is separate;
@@ -762,26 +684,6 @@ package body Files.Model is
    procedure Focus_Rename_Input
      (Model : in out Window_Model) is separate;
 
-   procedure Focus_Ownership_Input
-     (Model         : in out Window_Model;
-      Editing_Group : Boolean;
-      Account_Name  : String)
-   is separate;
-
-   function Ownership_Input_Text
-     (Model : Window_Model)
-      return String is
-     (To_String (Model.Ownership_Input.Edit.Text));
-
-   procedure Set_Ownership_Input_Text
-     (Model : in out Window_Model;
-      Text  : String) is separate;
-
-   function Ownership_Editing_Group
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Ownership_Input.Editing_Group);
-
    --  The currently focused text input (path, filter, rename, palette,
    --  settings or ownership field): its text and caret. The palette query
    --  and a settings value are edited whole, so their caret is at the end.
@@ -918,42 +820,6 @@ package body Files.Model is
    procedure Clear_Tree_Pick
      (Model : in out Window_Model) is separate;
 
-   procedure Toggle_Info_Pane
-     (Model : in out Window_Model) is separate;
-
-   function Selected_Item_Needs_Extra
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Set_Selected_Item_Extra
-     (Model : in out Window_Model;
-      Extra : Files.Extra_Info.Info) is separate;
-
-   function Info_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Info_Pane_Open);
-
-   procedure Scroll_Info_Pane
-     (Model : in out Window_Model;
-      Lines : Integer)
-   is separate;
-
-   function Info_Pane_Scroll_Lines
-     (Model : Window_Model)
-      return Natural is
-     (Model.Info_Pane_Scroll);
-
-   procedure Set_Info_Pane_Scroll_Lines
-     (Model : in out Window_Model;
-      Lines : Natural) is separate;
-
-   procedure Keep_Info_Pane
-     (Model      : in out Window_Model;
-      Previous   : Files.Items.Directory_Item;
-      Scroll     : Natural;
-      Keep_Extra : Boolean) is separate;
-
    procedure Set_Main_View_Scroll_Lines
      (Model : in out Window_Model;
       Lines : Natural) is separate;
@@ -967,29 +833,6 @@ package body Files.Model is
      (Model : Window_Model)
       return Natural is
      (Model.Main_View_Scroll);
-
-   procedure Begin_Create_File
-      (Model : in out Window_Model;
-       Name  : String) is separate;
-
-   procedure Begin_Create_Folder
-      (Model : in out Window_Model;
-       Name  : String) is separate;
-
-   function Temporary_Item_Is_Active
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Temporary.Active);
-
-   function Temporary_Item_Is_Directory
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Temporary.Is_Directory);
-
-   function Temporary_Item_Name
-     (Model : Window_Model)
-      return String is
-     (To_String (Model.Temporary.Name));
 
    procedure Cancel_Create_File
      (Model : in out Window_Model) is separate;

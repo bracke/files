@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -42,7 +43,7 @@ separate (Files_Suite.Trash)
          "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
          & ": refresh finished");
       Assert
-        (Files.Model.In_Recent_View (Model),
+        (Files.Model.Recent.In_Recent_View (Model),
          "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
          & ": still in Recent");
       Files_Suite.Support.Assert_Equal

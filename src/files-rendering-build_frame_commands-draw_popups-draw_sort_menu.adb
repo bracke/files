@@ -1,9 +1,10 @@
+with Files.Rendering.Layouts.Menus;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
    --  Shown where the click hit-test finds its rows: a menu laid out with
    --  no width (no sort button) is neither drawn nor hit.
    procedure Draw_Sort_Menu is
-      Menu      : constant Files.Rendering.Layouts.Sort_Menu_Layout :=
-        Files.Rendering.Layouts.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height);
+      Menu      : constant Files.Rendering.Layouts.Menus.Sort_Menu_Layout :=
+        Files.Rendering.Layouts.Menus.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height);
    begin
       if Menu.Width > 0 then
          declare
@@ -50,12 +51,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
                for Row in Rows'Range loop
                   declare
                      Field    : constant Files.Types.Sort_Field :=
-                       Files.Rendering.Layouts.Sort_Menu_Row_Field (Row);
+                       Files.Rendering.Layouts.Menus.Sort_Menu_Row_Field (Row);
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
                   begin
                      Rows (Row) :=
                        (Field    => Field,
-                        Y        => Files.Rendering.Layouts.Sort_Menu_Row_Top (Menu, Row),
+                        Y        => Files.Rendering.Layouts.Menus.Sort_Menu_Row_Top (Menu, Row),
                         Selected => Selected,
                         Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
                         Label    =>

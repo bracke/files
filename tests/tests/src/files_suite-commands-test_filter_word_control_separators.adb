@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -18,7 +19,7 @@ separate (Files_Suite.Commands)
          "Control+Left treats line feed as word separator");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Filter_Text (Model),
+        (Files.Model.Filtering.Filter_Text (Model),
          "beta",
          "Control+Backspace removes previous word across line feed");
 
@@ -37,7 +38,7 @@ separate (Files_Suite.Commands)
          "Control+Left treats vertical tab as word separator");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Filter_Text (Model),
+        (Files.Model.Filtering.Filter_Text (Model),
          "beta",
          "Control+Backspace removes previous word across vertical tab");
 
@@ -49,7 +50,7 @@ separate (Files_Suite.Commands)
          "filter click positions cursor before form feed");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Filter_Text (Model),
+        (Files.Model.Filtering.Filter_Text (Model),
          "alpha",
          "Control+Delete removes next word across form feed");
 
@@ -64,7 +65,7 @@ separate (Files_Suite.Commands)
             "Control+Left treats C1 NEL as word separator");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "beta",
             "Control+Backspace removes previous word across C1 NEL");
 
@@ -76,7 +77,7 @@ separate (Files_Suite.Commands)
             "filter click positions cursor before C1 NEL");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "alpha",
             "Control+Delete removes next word across C1 NEL");
       end;

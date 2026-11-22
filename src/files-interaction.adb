@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Info_Pane;
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -104,7 +106,7 @@ package body Files.Interaction is
       Settings_Path : String)
       return Boolean
    is
-      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Take_Path_Moves (Model);
+      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Recent.Take_Path_Moves (Model);
       Changed : Boolean := False;
       Updated : Files.Settings.Settings_Model := Settings;
    begin
@@ -141,7 +143,7 @@ package body Files.Interaction is
       Result        : in out Interaction_Result)
    is
       Opened : constant Files.Types.String_Vectors.Vector :=
-        Files.Model.Take_Recent_Opens (Model);
+        Files.Model.Recent.Take_Recent_Opens (Model);
    begin
       --  Renames and moves made by this action carry their labels along.
       if Follow_Path_Moves (Model, Settings, Settings_Path) then
@@ -179,7 +181,7 @@ package body Files.Interaction is
      (View      => Files.Model.View_Mode_Of (Model),
       Sort      => Files.Model.Sort_Field_Of (Model),
       Ascending => Files.Model.Sort_Is_Ascending (Model),
-      Info      => Files.Model.Info_Pane_Is_Open (Model));
+      Info      => Files.Model.Info_Pane.Info_Pane_Is_Open (Model));
 
    --  Write the global UI state a command changed in the model (against
    --  Before_UI, the model's state before it ran) into the settings record and

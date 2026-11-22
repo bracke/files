@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Models;
@@ -11,7 +12,7 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Before   : Natural;
    begin
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Model.Command_Palette.Open (Model);
       Before := Files.Model.Revision (Model);
 
@@ -44,7 +45,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Revision (Model), Before,
          "a stale background command cannot mutate behind the command palette (revision)");
       Assert
-        (Files.Model.Info_Pane_Is_Open (Model),
+        (Files.Model.Info_Pane.Info_Pane_Is_Open (Model),
          "a stale background command cannot mutate behind the command palette (info pane open)");
       Assert
         (Files.Model.Command_Palette.Is_Open (Model),

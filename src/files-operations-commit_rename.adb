@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Commit_Rename
   (Model    : in out Files.Model.Window_Model;
@@ -67,7 +68,7 @@ begin
    if not Files.Model.Rename.Is_Active (Model) or else Targets.Is_Empty then
       return Disabled (Model, "error.rename.disabled");
    elsif Current_Dir = ""
-     or else Files.Model.In_Recent_View (Model)
+     or else Files.Model.Recent.In_Recent_View (Model)
      or else Is_Trash_Directory (Current_Dir)
    then
       return Disabled (Model, "error.rename.disabled");

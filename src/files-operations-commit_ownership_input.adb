@@ -1,3 +1,4 @@
+with Files.Model.Ownership_Input;
 separate (Files.Operations)
 function Commit_Ownership_Input
   (Model    : in out Files.Model.Window_Model;
@@ -6,8 +7,8 @@ function Commit_Ownership_Input
 is
    use type Files.Types.Account_Id;
    Raw      : constant String :=
-     Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input_Text (Model), Ada.Strings.Both);
-   Group    : constant Boolean := Files.Model.Ownership_Editing_Group (Model);
+     Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input.Ownership_Input_Text (Model), Ada.Strings.Both);
+   Group    : constant Boolean := Files.Model.Ownership_Input.Ownership_Editing_Group (Model);
    Item     : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
    Resolved : Files.Types.Account_Id := 0;
    Found    : Boolean := False;

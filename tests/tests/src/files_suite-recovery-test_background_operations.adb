@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Model.Jobs;
@@ -78,14 +79,14 @@ separate (Files_Suite.Recovery)
                     & " exists=" & Boolean'Image (Ada.Directories.Exists (Join (Root, Archive))));
          end;
       end loop;
-      Files.Model.Set_Filter (Model, "needle");
+      Files.Model.Filtering.Set_Filter (Model, "needle");
       Step := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Finish;
-      Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
               "background name search returns recursive results");
       Step := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
       Finish;
-      Assert (Files.Model.Search_Results_Are_Active (Model),
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model),
               "background content search returns matches regardless of filename: search results active");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -95,7 +96,7 @@ separate (Files_Suite.Recovery)
         (Files.Model.Visible_Count (Model),
          2,
          "background content search returns matches regardless of filename: visible count");
-      Files.Model.Set_Filter (Model, "");
+      Files.Model.Filtering.Set_Filter (Model, "");
       Step := Files.Operations.Refresh (Model, Settings);
       Select_Name (Model, "a.txt");
       declare

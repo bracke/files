@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.IO.Fs_Primitives.Testing;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
@@ -20,8 +21,8 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "original");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          Payload : constant String := To_String (Backup);
@@ -35,23 +36,25 @@ separate (Files_Suite.Recovery)
          Hostkit.Lease_Files.Release (Marker);
 
          Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Payload);
-         Result := Files.File_System.Release_Recovery_Payload (Payload);
-         Files.File_System.Sweep_Recovery_Registry;
+         Result := Files.File_System.Recovery_Registry.Release_Recovery_Payload (Payload);
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
 
          Assert (not Result.Success, "a release that cannot see its payload does not finish");
          Assert (Ada.Directories.Exists (Payload), "the payload is still in its stage");
          Files_Suite.Support.Assert_Equal
            (Project_Tools.Files.Read_Raw_File (Payload), "original", "with the original's content");
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup), "and still registered");
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
+                 "and still registered");
 
          --  Once the host answers again, a payload that did leave lets the
          --  stopped release finish: the stage goes, and so does its record.
          Ada.Directories.Rename (Payload, Join (Root, "released-by-hand"));
-         Result := Files.File_System.Release_Recovery_Payload (Payload);
+         Result := Files.File_System.Recovery_Registry.Release_Recovery_Payload (Payload);
          Assert (Result.Success, "with the payload gone for sure, the stopped release finishes");
          Assert (not Ada.Directories.Exists (Stage), "its stage is removed");
-         Assert (not Files.File_System.Registered_Recovery_Payloads.Contains (Backup), "and its record forgotten");
+         Assert (not Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
+                 "and its record forgotten");
       end;
    exception
       when others =>

@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_System.Trash;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
@@ -19,8 +20,8 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "original");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          Stage  : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
@@ -33,22 +34,22 @@ separate (Files_Suite.Recovery)
                  "the release marker is made and held");
          Ada.Directories.Create_Directory (Holder);
          Ada.Directories.Rename (To_String (Backup), Held);
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Assert (Ada.Directories.Exists (Held), "a held release marker keeps the sweep from moving the payload back");
          Assert (not Ada.Directories.Exists (To_String (Backup)), "the payload slot stays empty while it is held");
          Assert (Ada.Directories.Exists (Stage), "nor does the sweep remove the stage");
-         Assert (not Files.File_System.Release_Recovery_Payload (To_String (Backup)).Success,
+         Assert (not Files.File_System.Recovery_Registry.Release_Recovery_Payload (To_String (Backup)).Success,
                  "a second release of the same payload is refused while the first holds the marker");
          Assert (Ada.Directories.Exists (Held), "and it leaves the held payload alone");
 
          --  The releasing process stops: its lease goes with it.
          Hostkit.Lease_Files.Release (Marker);
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Files_Suite.Support.Assert_Equal
            (Project_Tools.Files.Read_Raw_File (To_String (Backup)), "original",
             "once nothing holds the marker, the sweep resumes the release and puts the payload back");
          Assert (not Ada.Directories.Exists (Holder), "the release folder is gone again");
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
                  "the payload is registered and recoverable again");
          Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Backup)).Success,
                  "and it is discarded normally");

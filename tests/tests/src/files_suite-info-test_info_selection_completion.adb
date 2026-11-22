@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Models;
@@ -18,7 +19,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "a.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_End, Guikit.Input.No_Modifiers, Routed);

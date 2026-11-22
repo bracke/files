@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files_Suite.Support.Models;
@@ -29,7 +30,7 @@ separate (Files_Suite.Operations)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "perm_dir");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -73,7 +74,7 @@ separate (Files_Suite.Operations)
 
          --  A delayed click from a pane that has since closed must not chmod
          --  whichever item happens to be selected when it is reduced.
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
             Settings          => Settings_Var,
@@ -86,7 +87,7 @@ separate (Files_Suite.Operations)
             Before,
             "a stale permission action is inert after the info pane closes");
 
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
          Files.Interaction.Apply_Input_Action
            (Model             => Model,

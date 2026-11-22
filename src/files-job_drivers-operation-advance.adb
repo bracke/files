@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Job_Drivers.Operation)
 function Advance
   (Model : in out Files.Model.Window_Model;
@@ -46,7 +47,7 @@ is
      (Candidate : Request)
       return Boolean is
      (Candidate.Root = Files.Model.Current_Path (Model)
-      and then Candidate.Recent = Files.Model.In_Recent_View (Model)
+      and then Candidate.Recent = Files.Model.Recent.In_Recent_View (Model)
       and then Files.Settings.Same_Listing (Candidate.Settings, Settings, Candidate.Recent)
       and then Candidate.View_Incarnation = Files.Model.View_Incarnation (Model));
 

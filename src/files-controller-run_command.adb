@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
@@ -187,7 +188,7 @@ separate (Files.Controller)
             Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Pure_Command_Id =>
             declare
-               Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
+               Had_Results : constant Boolean := Files.Model.Filtering.Search_Results_Are_Active (Model);
             begin
                Execute_Pure_Command (Id, Model);
                Operation.Status := Files.Operation_Results.Operation_Success;

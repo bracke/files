@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Trash)
@@ -40,7 +41,7 @@ separate (Files_Suite.Trash)
             Guard_Load := Files_Suite.Listings.Load_Directory (Root, Guard_Settings);
             Assert (Guard_Load.Success, "guarded multi-delete setup loads");
             Files.Model.Initialize (Guard_Model, Root, Guard_Load.Items, Root);
-            Files.Model.Set_Filter (Guard_Model, "guard-preflight-");
+            Files.Model.Filtering.Set_Filter (Guard_Model, "guard-preflight-");
             Files.Model.Selection.Select_Visible (Guard_Model, 1);
             Files.Model.Selection.Toggle_Visible_Selection (Guard_Model, 2);
 

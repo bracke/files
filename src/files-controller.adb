@@ -1,3 +1,6 @@
+with Files.Model.Ownership_Input;
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
 with Files.Overlays.Settings_Form;
 with Files.IO.Fs_Primitives;
 with Files.Job_Drivers.Foreground;
@@ -123,7 +126,7 @@ package body Files.Controller is
         and then Before.Icon_Mappings = Settings.Icon_Mappings
       then
          null;
-      elsif Files.Model.Search_Results_Are_Active (Model) then
+      elsif Files.Model.Filtering.Search_Results_Are_Active (Model) then
          --  Search results have no folder to read again (a reload would
          --  replace them with the folder): the new settings apply to them in
          --  place.
@@ -441,7 +444,7 @@ package body Files.Controller is
          when Files.UI_Types.Focus_Path_Input =>
             Files.Model.Set_Path_Input_Text (Model, Text);
          when Files.UI_Types.Focus_Filter_Input =>
-            Files.Model.Set_Filter (Model, Text);
+            Files.Model.Filtering.Set_Filter (Model, Text);
          when Files.UI_Types.Focus_Rename_Input =>
             Files.Model.Rename.Set_Text (Model, Text);
          when Files.UI_Types.Focus_Command_Palette =>
@@ -459,7 +462,7 @@ package body Files.Controller is
                null;  --  a text edit updates the draft; Enter saves it (Commit_Focused_Text)
             end;
          when Files.UI_Types.Focus_Ownership_Input =>
-            Files.Model.Set_Ownership_Input_Text (Model, Text);
+            Files.Model.Ownership_Input.Set_Ownership_Input_Text (Model, Text);
          when Files.UI_Types.Focus_None =>
             null;
       end case;
@@ -653,7 +656,7 @@ package body Files.Controller is
       Bit      : Natural)
       return Controller_Result is
    begin
-      if not Files.Model.Info_Pane_Is_Open (Model)
+      if not Files.Model.Info_Pane.Info_Pane_Is_Open (Model)
         or else Files.Model.Input_Owning_Overlay_Is_Open (Model)
         or else Bit > 8
       then
@@ -669,7 +672,7 @@ package body Files.Controller is
       Group : Boolean)
       return Controller_Result is
    begin
-      if not Files.Model.Info_Pane_Is_Open (Model)
+      if not Files.Model.Info_Pane.Info_Pane_Is_Open (Model)
         or else Files.Model.Input_Owning_Overlay_Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
@@ -1014,7 +1017,7 @@ package body Files.Controller is
       return Natural is
      (case Target is
          when Files.Input_Actions.Scroll_Main_View     => Files.Model.Main_View_Scroll_Lines (Model),
-         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Info_Pane_Scroll_Lines (Model),
+         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          when Files.Input_Actions.Scroll_Tree_Panel    => Files.Model.Tree_Panel.Scroll_Rows (Model),
          when Files.Input_Actions.Scroll_Settings_Pane => Files.Model.Settings_Pane.Scroll_Offset (Model),
          when Files.Input_Actions.No_Scroll_Target
@@ -1032,7 +1035,7 @@ package body Files.Controller is
    begin
       case Target is
          when Files.Input_Actions.Scroll_Main_View     => Files.Model.Scroll_Main_View (Model, Lines);
-         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Scroll_Info_Pane (Model, Lines);
+         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines);
          when Files.Input_Actions.Scroll_Tree_Panel    => Files.Model.Tree_Panel.Scroll (Model, Lines);
          when Files.Input_Actions.Scroll_Settings_Pane => Files.Model.Settings_Pane.Scroll (Model, Lines);
          when Files.Input_Actions.No_Scroll_Target

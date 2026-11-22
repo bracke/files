@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -10,8 +11,8 @@ separate (Files_Suite.Interaction)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin
-      Files.Model.Toggle_Info_Pane (Model);
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "the info pane is open before the close click");
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "the info pane is open before the close click");
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
@@ -32,6 +33,6 @@ separate (Files_Suite.Interaction)
             Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (not Files.Model.Info_Pane_Is_Open (Model),
+        (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model),
          "clicking the info-pane close (X) button closes the info pane");
    end Test_Info_Pane_Close_Button_Closes;

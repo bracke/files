@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Model.Status_Samples;
@@ -152,7 +153,7 @@ separate (Files_Suite.Rendering)
       declare
          Rows : constant Natural := Files.Model.Rows_Revision (Model);
       begin
-         Files.Model.Set_Filter (Model, "Gamma");
+         Files.Model.Filtering.Set_Filter (Model, "Gamma");
          Assert (Files.Model.Rows_Revision (Model) /= Rows, "a filter change moves the rows revision");
       end;
    end Test_Selection_Patch_Matches_Rebuild;

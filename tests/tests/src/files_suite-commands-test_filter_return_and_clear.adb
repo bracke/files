@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Commands.Status;
@@ -32,7 +33,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "filter Return clears focus");
-      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "beta", "filter Return preserves text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "beta",
+                                        "filter Return preserves text");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Root, "filter Return does not navigate");
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl_Shift);
@@ -44,7 +46,8 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Clear_Filter_Command,
          "clear-filter command is routed");
-      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "",
+                                        "clear-filter command clears text");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Visible_Count (Model),
          3,

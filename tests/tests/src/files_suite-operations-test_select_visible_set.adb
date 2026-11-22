@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    --  Selecting a set of visible rows at once (a marquee drag): exactly those,
@@ -26,7 +27,7 @@ separate (Files_Suite.Operations)
          To_String (Files.Model.Visible_Item (Model, 3).Name),
          "the last one named is primary");
 
-      Files.Model.Set_Filter (Model, "ap");
+      Files.Model.Filtering.Set_Filter (Model, "ap");
       Files.Model.Selection.Select_Visible_Set (Model, [2]);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 1, "one row under the filter");
       Files_Suite.Support.Assert_Equal

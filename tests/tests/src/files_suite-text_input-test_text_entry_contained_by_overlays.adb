@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Input_Actions;
 with Files.Overlays.Settings_Form;
@@ -23,7 +24,7 @@ separate (Files_Suite.Text_Input)
 
       procedure Prepare_Background is
       begin
-         Files.Model.Set_Filter (Model, "");
+         Files.Model.Filtering.Set_Filter (Model, "");
          Files.Model.Selection.Reset_Type_Ahead (Model);
          Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          --  A retained field focus makes this exercise hidden-field editing as
@@ -40,14 +41,14 @@ separate (Files_Suite.Text_Input)
          Favorite_Before : constant Boolean :=
            Files.Settings.Path_References.Is_Favorite (Settings, Path_Before);
          Scope_Before : constant Files.UI_Types.Search_Scope :=
-           Files.Model.Search_Scope_Of (Model);
+           Files.Model.Filtering.Search_Scope_Of (Model);
       begin
          Files_Suite.Support.Assert_Equal
            (Text_Outcome.Status,
             Files.Controller.Controller_Ignored,
             Name & " ignores native character input");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Filter_Text (Model),
+           (Files.Model.Filtering.Filter_Text (Model),
             "",
             Name & " leaves a hidden focused field unchanged");
          Files_Suite.Support.Assert_Equal
@@ -64,7 +65,7 @@ separate (Files_Suite.Text_Input)
              (Model, Files.UI_Types.Focus_Filter_Input, 0);
          Assert
            (Click_Outcome.Status = Files.Controller.Controller_Ignored
-            and then Files.Model.Filter_Text (Model) = "",
+            and then Files.Model.Filtering.Filter_Text (Model) = "",
             Name & " rejects a delayed background text-field click");
 
          Click_Outcome :=
@@ -96,7 +97,7 @@ separate (Files_Suite.Text_Input)
             (Kind => Files.Input_Actions.Search_Scope_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Reduced);
          Assert
-           (Files.Model.Search_Scope_Of (Model) = Scope_Before,
+           (Files.Model.Filtering.Search_Scope_Of (Model) = Scope_Before,
             Name & " rejects a delayed search-scope click");
       end Assert_Contained;
    begin

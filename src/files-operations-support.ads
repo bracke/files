@@ -240,7 +240,7 @@ private package Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo);
 
-   --  Put a staged file or folder at Target, as Files.File_System.Publish_Staged
+   --  Put a staged file or folder at Target, as Files.File_System.Transfer.Publish_Staged
    --  does: never over an entry already there, flushed before and named
    --  after, intended and recorded as created. The one way Compress and
    --  Extract publish what they made.

@@ -7,6 +7,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Files.File_System;
+with Files.File_System.Recovery_Registry;
 with Files.IO.Fs_Primitives;
 with Files.Localization;
 with Hostkit.Fs;
@@ -124,7 +125,7 @@ package body Files.Recovery_CLI is
                Payload  : constant String := Hostkit.Fs.Join (Stage, Files.Protocol_Names.Stage_Payload);
                Original : constant String := Files.File_System.Trash.Trash_Original_Path (Payload);
             begin
-               if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then
+               if Files.File_System.Recovery_Registry.Is_Recovery_Payload (Payload) and then Original /= "" then
                   Ada.Text_IO.Put_Line (Escaped (Payload) & ASCII.HT & Escaped (Original));
                end if;
             end;
@@ -148,8 +149,8 @@ package body Files.Recovery_CLI is
       Payloads : Files.Types.String_Vectors.Vector;
    begin
       --  Finish interrupted work first, so the list shows what is left.
-      Files.File_System.Sweep_Recovery_Registry;
-      Payloads := Files.File_System.Registered_Recovery_Payloads;
+      Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
+      Payloads := Files.File_System.Recovery_Registry.Registered_Recovery_Payloads;
       for Payload of Payloads loop
          declare
             Path : constant String := To_String (Payload);
@@ -166,7 +167,7 @@ package body Files.Recovery_CLI is
 
    procedure Apply (Path : String; Restore : Boolean) is
    begin
-      if not Files.File_System.Is_Recovery_Payload (Path) then
+      if not Files.File_System.Recovery_Registry.Is_Recovery_Payload (Path) then
          Fail (Files.Localization.Text ("cli.recovery.error.not_payload") & ':' & ' ' & Path);
          return;
       end if;
@@ -209,7 +210,7 @@ package body Files.Recovery_CLI is
       else
          --  A path pasted from the list is read as the list printed it.
          Apply
-           ((if Files.File_System.Is_Recovery_Payload (Argument (2)) then Argument (2)
+           ((if Files.File_System.Recovery_Registry.Is_Recovery_Payload (Argument (2)) then Argument (2)
              else Unescaped (Argument (2))),
             Restore => Argument (1) = "--recover");
       end if;

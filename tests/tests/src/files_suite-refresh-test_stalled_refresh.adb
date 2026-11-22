@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -100,7 +101,7 @@ separate (Files_Suite.Refresh)
          Assert (not Files.Refresh.Poll_Watch (Watch), "watch polling never waits for registration or I/O");
       end loop;
       Assert_Within (Before, Prompt_Limit, "repeated UI polls return promptly while helpers are stalled");
-      Files.Model.Set_Filter (Model, "source");
+      Files.Model.Filtering.Set_Filter (Model, "source");
       Assert (not Files.Refresh.Advance (Model, Settings)
               and then not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "a model edit cancels even a refresh that cannot finish");

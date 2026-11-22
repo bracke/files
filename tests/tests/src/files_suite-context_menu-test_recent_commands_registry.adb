@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Items;
@@ -51,7 +52,7 @@ separate (Files_Suite.Context_Menu)
          Action            => Action,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
-      Assert (Files.Model.In_Recent_View (Model), "the reducer enters the recent view");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "the reducer enters the recent view");
       Assert (Files.Model.Item_Count (Model) > 0, "the recent view lists the stored path");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Recent_Command, Model),
               "Clear Recent is enabled in a non-empty recent view");

@@ -1,3 +1,5 @@
+with Files.Rendering.Layouts.Menus;
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Events;
@@ -130,7 +132,7 @@ package body Files_Suite.Interaction_Support is
    begin
       Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       Files_Suite.Support.Models.Select_Name (Model, "Gamma.md");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
    end Open_Targeted_Scroll_Fixture;
 
    --  Vertical centre of the main view in the compact targeted-scroll window.
@@ -335,8 +337,8 @@ package body Files_Suite.Interaction_Support is
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
-      Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+      Menu     : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
       Target_Row   : Natural := 0;
       Row_X, Row_Y : Natural;
    begin
@@ -352,7 +354,7 @@ package body Files_Suite.Interaction_Support is
       end if;
       Row_X := Menu.X + Menu.Width / 2;
       Row_Y :=
-        Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
+        Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
          Target_Row,
@@ -389,8 +391,8 @@ package body Files_Suite.Interaction_Support is
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
-      Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+      Menu     : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
    begin
       for Row in 1 .. Menu.Row_Count loop
          if Menu.Rows (Row).Command = Command then

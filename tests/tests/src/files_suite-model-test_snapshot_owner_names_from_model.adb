@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.File_System_Types;
 with Files.File_System.Permissions;
 with Files.Model.Status_Samples;
@@ -29,8 +30,8 @@ separate (Files_Suite.Model)
       Items.Append (Owned);
       Files.Model.Initialize (Model, Directory_Path => Root, Items => Items, Home_Path => "/home/test");
       Select_Name (Model, "Owned.txt");
-      if not Files.Model.Info_Pane_Is_Open (Model) then
-         Files.Model.Toggle_Info_Pane (Model);
+      if not Files.Model.Info_Pane.Info_Pane_Is_Open (Model) then
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       end if;
 
       declare

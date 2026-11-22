@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Commands.Status;
@@ -31,7 +32,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "error.filter.empty",
          "disabled clear-filter records error");
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is enabled with filter text");
@@ -44,7 +45,8 @@ separate (Files_Suite.Commands)
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Success,
          "enabled clear-filter reports successful state-only operation");
-      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears filter text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "",
+                                        "clear-filter command clears filter text");
       Model := Sample_Model;
       Files_Suite.Support.Models.Run_Command (Files.Commands.No_Command, Model);
       Files_Suite.Support.Assert_Equal

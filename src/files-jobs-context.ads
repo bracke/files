@@ -26,7 +26,7 @@ package Files.Jobs.Context is
    function Directory return String;
 
    --  Whether this helper's parent requested cancellation: the one check
-   --  every helper's work stops for (Files.File_System.Job_Cancelled). Cheap
+   --  every helper's work stops for (Files.File_System.Transfer.Job_Cancelled). Cheap
    --  enough to ask for every chunk copied: the marker is read at most every
    --  100 ms, and once seen a cancel stays seen.
    --  @return True once this helper's parent requested cancellation.

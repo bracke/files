@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Controller.Testing;
 with Files.Model.Command_Palette;
@@ -39,10 +40,10 @@ separate (Files_Suite.Commands)
 
       --  A New File row waiting for its name is handed back the same way.
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N starts a new file row");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "Control+N starts a new file row");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "the new file row has the keyboard again");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "and is still pending");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "and is still pending");
    end Test_Palette_Over_Rename_Returns_The_Keyboard;

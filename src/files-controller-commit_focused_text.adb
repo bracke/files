@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files.Controller)
    function Commit_Focused_Text
@@ -17,7 +18,7 @@ separate (Files.Controller)
             Operation.Status := Files.Operation_Results.Operation_Success;
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Filter_Input_Command, Operation);
          when Files.UI_Types.Focus_Rename_Input =>
-            if Files.Model.Temporary_Item_Is_Active (Model) then
+            if Files.Model.Creation.Temporary_Item_Is_Active (Model) then
                Operation := Files.Operations.Commit_Create_File (Model, Settings);
             else
                Operation := Files.Operations.Commit_Rename (Model, Settings);

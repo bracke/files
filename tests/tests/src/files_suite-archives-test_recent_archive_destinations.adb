@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -50,7 +52,7 @@ separate (Files_Suite.Archives)
             "Recent compression publishes beside the first selected source and preserves the complete view"
             & ": archive created");
          Assert
-           (Files.Model.In_Recent_View (Model),
+           (Files.Model.Recent.In_Recent_View (Model),
             "Recent compression publishes beside the first selected source and preserves the complete view"
             & ": still in Recent");
          Files_Suite.Support.Assert_Equal
@@ -58,7 +60,7 @@ separate (Files_Suite.Archives)
             2,
             "Recent compression publishes beside the first selected source and preserves the complete view"
             & ": item count");
-         Mutation := Files.File_System.Copy_Tree (Zip, Copy_Zip);
+         Mutation := Files.File_System.Transfer.Copy_Tree (Zip, Copy_Zip);
          Assert (Mutation.Success, "prepare an archive in another source directory");
          Ada.Directories.Create_Path (Join (Two, "note"));
          Files.Settings.Path_References.Note_Recent (Settings, Zip);
@@ -76,7 +78,7 @@ separate (Files_Suite.Archives)
             Files.Operation_Results.Operation_Success,
             "each Recent archive extracts beside itself with collision handling and leaves CWD intact: status");
          Assert
-           (Files.Model.In_Recent_View (Model),
+           (Files.Model.Recent.In_Recent_View (Model),
             "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
             & ": still in Recent");
          Assert

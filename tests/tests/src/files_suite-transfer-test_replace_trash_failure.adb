@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -52,7 +53,7 @@ separate (Files_Suite.Transfer)
 
       Files.File_Identities.Testing.Set_Unavailable (True);
       begin
-         Mutation := Files.File_System.Preserve_For_Replace (Dest, Backup);
+         Mutation := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       exception
          when others =>
             Files.File_Identities.Testing.Set_Unavailable (False);

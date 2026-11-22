@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -114,7 +115,7 @@ separate (Files_Suite.Transfer)
          Protect (Join (Source, "locked/child"), 8#444#);
          Protect (Join (Source, "locked"), 8#555#);
          Protect (Source, 8#555#);
-         Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "copy"));
+         Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
          Assert (Mutation.Success, "publish a copy of a read-only directory");
          Check (Source);
          Check (Join (Root, "copy"));

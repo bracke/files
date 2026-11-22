@@ -218,7 +218,7 @@ package Files.Interaction is
       Result        : out Interaction_Result);
 
    --  Make labels, favorites and recent entries follow the renames and moves
-   --  the model recorded (Files.Model.Note_Path_Move), and persist them.
+   --  the model recorded (Files.Model.Recent.Note_Path_Move), and persist them.
    --
    --  @param Model Model whose recorded moves are drained.
    --  @param Settings Live settings model updated in place.

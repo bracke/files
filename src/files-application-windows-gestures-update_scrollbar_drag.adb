@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
@@ -80,7 +81,7 @@ separate (Files.Application.Windows.Gestures)
 
          procedure Set_Info_Lines (Lines : Natural) is
          begin
-            Files.Model.Set_Info_Pane_Scroll_Lines (Runtime.Model, Lines);
+            Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Runtime.Model, Lines);
          end Set_Info_Lines;
 
          procedure Set_Tree_Rows (Rows : Natural) is

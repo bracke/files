@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,7 +18,7 @@ separate (Files_Suite.Open_Actions)
       Items.Append (Files.File_System.Make_Item (Root, "other-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.directory.load");
 
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
@@ -70,12 +71,13 @@ separate (Files_Suite.Open_Actions)
         (Files.Model.Last_Error_Key (Model),
          "",
          "directory open clears stale error state");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "directory open clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "directory open clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "directory open clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Rename.Text (Model), "", "directory open clears stale rename text");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          "",
          "directory open clears stale temporary name");
       Files_Suite.Support.Assert_Equal

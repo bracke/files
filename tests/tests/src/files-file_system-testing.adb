@@ -459,7 +459,7 @@ package body Files.File_System.Testing is
 
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Job_Cancelled;
+      Cancel : Cancellation_Check := Files.File_System.Transfer.Job_Cancelled;
       Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result
    is

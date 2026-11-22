@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -48,14 +50,15 @@ separate (Files_Suite.Operations)
               "a FIFO is never thumbnailed");
 
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
-      Files.Model.Set_Filter (Model, "needle");
+      Files.Model.Filtering.Set_Filter (Model, "needle");
       Step := Complete_Operation
         (Model, Settings, Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents));
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then Files.Model.Item_Count (Model) = 1,
               "content search reads the file and passes the FIFO by");
 
       declare
-         Copied : constant Files.File_System.Mutation_Result := Files.File_System.Copy_Tree (Dir, Join (Root, "copy"));
+         Copied : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Transfer.Copy_Tree (Dir, Join (Root, "copy"));
          pragma Unreferenced (Copied);
       begin
          Assert (Ada.Directories.Exists (Join (Dir, "note.txt")), "copying a tree with a FIFO returns, source intact");

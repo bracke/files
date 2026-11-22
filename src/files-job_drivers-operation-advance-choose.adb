@@ -1,10 +1,11 @@
+with Files.Model.Filtering;
 separate (Files.Job_Drivers.Operation.Advance)
 function Choose return Disposition is
    Succeeded : constant Boolean :=
      not Cancelled and then Done.Result.Status = Files.Operation_Results.Operation_Success;
 begin
    if Done.Kind in Search_Names | Search_Contents
-     and then (not Matches_Current_Context (Work) or else Work.Query /= Files.Model.Filter_Text (Model))
+     and then (not Matches_Current_Context (Work) or else Work.Query /= Files.Model.Filtering.Filter_Text (Model))
    then
       return Discard;
    elsif Done.Kind in Trash | Delete_Permanently | Restore | Empty_Trash | Undo | Redo

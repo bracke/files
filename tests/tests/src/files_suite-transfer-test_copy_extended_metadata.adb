@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Extended_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -59,7 +60,7 @@ separate (Files_Suite.Transfer)
       Prepare (Source, True);
       Original_File := Times_Of (Join (Source, "child"));
       Original_Directory := Times_Of (Source);
-      Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "copy"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
       Assert (Mutation.Success, "copy extended metadata fixture");
       Check (Join (Root, "copy"), True, Original_Directory);
       Check (Join (Root, "copy/child"), False, Original_File);

@@ -16,6 +16,9 @@ with Guikit.Text_Fields;
 --  window layer alike, so what is drawn and what is hit agree.
 package Files.Rendering.Layouts is
 
+   --  Pieces every region shares: the panel close button, the paddings, the
+   --  font box, the default window size.
+
    --  A panel's top-right close (X) button: Guikit's, which every panel --
    --  files' and guikit's own -- draws and hit-tests by.
    subtype Close_Button_Layout is Guikit.Layout.Close_Button_Layout;
@@ -38,46 +41,58 @@ package Files.Rendering.Layouts is
       Line_Height  : Positive)
       return Close_Button_Layout renames Guikit.Layout.Panel_Close_Button;
 
-   --  The laid-out context menu. Its rows are Files.Commands' own (selectable
-   --  commands and the non-selectable dividers that group them), so the
-   --  renderer, the hit-test and the keyboard navigation share one row set.
-   type Context_Menu_Layout is record
-      Visible          : Boolean := False;
-      X                : Natural := 0;
-      Y                : Natural := 0;
-      Width            : Natural := 0;
-      Height           : Natural := 0;
-      Row_Height       : Natural := 0;
-      Separator_Height : Natural := 0;
-      Padding          : Natural := 0;
-      Column_Count     : Positive := 1;
-      Column_Width     : Natural := 0;
-      Column_Break_Row : Natural := 0;
-      Row_Count        : Natural := 0;
-      Rows             : Files.Commands.Context_Menu_Row_Array;
-   end record;
-
-   --  Calculate the context-menu popup rectangle and per-row geometry.
+   --  An input field's inner padding at a line height: Guikit's, scaled with
+   --  the text past Guikit.Layout.Reference_Line_Height.
    --
-   --  @param Snapshot Active view snapshot.
-   --  @param Width Window width in pixels.
-   --  @param Height Window height in pixels.
+   --  @param Line_Height The line height in use.
+   --  @return The padding in pixels.
+   function Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height));
+
+   --  The inset of the bottom bar's status fields (the counts and the free
+   --  space) from their edges, which the splitter and the renderer share:
+   --  4 px at Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Status_Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (4, Line_Height));
+
+   --  The inset of a modal dialog's content from its frame: 12 px at
+   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Dialog_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (12, Line_Height));
+
+   --  Height of the font box a line of text is drawn in: four fifths of the
+   --  line height, the size guikit renders glyphs at.
+   --
    --  @param Line_Height Text line height in pixels.
-   --  @return Menu layout; Visible is false when no menu should be rendered.
-   function Calculate_Context_Menu_Layout
-     (Snapshot    : View_Snapshot;
-      Width       : Natural;
-      Height      : Natural;
-      Line_Height : Positive)
-      return Context_Menu_Layout;
+   --  @return Font box height in pixels.
+   function Font_Box_Height (Line_Height : Positive) return Natural
+   is (Guikit.Layout.Saturating_Multiply (Line_Height, 4) / 5);
+
+   --  A window's size when the settings name none, and the size the smoke
+   --  runs render at.
+   Default_Window_Width  : constant := 1024;
+
+   Default_Window_Height : constant := 768;
+
+   --  The main view: its items' cells, its scroll and reveal, the marquee,
+   --  the rename field, and the details columns' geometry.
 
    --  Per-item geometry is Guikit.Item_Grid's; the layout code here and its
    --  clients name it by these short names.
    subtype Item_Layout is Guikit.Item_Grid.Item_Layout;
+
    package Item_Layout_Vectors renames Guikit.Item_Grid.Item_Layout_Vectors;
+
    --  The item cells on screen only (Guikit.Item_Grid.Placed_Layout): what
    --  a frame draws and a pointer hits, without an entry per item.
    subtype Placed_Item_Layout is Guikit.Item_Grid.Placed_Layout;
+
    --  A placed layout's cell for a position: all-zero off screen.
    --
    --  @param Items Placed item cells.
@@ -113,240 +128,33 @@ package Files.Rendering.Layouts is
       Max_Scroll_Pixels : Natural := 0;
    end record;
 
-   --  Palette overlay geometry lives in Guikit.Layout; kept under the local
-   --  name so the renderer and event code read unchanged.
-   subtype Command_Palette_Layout is Guikit.Layout.Palette_Layout;
-
-   --  Geometry of the centered Quick Look overlay panel, its title and its
-   --  inner content region (inside the padding, below the title band).
-   type Quick_Look_Layout is record
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Title_X    : Natural := 0;
-      Title_Y    : Natural := 0;
-      Title_W    : Natural := 0;
-      Content_X  : Natural := 0;
-      Content_Y  : Natural := 0;
-      Content_Width  : Natural := 0;
-      Content_Height : Natural := 0;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   type Label_Swatch_Bounds is record
+   --  The main content rectangle: the main-view region inset on all sides by the
+   --  content padding, dropping the inset when the region is too small to hold
+   --  it. Shared by the item layout, the details header/rows, and their click
+   --  hit-tests so they agree on the drawable content area.
+   type Content_Rectangle is record
       X      : Natural := 0;
       Y      : Natural := 0;
       Width  : Natural := 0;
       Height : Natural := 0;
    end record;
 
-   type Label_Swatch_Array is
-     array (1 .. Files.UI_Types.Swatch_Count) of Label_Swatch_Bounds;
+   --  The main content rectangle for a window layout.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @return The padded main-view content rectangle.
+   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle;
 
-   --  Geometry of the centered color-label picker overlay: the outer panel,
-   --  its title and its row of clickable swatches. Swatches 1 .. 7
-   --  correspond to the colors Red .. Gray (Files.Preference_Types.Real_Color_Label in
-   --  order); the last, Files.UI_Types.Clear_Swatch, is the "None" clear swatch.
-   type Label_Picker_Layout is record
-      X           : Natural := 0;
-      Y           : Natural := 0;
-      Width       : Natural := 0;
-      Height      : Natural := 0;
-      Title_X     : Natural := 0;
-      Title_Y     : Natural := 0;
-      Title_W     : Natural := 0;
-      Swatch_Size : Natural := 0;
-      Swatches    : Label_Swatch_Array;
-      Visible     : Boolean := False;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   type Root_Selector_Layout is record
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Row_Height : Natural := 0;
-      --  The selector's inner padding at the line height it was laid out for.
-      Padding    : Natural := 8;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   --  Geometry of the centered paste-conflict dialog: the outer panel, its four
-   --  action buttons (left to right) and the "apply to all" toggle row.
-   type Conflict_Dialog_Layout is record
-      X            : Natural := 0;
-      Y            : Natural := 0;
-      Width        : Natural := 0;
-      Height       : Natural := 0;
-      Message_X      : Natural := 0;
-      Message_Y      : Natural := 0;
-      Message_Width  : Natural := 0;
-      Message_Height : Natural := 0;
-      Apply_X      : Natural := 0;
-      Apply_Y      : Natural := 0;
-      Apply_Width  : Natural := 0;
-      Apply_Height : Natural := 0;
-      Button_Y      : Natural := 0;
-      Button_Height : Natural := 0;
-      Replace_X    : Natural := 0;
-      Skip_X       : Natural := 0;
-      Rename_X     : Natural := 0;
-      Cancel_X     : Natural := 0;
-      Button_Width : Natural := 0;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   --  Geometry of the centered paste-progress overlay: the outer panel, the
-   --  progress-bar track, and the single Cancel button.
-   type Paste_Progress_Layout is record
-      X             : Natural := 0;
-      Y             : Natural := 0;
-      Width         : Natural := 0;
-      Height        : Natural := 0;
-      Message_X      : Natural := 0;
-      Message_Y      : Natural := 0;
-      Message_Width  : Natural := 0;
-      Message_Height : Natural := 0;
-      Bar_X         : Natural := 0;
-      Bar_Y         : Natural := 0;
-      Bar_Width     : Natural := 0;
-      Bar_Height    : Natural := 0;
-      Cancel_X      : Natural := 0;
-      Cancel_Y      : Natural := 0;
-      Cancel_Width  : Natural := 0;
-      Cancel_Height : Natural := 0;
-   end record;
-
-   type Root_Path_Layout is record
-      Root_Index : Natural := 0;
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Selected   : Boolean := False;
-   end record;
-
-   package Root_Path_Layout_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Root_Path_Layout);
-
-   type Breadcrumb_Segment_Layout is record
-      Segment_Index : Natural := 0;
-      X             : Natural := 0;
-      Y             : Natural := 0;
-      Width         : Natural := 0;
-      Height        : Natural := 0;
-      Clickable     : Boolean := True;
-   end record;
-
-   package Breadcrumb_Segment_Layout_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Breadcrumb_Segment_Layout);
-
-   --  Bounding rectangle of the clickable favorite-star toggle drawn at the
-   --  left of the path bar, in window pixels. Visible is False when the path
-   --  bar is too narrow to reserve room for the star.
-   type Path_Favorite_Star_Bounds is record
-      X       : Natural := 0;
-      Y       : Natural := 0;
-      Width   : Natural := 0;
-      Height  : Natural := 0;
+   --  Geometry of one detail-view column: whether it is shown and, when shown,
+   --  its left edge and width in window pixels.
+   type Detail_Column_Geometry is record
       Visible : Boolean := False;
+      X       : Natural := 0;
+      Width   : Natural := 0;
    end record;
 
-   type Tree_Panel_Layout is record
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Row_Height : Natural := 0;
-      Scrollbar_Visible : Boolean := False;
-      Scrollbar_X       : Natural := 0;
-      Scrollbar_Y       : Natural := 0;
-      Scrollbar_Thumb_Y : Natural := 0;
-      Scrollbar_Width   : Natural := 0;
-      Scrollbar_Height  : Natural := 0;
-      Scrollbar_Track_Height : Natural := 0;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   type Tree_Row_Layout is record
-      Visible_Row_Index : Natural := 0;
-      Node_Index   : Natural := 0;
-      X            : Natural := 0;
-      Y            : Natural := 0;
-      Width        : Natural := 0;
-      Height       : Natural := 0;
-      Depth        : Natural := 0;
-      Expanded     : Boolean := False;
-      Has_Children : Boolean := False;
-      Selected     : Boolean := False;
-      Triangle_X   : Natural := 0;
-      Triangle_Y   : Natural := 0;
-      Triangle_W   : Natural := 0;
-      Triangle_H   : Natural := 0;
-   end record;
-
-   package Tree_Row_Layout_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Tree_Row_Layout);
-
-   --  Geometry of the destination picker's Choose (left) and Cancel (right)
-   --  button bar drawn along the bottom of the folder-tree panel. Both buttons
-   --  share the same Y, Height, and Button_Width.
-   type Tree_Pick_Button_Layout is record
-      Visible      : Boolean := False;
-      Choose_X     : Natural := 0;
-      Cancel_X     : Natural := 0;
-      Y            : Natural := 0;
-      Button_Width : Natural := 0;
-      Height       : Natural := 0;
-   end record;
-
-   type Info_Pane_Layout is record
-      X                 : Natural := 0;
-      Y                 : Natural := 0;
-      Width             : Natural := 0;
-      Height            : Natural := 0;
-      Content_Height    : Natural := 0;
-      Scroll_Pixels     : Natural := 0;
-      Scrollbar_Visible : Boolean := False;
-      Scrollbar_X       : Natural := 0;
-      Scrollbar_Y       : Natural := 0;
-      Scrollbar_Thumb_Y : Natural := 0;
-      Scrollbar_Width   : Natural := 0;
-      Scrollbar_Height  : Natural := 0;
-      Scrollbar_Track_Height : Natural := 0;
-      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
-      Close_Button : Close_Button_Layout;
-   end record;
-
-   --  Compute the centered paste-progress overlay geometry for a window.
-   --
-   --  @param Layout Overall layout metrics for the window.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
-   function Calculate_Paste_Progress_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Paste_Progress_Layout;
-
-   --  Compute the centered paste-conflict dialog geometry for a window.
-   --
-   --  @param Layout Overall layout metrics for the window.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Panel, button, and toggle rectangles for the dialog.
-   function Calculate_Conflict_Dialog_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Conflict_Dialog_Layout;
+   type Detail_Column_Geometry_Array is
+     array (Files.Preference_Types.Detail_Column) of Detail_Column_Geometry;
 
    --  Calculate stable layout metrics for a window.
    --
@@ -430,28 +238,6 @@ package Files.Rendering.Layouts is
       Visible_Index : Natural)
       return Natural;
 
-   --  The fewest main-view scroll lines the drawing turns into the row
-   --  boundary Target (pixels), or into the exact end when Target is the
-   --  maximum. The view draws its offset snapped down to whole row periods,
-   --  except that lines reaching the last pixel draw at the exact end; so
-   --  moving Up to a Target short of the end takes one line less, which
-   --  snaps to the row at or above Target. Rows lower than a line cannot be
-   --  hit exactly: then Up rounds down and down rounds up, so the drawn
-   --  offset never passes Target in the direction of travel's far side.
-   --  The wheel and revealing an item both ask this, so they agree.
-   --
-   --  @param Main Main-view layout (row period, drawn offset, maximum).
-   --  @param Line_Height Text line height in pixels.
-   --  @param Target Wanted pixel offset: a row boundary, or the maximum.
-   --  @param Up Whether the view is moving towards the top.
-   --  @return Scroll position in lines.
-   function Lines_For_Offset
-     (Main        : Main_View_Layout;
-      Line_Height : Positive;
-      Target      : Natural;
-      Up          : Boolean)
-      return Natural;
-
    --  Where one wheel step of a main view whose rows are at least a line
    --  tall takes its scroll, in lines. The view draws its offset snapped down
    --  to whole row periods, and a row period (an icon cell plus its gap) is
@@ -502,14 +288,17 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Positive;
 
-   --  The rendered pixel width of Free_Space_Label, or zero when there is no
-   --  free field.
+   --  Largest line offset the main view can take, as wheel, track-click,
+   --  thumb-drag and marquee auto-scroll handling all bound it: its viewport
+   --  is the scrollbar track.
    --
-   --  @param Snapshot The immutable view snapshot.
-   --  @param Line_Height Row height in pixels, sizing the monospace cell.
-   --  @return The free-space label width in pixels, or zero.
-   function Free_Space_Label_Width
-     (Snapshot : View_Snapshot; Line_Height : Positive) return Natural;
+   --  @param Main Main-view layout.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
+   function Main_View_Max_Scroll
+     (Main        : Main_View_Layout;
+      Line_Height : Positive)
+      return Natural;
 
    --  Normalize the two corner points of a marquee (rubber-band) drag into an
    --  origin-plus-extent rectangle so a drag in any direction (including up or
@@ -575,126 +364,59 @@ package Files.Rendering.Layouts is
       Field_W     : out Natural;
       Line_Height : Positive);
 
-   --  A details-header cell under a coordinate. Present is False when the
-   --  coordinate misses the header band. Column is the column whose cell body
-   --  the coordinate falls in, and Command the sort command that a plain click
-   --  on it triggers (No_Command for a column that does not sort, e.g. the
-   --  permissions column). Callers use Column to begin a reorder drag and
-   --  Command to fall back to a sort when the press turns out to be a click.
-   type Detail_Header_Cell is record
-      Present : Boolean := False;
-      Column  : Files.Preference_Types.Detail_Column := Files.Preference_Types.Name_Column;
-      Command : Files.Commands.Command_Id := Files.Commands.No_Command;
+   --  The toolbar: its buttons, the path field (breadcrumbs and the favourite
+   --  star), the filter field and its scope chip, the view-mode
+   --  segments, and the text fields' scrolling.
+
+   --  Zero-based index of a left-toolbar button, left to right.
+   subtype Toolbar_Button_Index is Natural range 0 .. Guikit.Layout.Toolbar_Button_Count - 1;
+
+   --  The command each left-toolbar button triggers, by button index. The
+   --  toolbar renderer and the toolbar click hit-test share this one table.
+   Toolbar_Button_Commands : constant array (Toolbar_Button_Index) of Files.Commands.Registered_Command_Id :=
+     [Files.Commands.Select_Drive_Command,
+      Files.Commands.Navigate_Home_Command,
+      Files.Commands.Navigate_Back_Command,
+      Files.Commands.Navigate_Forward_Command,
+      Files.Commands.Navigate_Parent_Command,
+      Files.Commands.Create_File_Command,
+      Files.Commands.Delete_Selected_Items_Command];
+
+   --  The first button of the file-action group (create/delete); the buttons
+   --  before it form the navigation group. The renderer widens the padding on
+   --  both sides of this boundary and draws a divider at its left edge.
+   First_File_Action_Button : constant Toolbar_Button_Index := 5;
+
+   --  Height of the toolbar at Line_Height, as the layout and every hit-test
+   --  use it.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Toolbar height in pixels.
+   function Toolbar_Height (Line_Height : Positive) return Natural;
+
+   type Breadcrumb_Segment_Layout is record
+      Segment_Index : Natural := 0;
+      X             : Natural := 0;
+      Y             : Natural := 0;
+      Width         : Natural := 0;
+      Height        : Natural := 0;
+      Clickable     : Boolean := True;
    end record;
 
-   --  A draggable details-header column separator. Present is False when a
-   --  coordinate misses every separator hot zone. Column is the optional column
-   --  a drag on this separator resizes (the column whose left edge the separator
-   --  is). Origin_X is that left edge in window pixels and Width the column's
-   --  current effective width, both captured so a drag can grow or shrink the
-   --  column relative to the size it had when the drag began.
-   type Detail_Column_Separator is record
-      Present  : Boolean := False;
-      Column   : Files.Preference_Types.Optional_Detail_Column := Files.Preference_Types.Modified_Column;
-      Origin_X : Natural := 0;
-      Width    : Natural := 0;
+   package Breadcrumb_Segment_Layout_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Breadcrumb_Segment_Layout);
+
+   --  Bounding rectangle of the clickable favorite-star toggle drawn at the
+   --  left of the path bar, in window pixels. Visible is False when the path
+   --  bar is too narrow to reserve room for the star.
+   type Path_Favorite_Star_Bounds is record
+      X       : Natural := 0;
+      Y       : Natural := 0;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
+      Visible : Boolean := False;
    end record;
-
-   --  Calculate command-palette search and result-section rectangles.
-   --
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Command-palette layout rectangles.
-   function Calculate_Command_Palette_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Command_Palette_Layout;
-
-   --  The settings pane's region: the one place drawing, clicks, the wheel
-   --  and the window layer's overlay take it from.
-   --
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The settings pane's rectangle.
-   function Settings_Pane_Region
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Guikit.Layout.Settings_Pane_Layout
-   is (Guikit.Layout.Calculate_Settings_Pane_Layout
-         (Layout.Width, Layout.Height, Layout.Toolbar_Height, Line_Height));
-
-   --  Calculate the centered Quick Look overlay panel rectangle and its inner
-   --  content region.
-   --
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Quick Look panel and content-region geometry.
-   function Calculate_Quick_Look_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Quick_Look_Layout;
-
-   --  Calculate the centered color-label picker overlay panel rectangle and its
-   --  row of swatch rectangles.
-   --
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Label-picker panel and swatch geometry.
-   function Calculate_Label_Picker_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Label_Picker_Layout;
-
-   --  Calculate root-selector dropdown rectangle.
-   --
-   --  @param Snapshot View snapshot containing root selector state.
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Root-selector dropdown layout.
-   function Calculate_Root_Selector_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Root_Selector_Layout;
-
-   --  Calculate root-selector row rectangles.
-   --
-   --  @param Snapshot View snapshot containing root paths.
-   --  @param Layout Root-selector dropdown layout.
-   --  @return Root selector row rectangles in root path order.
-   function Calculate_Root_Path_Layout
-     (Snapshot : View_Snapshot;
-      Layout   : Root_Selector_Layout)
-      return Root_Path_Layout_Vectors.Vector;
-
-   --  Calculate clickable breadcrumb segment rectangles inside the path bar.
-   --
-   --  Returns an empty vector while the path input is focused (edit mode). When
-   --  the segments would overflow the path bar the leading segments are elided
-   --  through Files.Breadcrumbs so the root and trailing components stay
-   --  visible; the elision marker carries Clickable => False.
-   --
-   --  @param Snapshot View snapshot containing breadcrumb segments and focus.
-   --  @param Width Window width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Segment rectangles in left-to-right order.
-   function Calculate_Breadcrumb_Layout
-     (Snapshot    : View_Snapshot;
-      Width       : Natural;
-      Line_Height : Positive)
-      return Breadcrumb_Segment_Layout_Vectors.Vector;
-
-   --  Rectangle of the clickable favorite-star toggle at the left of the path
-   --  bar. Rendering, the path-bar layout, and click hit-testing all derive the
-   --  star's position from this single function so they never drift.
-   --
-   --  @param Width Window width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Star bounds; Visible is False when the path bar is too narrow.
-   function Path_Favorite_Star_Region
-     (Width       : Natural;
-      Line_Height : Positive)
-      return Path_Favorite_Star_Bounds;
 
    --  Display columns a focused single-line input scrolls off its left edge so
    --  the caret stays visible (Guikit.Layout.Input_Scroll_Columns, the rule
@@ -737,14 +459,6 @@ package Files.Rendering.Layouts is
    is (Guikit.Text_Fields.View_Of
          (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width));
 
-   --  Height of the font box a line of text is drawn in: four fifths of the
-   --  line height, the size guikit renders glyphs at.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Font box height in pixels.
-   function Font_Box_Height (Line_Height : Positive) return Natural
-   is (Guikit.Layout.Saturating_Multiply (Line_Height, 4) / 5);
-
    --  Horizontal extent of a toolbar input field: the box drawn for it, which
    --  is also where a click focuses it, and inside it where the first
    --  character is drawn and how wide the text may run.
@@ -772,6 +486,16 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Field_Text_Region;
 
+   --  Width the filter scope chip needs so its label is never abbreviated:
+   --  the widest of the localized scope words (here/names/contents) plus the
+   --  input-field padding on both sides.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Scope chip width in pixels that fits the longest scope label.
+   function Filter_Scope_Chip_Width
+     (Line_Height : Positive)
+      return Natural;
+
    --  Box and text extent of the filter field: the box after its margin,
    --  ending before the search-scope chip, the text after its padding.
    --  Drawing, the field's click zone and click-to-caret mapping all use it.
@@ -783,6 +507,146 @@ package Files.Rendering.Layouts is
      (Toolbar     : Guikit.Layout.Toolbar_Layout;
       Line_Height : Positive)
       return Field_Text_Region;
+
+   --  Calculate clickable breadcrumb segment rectangles inside the path bar.
+   --
+   --  Returns an empty vector while the path input is focused (edit mode). When
+   --  the segments would overflow the path bar the leading segments are elided
+   --  through Files.Breadcrumbs so the root and trailing components stay
+   --  visible; the elision marker carries Clickable => False.
+   --
+   --  @param Snapshot View snapshot containing breadcrumb segments and focus.
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Segment rectangles in left-to-right order.
+   function Calculate_Breadcrumb_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Line_Height : Positive)
+      return Breadcrumb_Segment_Layout_Vectors.Vector;
+
+   --  Rectangle of the clickable favorite-star toggle at the left of the path
+   --  bar. Rendering, the path-bar layout, and click hit-testing all derive the
+   --  star's position from this single function so they never drift.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Star bounds; Visible is False when the path bar is too narrow.
+   function Path_Favorite_Star_Region
+     (Width       : Natural;
+      Line_Height : Positive)
+      return Path_Favorite_Star_Bounds;
+
+   --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
+   --  right, labelled with their short localized names. The renderer and the
+   --  click hit-test share this single definition so the variable-width cells
+   --  they compute agree; the renderer enriches each cell with a tooltip and
+   --  enabled state.
+   --
+   --  @return The three view-mode segments.
+   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector;
+
+   --  The command each view mode's switcher cell runs. The cells run left to
+   --  right in View_Mode order (View_Mode_Cell), so drawing and the click
+   --  hit-test read the same table.
+   View_Mode_Commands : constant array (Files.Preference_Types.View_Mode) of Files.Commands.Registered_Command_Id :=
+     [Files.Preference_Types.Small_Icons => Files.Commands.Select_Small_Icons_Command,
+      Files.Preference_Types.Large_Icons => Files.Commands.Select_Large_Icons_Command,
+      Files.Preference_Types.Details     => Files.Commands.Select_Details_Command];
+
+   --  @param Mode A view mode.
+   --  @return Its cell in View_Mode_Segments (1-based).
+   function View_Mode_Cell (Mode : Files.Preference_Types.View_Mode) return Positive is
+     (Files.Preference_Types.View_Mode'Pos (Mode) + 1);
+
+   --  The bottom bar: its height and place, its status regions and the free
+   --  space label.
+
+   --  Calculate bottom-bar section and button rectangles, sizing the view-mode,
+   --  sort, and info controls to their localized labels.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Three-section bottom-bar layout.
+   --  @param Sort_Field The active sort field; the sort button is sized to fit
+   --    only this field's label (plus the direction indicator), not the widest.
+   function Calculate_Bottom_Bar_Layout
+     (Width       : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive)
+      return Guikit.Layout.Bottom_Bar_Layout;
+
+   --  Height of the bottom bar (and of each sort-menu row) at Line_Height.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Bottom bar height in pixels.
+   function Bottom_Bar_Height (Line_Height : Positive) return Natural;
+
+   --  The bottom bar's top edge in a window Height tall, 0 when the window
+   --  is no taller than the bar.
+   --
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The bar's top Y in pixels.
+   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural;
+
+   --  The rendered pixel width of Free_Space_Label, or zero when there is no
+   --  free field.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @param Line_Height Row height in pixels, sizing the monospace cell.
+   --  @return The free-space label width in pixels, or zero.
+   function Free_Space_Label_Width
+     (Snapshot : View_Snapshot; Line_Height : Positive) return Natural;
+
+   --  Partition the bottom-bar status region into the interactive hidden-files
+   --  toggle area on the left and, when a free-space field is present and there
+   --  is room, a separate free-space field on the right divided by a one-pixel
+   --  rule. When Free_Label_Width is zero (no free field) the toggle spans the
+   --  whole region. The renderer and the click hit-test both call this so the
+   --  toggle's hover/click area and the free-space field agree.
+   --
+   --  @param Info_X Left edge of the status region.
+   --  @param Info_Width Width of the status region.
+   --  @param Free_Label_Width Rendered pixel width of the free-space text, or
+   --    zero when there is no free-space field.
+   --  @param Toggle_Width Width of the interactive toggle area from Info_X.
+   --  @param Divider_X X of the dividing rule, or zero when there is no field.
+   --  @param Free_Field_X Left edge of the free-space text box, or zero.
+   --  @param Free_Field_Width Width of the free-space text box, or zero.
+   --  @param Free_Region_Width Width of the free-space field's interactive
+   --    region, from the divider to the region's right edge, or zero.
+   --  @param Line_Height Text line height used to reserve a legible count field.
+   procedure Split_Status_Region
+     (Info_X           : Natural;
+      Info_Width       : Natural;
+      Free_Label_Width : Natural;
+      Toggle_Width     : out Natural;
+      Divider_X        : out Natural;
+      Free_Field_X     : out Natural;
+      Free_Field_Width : out Natural;
+      Free_Region_Width : out Natural;
+      Line_Height      : Positive);
+
+   --  The side panels: the folder tree's region and the info pane. What lies
+   --  inside the tree is Layouts.Tree's.
+
+   type Tree_Panel_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Row_Height : Natural := 0;
+      Scrollbar_Visible : Boolean := False;
+      Scrollbar_X       : Natural := 0;
+      Scrollbar_Y       : Natural := 0;
+      Scrollbar_Thumb_Y : Natural := 0;
+      Scrollbar_Width   : Natural := 0;
+      Scrollbar_Height  : Natural := 0;
+      Scrollbar_Track_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
 
    --  Calculate the folder-tree sidebar panel rectangle.
    --
@@ -808,29 +672,6 @@ package Files.Rendering.Layouts is
       Layout   : Tree_Panel_Layout)
       return Natural;
 
-   --  Largest line offset the main view can take, as wheel, track-click,
-   --  thumb-drag and marquee auto-scroll handling all bound it: its viewport
-   --  is the scrollbar track.
-   --
-   --  @param Main Main-view layout.
-   --  @param Line_Height Pixels scrolled per line.
-   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
-   function Main_View_Max_Scroll
-     (Main        : Main_View_Layout;
-      Line_Height : Positive)
-      return Natural;
-
-   --  Largest line offset the info pane can take, as wheel, track-click and
-   --  thumb-drag handling all bound it: its viewport is the whole pane.
-   --
-   --  @param Info Info-pane layout.
-   --  @param Line_Height Pixels scrolled per line.
-   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
-   function Info_Pane_Max_Scroll
-     (Info        : Info_Pane_Layout;
-      Line_Height : Positive)
-      return Natural;
-
    --  Largest first-row offset the folder tree can take: enough rows to bring
    --  the last row fully into the panel's row capacity.
    --
@@ -842,25 +683,23 @@ package Files.Rendering.Layouts is
       Layout   : Tree_Panel_Layout)
       return Natural;
 
-   --  Calculate folder-tree row rectangles with per-depth indentation.
-   --
-   --  @param Snapshot View snapshot containing the visible tree rows.
-   --  @param Layout Tree sidebar panel layout.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Tree row rectangles in top-to-bottom order.
-   function Calculate_Tree_Row_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Tree_Panel_Layout;
-      Line_Height : Positive)
-      return Tree_Row_Layout_Vectors.Vector;
-
-   --  Calculate the destination picker's Choose/Cancel button bar geometry from
-   --  the folder-tree panel layout. Visible is False when the panel is too small
-   --  to host a button row below its title.
-   --
-   --  @param Panel Folder-tree panel layout.
-   --  @return Button-bar rectangles; Visible is False when they do not fit.
-   function Tree_Pick_Buttons (Panel : Tree_Panel_Layout) return Tree_Pick_Button_Layout;
+   type Info_Pane_Layout is record
+      X                 : Natural := 0;
+      Y                 : Natural := 0;
+      Width             : Natural := 0;
+      Height            : Natural := 0;
+      Content_Height    : Natural := 0;
+      Scroll_Pixels     : Natural := 0;
+      Scrollbar_Visible : Boolean := False;
+      Scrollbar_X       : Natural := 0;
+      Scrollbar_Y       : Natural := 0;
+      Scrollbar_Thumb_Y : Natural := 0;
+      Scrollbar_Width   : Natural := 0;
+      Scrollbar_Height  : Natural := 0;
+      Scrollbar_Track_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
 
    --  Calculate info-pane content and scrollbar geometry.
    --
@@ -874,85 +713,233 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Info_Pane_Layout;
 
-   --  The window chrome around the layouts below -- input-field and dialog
-   --  paddings, the default window size, the toolbar and bottom bar, the sort
-   --  dropdown, the view-mode switcher, the status-line split -- measured
-   --  with the localized labels it shows, over Guikit.Layout's geometry.
-
-   --  An input field's inner padding at a line height: Guikit's, scaled with
-   --  the text past Guikit.Layout.Reference_Line_Height.
+   --  Largest line offset the info pane can take, as wheel, track-click and
+   --  thumb-drag handling all bound it: its viewport is the whole pane.
    --
-   --  @param Line_Height The line height in use.
-   --  @return The padding in pixels.
-   function Field_Padding (Line_Height : Positive) return Natural is
-     (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height));
-
-   --  The inset of the bottom bar's status fields (the counts and the free
-   --  space) from their edges, which the splitter and the renderer share:
-   --  4 px at Guikit.Layout.Reference_Line_Height, scaled with the text.
-   --
-   --  @param Line_Height The line height in use.
-   --  @return The inset in pixels.
-   function Status_Field_Padding (Line_Height : Positive) return Natural is
-     (Guikit.Layout.Scaled (4, Line_Height));
-
-   --  The inset of a modal dialog's content from its frame: 12 px at
-   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
-   --
-   --  @param Line_Height The line height in use.
-   --  @return The inset in pixels.
-   function Dialog_Padding (Line_Height : Positive) return Natural is
-     (Guikit.Layout.Scaled (12, Line_Height));
-
-   --  A window's size when the settings name none, and the size the smoke
-   --  runs render at.
-   Default_Window_Width  : constant := 1024;
-   Default_Window_Height : constant := 768;
-
-   --  Calculate bottom-bar section and button rectangles, sizing the view-mode,
-   --  sort, and info controls to their localized labels.
-   --
-   --  @param Width Window width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Three-section bottom-bar layout.
-   --  @param Sort_Field The active sort field; the sort button is sized to fit
-   --    only this field's label (plus the direction indicator), not the widest.
-   function Calculate_Bottom_Bar_Layout
-     (Width       : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
+   --  @param Info Info-pane layout.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
+   function Info_Pane_Max_Scroll
+     (Info        : Info_Pane_Layout;
       Line_Height : Positive)
-      return Guikit.Layout.Bottom_Bar_Layout;
-
-   --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
-   --  the direction indicator and padding), so every row fits even though the sort
-   --  button itself is only as wide as the active field's label.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Sort-menu width in pixels.
-   function Sort_Menu_Width
-     (Line_Height : Positive)
       return Natural;
 
-   --  Height of the toolbar at Line_Height, as the layout and every hit-test
-   --  use it.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Toolbar height in pixels.
-   function Toolbar_Height (Line_Height : Positive) return Natural;
+   --  The overlays and dialogs: the command palette, the settings pane, Quick
+   --  Look, the label picker, the root selector and its
+   --  paths, the paste conflict dialog and
+   --  the paste progress. The menus' rows are Layouts.Menus'.
 
-   --  Height of the bottom bar (and of each sort-menu row) at Line_Height.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Bottom bar height in pixels.
-   function Bottom_Bar_Height (Line_Height : Positive) return Natural;
+   --  Palette overlay geometry lives in Guikit.Layout; kept under the local
+   --  name so the renderer and event code read unchanged.
+   subtype Command_Palette_Layout is Guikit.Layout.Palette_Layout;
 
-   --  The bottom bar's top edge in a window Height tall, 0 when the window
-   --  is no taller than the bar.
+   --  Calculate command-palette search and result-section rectangles.
    --
-   --  @param Height Window height in pixels.
+   --  @param Layout High-level window layout metrics.
    --  @param Line_Height Text line height in pixels.
-   --  @return The bar's top Y in pixels.
-   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural;
+   --  @return Command-palette layout rectangles.
+   function Calculate_Command_Palette_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Command_Palette_Layout;
+
+   --  The settings pane's region: the one place drawing, clicks, the wheel
+   --  and the window layer's overlay take it from.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The settings pane's rectangle.
+   function Settings_Pane_Region
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Guikit.Layout.Settings_Pane_Layout
+   is (Guikit.Layout.Calculate_Settings_Pane_Layout
+         (Layout.Width, Layout.Height, Layout.Toolbar_Height, Line_Height));
+
+   --  Geometry of the centered Quick Look overlay panel, its title and its
+   --  inner content region (inside the padding, below the title band).
+   type Quick_Look_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Title_X    : Natural := 0;
+      Title_Y    : Natural := 0;
+      Title_W    : Natural := 0;
+      Content_X  : Natural := 0;
+      Content_Y  : Natural := 0;
+      Content_Width  : Natural := 0;
+      Content_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
+
+   --  Calculate the centered Quick Look overlay panel rectangle and its inner
+   --  content region.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Quick Look panel and content-region geometry.
+   function Calculate_Quick_Look_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Quick_Look_Layout;
+
+   type Label_Swatch_Bounds is record
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   type Label_Swatch_Array is
+     array (1 .. Files.UI_Types.Swatch_Count) of Label_Swatch_Bounds;
+
+   --  Geometry of the centered color-label picker overlay: the outer panel,
+   --  its title and its row of clickable swatches. Swatches 1 .. 7
+   --  correspond to the colors Red .. Gray (Files.Preference_Types.Real_Color_Label in
+   --  order); the last, Files.UI_Types.Clear_Swatch, is the "None" clear swatch.
+   type Label_Picker_Layout is record
+      X           : Natural := 0;
+      Y           : Natural := 0;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Title_X     : Natural := 0;
+      Title_Y     : Natural := 0;
+      Title_W     : Natural := 0;
+      Swatch_Size : Natural := 0;
+      Swatches    : Label_Swatch_Array;
+      Visible     : Boolean := False;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
+
+   --  Calculate the centered color-label picker overlay panel rectangle and its
+   --  row of swatch rectangles.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Label-picker panel and swatch geometry.
+   function Calculate_Label_Picker_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Label_Picker_Layout;
+
+   type Root_Selector_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Row_Height : Natural := 0;
+      --  The selector's inner padding at the line height it was laid out for.
+      Padding    : Natural := 8;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
+
+   --  Calculate root-selector dropdown rectangle.
+   --
+   --  @param Snapshot View snapshot containing root selector state.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Root-selector dropdown layout.
+   function Calculate_Root_Selector_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Root_Selector_Layout;
+
+   type Root_Path_Layout is record
+      Root_Index : Natural := 0;
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Selected   : Boolean := False;
+   end record;
+
+   package Root_Path_Layout_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Root_Path_Layout);
+
+   --  Calculate root-selector row rectangles.
+   --
+   --  @param Snapshot View snapshot containing root paths.
+   --  @param Layout Root-selector dropdown layout.
+   --  @return Root selector row rectangles in root path order.
+   function Calculate_Root_Path_Layout
+     (Snapshot : View_Snapshot;
+      Layout   : Root_Selector_Layout)
+      return Root_Path_Layout_Vectors.Vector;
+
+   --  Geometry of the centered paste-conflict dialog: the outer panel, its four
+   --  action buttons (left to right) and the "apply to all" toggle row.
+   type Conflict_Dialog_Layout is record
+      X            : Natural := 0;
+      Y            : Natural := 0;
+      Width        : Natural := 0;
+      Height       : Natural := 0;
+      Message_X      : Natural := 0;
+      Message_Y      : Natural := 0;
+      Message_Width  : Natural := 0;
+      Message_Height : Natural := 0;
+      Apply_X      : Natural := 0;
+      Apply_Y      : Natural := 0;
+      Apply_Width  : Natural := 0;
+      Apply_Height : Natural := 0;
+      Button_Y      : Natural := 0;
+      Button_Height : Natural := 0;
+      Replace_X    : Natural := 0;
+      Skip_X       : Natural := 0;
+      Rename_X     : Natural := 0;
+      Cancel_X     : Natural := 0;
+      Button_Width : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
+   end record;
+
+   --  Compute the centered paste-conflict dialog geometry for a window.
+   --
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, button, and toggle rectangles for the dialog.
+   function Calculate_Conflict_Dialog_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Conflict_Dialog_Layout;
+
+   --  Geometry of the centered paste-progress overlay: the outer panel, the
+   --  progress-bar track, and the single Cancel button.
+   type Paste_Progress_Layout is record
+      X             : Natural := 0;
+      Y             : Natural := 0;
+      Width         : Natural := 0;
+      Height        : Natural := 0;
+      Message_X      : Natural := 0;
+      Message_Y      : Natural := 0;
+      Message_Width  : Natural := 0;
+      Message_Height : Natural := 0;
+      Bar_X         : Natural := 0;
+      Bar_Y         : Natural := 0;
+      Bar_Width     : Natural := 0;
+      Bar_Height    : Natural := 0;
+      Cancel_X      : Natural := 0;
+      Cancel_Y      : Natural := 0;
+      Cancel_Width  : Natural := 0;
+      Cancel_Height : Natural := 0;
+   end record;
+
+   --  Compute the centered paste-progress overlay geometry for a window.
+   --
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
+   function Calculate_Paste_Progress_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Paste_Progress_Layout;
+
+   --  The whole frame: every region laid out once.
 
    --  Everything a frame lays out once but the per-row vectors: the window's
    --  regions, and the text bands of its two bars that every toolbar field
@@ -1000,207 +987,27 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Frame_Layout;
 
-   --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
-   --  from the bottom bar, left-aligned with the sort button), the top of its
-   --  first row, the row height, and the row count (one row per sort field).
-   type Sort_Menu_Layout is record
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Rows_Y     : Natural := 0;
-      Row_Height : Natural := 0;
-      Row_Count  : Natural := 0;
-   end record;
+private
 
-   --  Calculate the sort dropdown geometry at a window size. The renderer and
-   --  the dropdown's click hit-tests share it so the drawn rows and the rows a
-   --  click resolves to cannot drift apart.
+   --  Height of the Choose/Cancel footer the tree panel reserves in pick
+   --  mode; zero otherwise or when the panel is too short to spare a row.
+   --  Here for the panel's region and for its rows (Layouts.Tree).
    --
-   --  @param Width Framebuffer width in pixels.
-   --  @param Height Framebuffer height in pixels.
-   --  @param Sort_Field Currently selected sort field.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The dropdown rectangle and row geometry.
-   function Calculate_Sort_Menu_Layout
-     (Width       : Natural;
-      Height      : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive)
-      return Sort_Menu_Layout;
+   --  @param Snapshot View snapshot laid out.
+   --  @param Layout The tree panel's region.
+   --  @return The footer's height in pixels.
+   function Tree_Footer_Height
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural is
+     (if Snapshot.Tree_Pick_Active
+        and then Layout.Width > 0
+        and then Layout.Row_Height > 0
+        and then Layout.Height > Guikit.Layout.Saturating_Multiply (Layout.Row_Height, 2)
+      then Layout.Row_Height
+      else 0);
 
-   --  The top of dropdown row Row: the one row geometry the renderer draws
-   --  and the click hit-test resolves by.
-   --
-   --  @param Menu The dropdown's layout (Calculate_Sort_Menu_Layout).
-   --  @param Row One-based row index.
-   --  @return Window Y of the row's top edge.
-   function Sort_Menu_Row_Top
-     (Menu : Sort_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  The dropdown row under a point, by Sort_Menu_Row_Top's rows; 0 when the
-   --  point is on none, or the menu is not shown (Width 0).
-   --
-   --  @param Menu The dropdown's layout (Calculate_Sort_Menu_Layout).
-   --  @param X Window X.
-   --  @param Y Window Y.
-   --  @return One-based row index, or 0.
-   function Sort_Menu_Row_At
-     (Menu : Sort_Menu_Layout;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
-
-   --  The sort field a dropdown row shows: rows follow Sort_Field's
-   --  declaration order, top to bottom.
-   --
-   --  @param Row One-based row index, at most the layout's Row_Count.
-   --  @return The sort field of that row.
-   function Sort_Menu_Row_Field
-     (Row : Positive)
-      return Files.Types.Sort_Field
-     with Pre => Row <= Files.UI_Types.Sort_Menu_Rows;
-
-   --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
-   --  right, labelled with their short localized names. The renderer and the
-   --  click hit-test share this single definition so the variable-width cells
-   --  they compute agree; the renderer enriches each cell with a tooltip and
-   --  enabled state.
-   --
-   --  @return The three view-mode segments.
-   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector;
-
-   --  The command each view mode's switcher cell runs. The cells run left to
-   --  right in View_Mode order (View_Mode_Cell), so drawing and the click
-   --  hit-test read the same table.
-   View_Mode_Commands : constant array (Files.Preference_Types.View_Mode) of Files.Commands.Registered_Command_Id :=
-     [Files.Preference_Types.Small_Icons => Files.Commands.Select_Small_Icons_Command,
-      Files.Preference_Types.Large_Icons => Files.Commands.Select_Large_Icons_Command,
-      Files.Preference_Types.Details     => Files.Commands.Select_Details_Command];
-
-   --  @param Mode A view mode.
-   --  @return Its cell in View_Mode_Segments (1-based).
-   function View_Mode_Cell (Mode : Files.Preference_Types.View_Mode) return Positive is
-     (Files.Preference_Types.View_Mode'Pos (Mode) + 1);
-
-   --  Width the filter scope chip needs so its label is never abbreviated:
-   --  the widest of the localized scope words (here/names/contents) plus the
-   --  input-field padding on both sides.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Scope chip width in pixels that fits the longest scope label.
-   function Filter_Scope_Chip_Width
-     (Line_Height : Positive)
-      return Natural;
-
-   --  Partition the bottom-bar status region into the interactive hidden-files
-   --  toggle area on the left and, when a free-space field is present and there
-   --  is room, a separate free-space field on the right divided by a one-pixel
-   --  rule. When Free_Label_Width is zero (no free field) the toggle spans the
-   --  whole region. The renderer and the click hit-test both call this so the
-   --  toggle's hover/click area and the free-space field agree.
-   --
-   --  @param Info_X Left edge of the status region.
-   --  @param Info_Width Width of the status region.
-   --  @param Free_Label_Width Rendered pixel width of the free-space text, or
-   --    zero when there is no free-space field.
-   --  @param Toggle_Width Width of the interactive toggle area from Info_X.
-   --  @param Divider_X X of the dividing rule, or zero when there is no field.
-   --  @param Free_Field_X Left edge of the free-space text box, or zero.
-   --  @param Free_Field_Width Width of the free-space text box, or zero.
-   --  @param Free_Region_Width Width of the free-space field's interactive
-   --    region, from the divider to the region's right edge, or zero.
-   --  @param Line_Height Text line height used to reserve a legible count field.
-   procedure Split_Status_Region
-     (Info_X           : Natural;
-      Info_Width       : Natural;
-      Free_Label_Width : Natural;
-      Toggle_Width     : out Natural;
-      Divider_X        : out Natural;
-      Free_Field_X     : out Natural;
-      Free_Field_Width : out Natural;
-      Free_Region_Width : out Natural;
-      Line_Height      : Positive);
-
-   --  Shared by the drawing and the hit tests (Files.Rendering.Hit), so what
-   --  is drawn and what is hit resolve against one geometry.
-
-   --  Return the top Y coordinate of a menu row, accounting for the smaller
-   --  height of any separator rows above it. Rows have variable heights, so a
-   --  simple row * Row_Height offset is not correct; callers (renderer and
-   --  hit-tests) use this to place and probe rows consistently.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Top window Y coordinate of the row.
-   function Context_Menu_Row_Top
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  Return the left edge of the column containing a menu row.
-   --  Compact menus can split at a group boundary into two columns.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Left window coordinate of the row's column.
-   function Context_Menu_Row_Left
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  Return the width of the column containing a menu row.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Width of the row's column.
-   function Context_Menu_Row_Width
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  Return the height of a menu row: a separator is shorter than a command.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Height of the row.
-   function Context_Menu_Row_Height
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
-   is (if Files.Commands."=" (Menu.Rows (Row).Kind, Files.Commands.Menu_Separator)
-       then Menu.Separator_Height
-       else Menu.Row_Height);
-
-   --  The main content rectangle: the main-view region inset on all sides by the
-   --  content padding, dropping the inset when the region is too small to hold
-   --  it. Shared by the item layout, the details header/rows, and their click
-   --  hit-tests so they agree on the drawable content area.
-   type Content_Rectangle is record
-      X      : Natural := 0;
-      Y      : Natural := 0;
-      Width  : Natural := 0;
-      Height : Natural := 0;
-   end record;
-
-   --  The main content rectangle for a window layout.
-   --
-   --  @param Layout High-level window layout metrics.
-   --  @return The padded main-view content rectangle.
-   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle;
-
-   --  Geometry of one detail-view column: whether it is shown and, when shown,
-   --  its left edge and width in window pixels.
-   type Detail_Column_Geometry is record
-      Visible : Boolean := False;
-      X       : Natural := 0;
-      Width   : Natural := 0;
-   end record;
-
-   type Detail_Column_Geometry_Array is
-     array (Files.Preference_Types.Detail_Column) of Detail_Column_Geometry;
+   --  Used only by the parent's own bodies (placing items and the wheel).
 
    --  Lay out the visible detail columns left to right across the row content
    --  area (see the body for the sizing rules). The sticky header, the header
@@ -1226,93 +1033,27 @@ package Files.Rendering.Layouts is
       Pad         : Natural)
       return Detail_Column_Geometry_Array;
 
-   --  Where the divider before a detail column is drawn: this far left of
-   --  the column's edge, in the column padding.
+   --  The fewest main-view scroll lines the drawing turns into the row
+   --  boundary Target (pixels), or into the exact end when Target is the
+   --  maximum. The view draws its offset snapped down to whole row periods,
+   --  except that lines reaching the last pixel draw at the exact end; so
+   --  moving Up to a Target short of the end takes one line less, which
+   --  snaps to the row at or above Target. Rows lower than a line cannot be
+   --  hit exactly: then Up rounds down and down rounds up, so the drawn
+   --  offset never passes Target in the direction of travel's far side.
+   --  The wheel and revealing an item both ask this, so they agree.
    --
-   --  @param Column_X Left edge of the column in pixels.
+   --  @param Main Main-view layout (row period, drawn offset, maximum).
    --  @param Line_Height Text line height in pixels.
-   --  @return X of the one-pixel divider line.
-   function Column_Separator_X (Column_X : Natural; Line_Height : Positive) return Natural
-   is (Column_X - Natural'Min (Column_X, Guikit.Layout.Scaled (2, Line_Height)));
-
-   --  Half-width, in reference pixels, of the invisible band around a column
-   --  divider where a press begins a column resize: wide enough to grab,
-   --  narrow enough that a click well inside a header cell still sorts.
-   Column_Separator_Grab_Half_Width : constant := 5;
-
-   --  Whether X is within the resize grab band centred on the divider drawn
-   --  before a detail column.
-   --
-   --  @param Column_X Left edge of the column in pixels.
-   --  @param X Pointer X in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return True when a press at X grabs that column's divider.
-   function On_Column_Separator (Column_X : Natural; X : Natural; Line_Height : Positive) return Boolean
-   is (abs (Integer (X) - Integer (Column_Separator_X (Column_X, Line_Height)))
-       <= Guikit.Layout.Scaled (Column_Separator_Grab_Half_Width, Line_Height));
-
-   --  Geometry of the details-view sticky column header: the content rectangle
-   --  it spans the top of, its height and inner padding, and the column layout
-   --  its cells (and every item row) align to.
-   type Details_Header_Layout is record
-      Content : Content_Rectangle;
-      Height  : Natural := 0;
-      Pad     : Natural := 0;
-      Columns : Detail_Column_Geometry_Array;
-   end record;
-
-   --  The details header geometry for a snapshot and window layout. The header
-   --  renderer and the header hit-tests (cell, drop slot, separator) all derive
-   --  their rectangles from this one function so they cannot drift apart.
-   --
-   --  @param Snapshot View snapshot holding the detail-column settings.
-   --  @param Layout High-level window layout metrics.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The header's content rectangle, height, padding, and columns.
-   function Details_Header_Geometry
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Details_Header_Layout;
-
-   --  Whether a detail column defines a sort and, when it does, the field a
-   --  header click on it sorts by.
-   type Detail_Column_Sort is record
-      Sortable : Boolean := False;
-      Field    : Files.Types.Sort_Field := Files.Types.Sort_Name;
-   end record;
-
-   --  The one mapping from a detail column to its sort field. The header label
-   --  (which column shows the direction indicator) and the header click
-   --  hit-test both read it. The permissions column defines no sort.
-   Detail_Column_Sorts : constant array (Files.Preference_Types.Detail_Column) of Detail_Column_Sort :=
-     [Files.Preference_Types.Name_Column        => (Sortable => True, Field => Files.Types.Sort_Name),
-      Files.Preference_Types.Modified_Column    => (Sortable => True, Field => Files.Types.Sort_Changed),
-      Files.Preference_Types.Size_Column        => (Sortable => True, Field => Files.Types.Sort_Size),
-      Files.Preference_Types.Filetype_Column    => (Sortable => True, Field => Files.Types.Sort_Type),
-      Files.Preference_Types.Created_Column     => (Sortable => True, Field => Files.Types.Sort_Created),
-      Files.Preference_Types.Permissions_Column => (Sortable => False, Field => Files.Types.Sort_Name)];
-
-   --  Zero-based index of a left-toolbar button, left to right.
-   subtype Toolbar_Button_Index is Natural range 0 .. Guikit.Layout.Toolbar_Button_Count - 1;
-
-   --  The command each left-toolbar button triggers, by button index. The
-   --  toolbar renderer and the toolbar click hit-test share this one table.
-   Toolbar_Button_Commands : constant array (Toolbar_Button_Index) of Files.Commands.Registered_Command_Id :=
-     [Files.Commands.Select_Drive_Command,
-      Files.Commands.Navigate_Home_Command,
-      Files.Commands.Navigate_Back_Command,
-      Files.Commands.Navigate_Forward_Command,
-      Files.Commands.Navigate_Parent_Command,
-      Files.Commands.Create_File_Command,
-      Files.Commands.Delete_Selected_Items_Command];
-
-   --  The first button of the file-action group (create/delete); the buttons
-   --  before it form the navigation group. The renderer widens the padding on
-   --  both sides of this boundary and draws a divider at its left edge.
-   First_File_Action_Button : constant Toolbar_Button_Index := 5;
-
-private
+   --  @param Target Wanted pixel offset: a row boundary, or the maximum.
+   --  @param Up Whether the view is moving towards the top.
+   --  @return Scroll position in lines.
+   function Lines_For_Offset
+     (Main        : Main_View_Layout;
+      Line_Height : Positive;
+      Target      : Natural;
+      Up          : Boolean)
+      return Natural;
 
    --  Inset of the path and filter input boxes inside their toolbar sections,
    --  scaled with the text (guikit's margin, which also spaces the filter box

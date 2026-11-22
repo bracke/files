@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Copy_Journal_Validation
@@ -88,7 +89,7 @@ separate (Files_Suite.Recovery)
       Expected.Append (To_Unbounded_String ("destination-revision"));
       Files.Jobs.Copy_Context.Save (Batch, Expected);
       Write_Binary_File (Source, "copy me");
-      Result := Files.File_System.Copy_Tree (Source, Target, Batch);
+      Result := Files.File_System.Transfer.Copy_Tree (Source, Target, Batch);
       Assert
         (not Result.Success and then not Ada.Directories.Exists (Target),
          "copy journals reject relative persisted hard-link paths before copying");

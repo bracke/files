@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Hard_Linked_Symbolic_Links (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
       Assert (Hostkit.Fs.Create_Link ("missing-target", Join (Source, "first")), "create a dangling symbolic link");
       Assert (Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")),
               "create a hard link to the symbolic link itself");
-      Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "copy"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
       Assert (Mutation.Success, "copy a tree containing hard-linked dangling symbolic links");
       Check (Join (Root, "copy"));
       Assert (Files.File_Identities.Token (Join (Root, "copy/first"))

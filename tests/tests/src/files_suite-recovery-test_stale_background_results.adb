@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -98,7 +99,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Navigate_To (Model, Other, Load.Items);
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
-      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
       Files_Suite.Support.Assert_Equal
@@ -106,7 +107,7 @@ separate (Files_Suite.Recovery)
          Root,
          "an old result cannot overwrite a newer incarnation of the same directory view: current path");
       Assert
-        (Files.Model.Temporary_Item_Is_Active (Model),
+        (Files.Model.Creation.Temporary_Item_Is_Active (Model),
          "an old result cannot overwrite a newer incarnation of the same directory view: temporary item active");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -140,7 +141,7 @@ separate (Files_Suite.Recovery)
       end;
       Load := Files_Suite.Listings.Load_Directory (Other, Settings);
       Files.Model.Navigate_To (Model, Other, Load.Items);
-      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
       Files_Suite.Support.Assert_Equal
@@ -148,7 +149,7 @@ separate (Files_Suite.Recovery)
          Other,
          "an old destructive result cannot refresh or alter newer view state: current path");
       Assert
-        (Files.Model.Temporary_Item_Is_Active (Model),
+        (Files.Model.Creation.Temporary_Item_Is_Active (Model),
          "an old destructive result cannot refresh or alter newer view state: temporary item active");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

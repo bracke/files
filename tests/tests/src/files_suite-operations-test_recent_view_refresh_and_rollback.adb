@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
@@ -18,20 +20,21 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Folder, Files.Items.Item_Vectors.Empty_Vector, Root);
       Step := Files.Operations.Refresh (Model, Settings);
       Step := Files.Operations.Navigate_Recent (Model, Settings);
-      Assert (Files.Model.In_Recent_View (Model), "the recent view is open");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "the recent view is open");
 
       --  A refresh (Clear Recent, a finished job) swaps the items, not the view.
-      Files.Model.Set_Filter (Model, "open");
+      Files.Model.Filtering.Set_Filter (Model, "open");
       Step := Files.Operations.Navigate_Recent (Model, Settings);
-      Assert (Files.Model.In_Recent_View (Model), "a refresh keeps the recent view");
-      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "open", "a refresh keeps the view's filter");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "a refresh keeps the recent view");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "open",
+                                        "a refresh keeps the view's filter");
       Assert (Files.Model.Can_Go_Back (Model), "and the way back");
 
       --  The folder it came from is gone: Back fails and stays in Recent.
       Project_Tools.Files.Delete_Tree (Folder);
       Step := Files.Operations.Navigate_Back (Model, Settings);
       Assert (Step.Status /= Files.Operation_Results.Operation_Success, "back to a folder that is gone fails");
-      Assert (Files.Model.In_Recent_View (Model), "the failed move returns to the recent view");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "the failed move returns to the recent view");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), "", "with the recent view's empty path");
       Assert (Files.Model.Can_Go_Back (Model), "and the history it had");
       Assert (not Files.Model.Can_Go_Forward (Model), "with nothing added ahead of it");

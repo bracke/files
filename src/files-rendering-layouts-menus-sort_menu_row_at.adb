@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Menus)
    function Sort_Menu_Row_At
      (Menu : Sort_Menu_Layout;
       X    : Natural;

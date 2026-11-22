@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Model.Quick_Look;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
@@ -99,7 +100,7 @@ separate (Files_Suite.Keyboard)
               (Typed.Status, Files.Controller.Controller_Text_Updated,
                "the space character types into the focused filter input (status)");
             Files_Suite.Support.Assert_Equal
-              (Files.Model.Filter_Text (Model),
+              (Files.Model.Filtering.Filter_Text (Model),
                " ",
                "the space character types into the focused filter input");
          end;

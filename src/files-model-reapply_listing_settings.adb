@@ -64,7 +64,7 @@ begin
      and then Model.Selected_Item_Index in Model.Items.First_Index .. Model.Items.Last_Index
      and then Model.Items (Model.Selected_Item_Index).Full_Path = Primary
    then
-      Set_Info_Pane_Scroll_Lines (Model, Info_Scroll);
+      Support.Set_Info_Pane_Scroll_Lines (Model, Info_Scroll);
       if Preview.Open and then Preview.Path = Primary then
          Model.Quick_Look := Preview;
       end if;

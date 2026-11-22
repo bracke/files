@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 separate (Files.Controller.Handle_Key)
 --  The file grid's own navigation keys, with nothing focused and the
 --  settings pane closed: plain Home and End select the first and the last
@@ -23,7 +24,7 @@ begin
    end if;
    Handled := True;
    if Navigation.Move in Files.Input_Actions.Grid_Page_Up | Files.Input_Actions.Grid_Page_Down
-     and then Files.Model.Info_Pane_Is_Open (Model)
+     and then Files.Model.Info_Pane.Info_Pane_Is_Open (Model)
    then
       Result := Scroll_Result
         (Model, Files.Input_Actions.Scroll_Info_Pane,

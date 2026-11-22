@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Preference_Types;
 with Ada.Characters.Handling;
@@ -33,7 +34,7 @@ separate (Files_Suite.Model)
       --  are all shown, whatever the filter says.
       procedure Check (Step : String) is
          Expected : Natural := 0;
-         Filter   : constant String := Files.Model.Filter_Text (Model);
+         Filter   : constant String := Files.Model.Filtering.Filter_Text (Model);
       begin
          for Index in 1 .. Files.Model.Item_Count (Model) loop
             declare
@@ -41,7 +42,7 @@ separate (Files_Suite.Model)
                Name : constant String := To_String (Item.Name);
             begin
                if Filter'Length = 0
-                 or else Files.Model.Search_Results_Are_Active (Model)
+                 or else Files.Model.Filtering.Search_Results_Are_Active (Model)
                  or else Ada.Strings.Fixed.Index
                    (Ada.Characters.Handling.To_Lower (Name), Ada.Characters.Handling.To_Lower (Filter)) > 0
                then
@@ -68,23 +69,23 @@ separate (Files_Suite.Model)
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items_Of ("delta Alpha beta gamma"), Files_Suite.Support.Disk.Root);
       Check ("initial");
-      Files.Model.Set_Filter (Model, "a");
+      Files.Model.Filtering.Set_Filter (Model, "a");
       Check ("filter a");
-      Files.Model.Set_Filter (Model, "ta");
+      Files.Model.Filtering.Set_Filter (Model, "ta");
       Check ("filter ta");
       Files.Model.Replace_Items (Model, Items_Of ("zeta theta iota alpha"));
       Check ("a new listing under the filter");
       Files.Model.Select_Sort_Field (Model, Files.Types.Sort_Name);
       Check ("sorted");
-      Files.Model.Clear_Filter (Model);
+      Files.Model.Filtering.Clear_Filter (Model);
       Check ("filter cleared");
 
       --  A search shows its results whatever the filter; ending it filters again.
-      Files.Model.Set_Filter (Model, "et");
+      Files.Model.Filtering.Set_Filter (Model, "et");
       Check ("filter et");
-      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
       Check ("search results under the filter");
-      Files.Model.Clear_Search_Results (Model);
+      Files.Model.Filtering.Clear_Search_Results (Model);
       Check ("search ended");
 
       --  Grouping reorders the items under the filter.

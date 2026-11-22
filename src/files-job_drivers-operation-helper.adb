@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Ada.IO_Exceptions;
 with Ada.Streams;
@@ -44,7 +46,7 @@ package body Files.Job_Drivers.Operation.Helper is
            (if Work.Kind in Trash | Undo | Redo then Files.Undo.Journal.Must_Commit
             else Files.Undo.Journal.Best_Effort));
       if Work.Kind in Search_Names | Search_Contents then
-         Files.Model.Set_Filter (Model, To_String (Work.Query));
+         Files.Model.Filtering.Set_Filter (Model, To_String (Work.Query));
       else
          Files.Model.Selection.Select_All_Visible (Model);
       end if;
@@ -68,13 +70,13 @@ package body Files.Job_Drivers.Operation.Helper is
       Done.Visible_Error := To_Unbounded_String
         (if Files.Model.Last_Error_Key (Model) = "" then To_String (Done.Result.Error_Key)
          else Files.Model.Last_Error_Key (Model));
-      Done.Recent := Files.Model.In_Recent_View (Model);
+      Done.Recent := Files.Model.Recent.In_Recent_View (Model);
       Done.Selection := To_Unbounded_String (Files.Model.Selection.Selected_Name (Model));
       for Row of Files.Model.Visible_Rows (Model) loop
          Done.Items.Append (Row.Item);
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
-      Done.Moves := Files.Model.Take_Path_Moves (Model);
+      Done.Moves := Files.Model.Recent.Take_Path_Moves (Model);
       Files.Jobs.Records.Publish_Result (Directory, Write'Access);
    end Run;
 

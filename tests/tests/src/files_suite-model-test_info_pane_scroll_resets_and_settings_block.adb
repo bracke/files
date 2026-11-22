@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
@@ -13,32 +14,32 @@ separate (Files_Suite.Model)
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
 
-      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          3,
          "info pane can scroll before selection changes");
       Files.Model.Selection.Select_Visible (Model, 2);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "single selection resets info pane scroll");
-      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "toggle selection resets info pane scroll");
-      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Selection.Select_Visible_Range (Model, 1, 3);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "range selection resets info pane scroll");
-      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Selection.Clear (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "clear selection resets info pane scroll");
       Result :=
@@ -53,7 +54,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Command_Executed,
          "wheel scrolls the open settings pane");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "settings wheel scroll leaves info pane still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.No_Scroll_Target, 10);
@@ -62,7 +63,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "a wheel step over no scrollable region moves nothing");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "an untargeted wheel step leaves info pane still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Info_Pane, 10);
@@ -71,7 +72,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "settings pane blocks targeted info scroll");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "blocked targeted scroll leaves info pane still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
@@ -81,7 +82,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "settings pane blocks background PageDown");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "blocked PageDown leaves info pane still");
       Result :=

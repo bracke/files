@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_System.Testing;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
@@ -69,8 +70,8 @@ separate (Files_Suite.Recovery)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "swept");
       Write_Binary_File (Other, "registered");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          Stage  : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
@@ -87,7 +88,7 @@ separate (Files_Suite.Recovery)
 
             task body Sweeper is
             begin
-               Files.File_System.Sweep_Recovery_Registry;
+               Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
                State.Finish_Sweep;
             exception
                when others =>
@@ -105,7 +106,7 @@ separate (Files_Suite.Recovery)
                   Kept    : Files.Types.UString;
                   Outcome : Files.File_System.Mutation_Result;
                begin
-                  Outcome := Files.File_System.Preserve_For_Replace (Other, Kept);
+                  Outcome := Files.File_System.Recovery_Registry.Preserve_For_Replace (Other, Kept);
                   State.Finish_Register (Outcome.Success, Kept);
                exception
                   when others =>
@@ -140,9 +141,9 @@ separate (Files_Suite.Recovery)
            (Project_Tools.Files.Read_Raw_File (To_String (Backup)),
             "swept",
             "the sweep still put the held original back in its payload slot");
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
                  "and its record is kept");
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (State.Registered),
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (State.Registered),
                  "the payload registered meanwhile is recorded too");
       end;
    exception

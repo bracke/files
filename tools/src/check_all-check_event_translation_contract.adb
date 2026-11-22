@@ -10,6 +10,9 @@ separate (Check_All)
       Body_Allowed : constant String_List :=
         [To_Unbounded_String ("Files.Rendering.Hit"),
          To_Unbounded_String ("Files.Rendering.Layouts"),
+         To_Unbounded_String ("Files.Rendering.Layouts.Details"),
+         To_Unbounded_String ("Files.Rendering.Layouts.Menus"),
+         To_Unbounded_String ("Files.Rendering.Layouts.Tree"),
          --  The value types the actions carry (command ids, item and focus
          --  values), read only: the checks below forbid executing a command.
          To_Unbounded_String ("Files.Commands"),

@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,8 +11,9 @@ separate (Files_Suite.Names)
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.file.create");
-      Files.Model.Begin_Create_Folder (Model, "created-folder");
-      Assert (Files.Model.Temporary_Item_Is_Directory (Model), "create-folder marks temporary item as directory");
+      Files.Model.Creation.Begin_Create_Folder (Model, "created-folder");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Directory (Model),
+              "create-folder marks temporary item as directory");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -29,8 +31,9 @@ separate (Files_Suite.Names)
         (Files.Model.Last_Error_Key (Model),
          "",
          "successful create-folder clears stale error state");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create-folder commit clears temporary state");
-      Assert (not Files.Model.Temporary_Item_Is_Directory (Model), "create-folder commit clears directory flag");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "create-folder commit clears temporary state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Directory (Model),
+              "create-folder commit clears directory flag");
       Assert (not Files.Model.Rename.Is_Active (Model), "create-folder commit clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

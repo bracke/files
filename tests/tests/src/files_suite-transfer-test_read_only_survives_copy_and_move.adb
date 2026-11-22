@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Disk;
@@ -46,7 +47,7 @@ separate (Files_Suite.Transfer)
            ("Test_Read_Only_Survives_Copy_And_Move", "a read-only file is still writable here (running as root)");
          return;
       end if;
-      Mutation := Files.File_System.Copy_Tree (Source, Copy);
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Copy);
       Assert (Mutation.Success, "a read-only file copies");
       Assert (File_Has_Bytes (Copy, "kept as is"), "and its copy has its bytes");
       Assert

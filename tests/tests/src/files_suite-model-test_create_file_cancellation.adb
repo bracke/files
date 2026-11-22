@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -12,7 +14,7 @@ separate (Files_Suite.Model)
       Reset_Root;
       Write_File (Join (Root, "untitled.txt"));
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      Files.Model.Filtering.Set_Filter (Model, "does-not-match-untitled");
       --  A pending "untitled 2.txt" create in a filtered, empty listing.
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
 
@@ -21,7 +23,7 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Rename_Selected_Items_Command,
          "F2 routes temporary rename cancel");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
       Assert (not Files.Model.Rename.Is_Active (Model), "F2 clears temporary rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), 0, "F2 clears temporary selection");
@@ -36,14 +38,15 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Create_File_Command,
          "Control+N routes create-file command");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "direct create cancel clears rename focus");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "Control+N can add temporary item after direct cancel");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -55,7 +58,8 @@ separate (Files_Suite.Model)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "Escape clears path focus during create");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "Escape cancels temporary item after path focus");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears create rename after path focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Visible_Count (Model),
@@ -73,7 +77,7 @@ separate (Files_Suite.Model)
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Success,
          "create Escape reports successful state-only cancel");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears temporary rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), 0, "Escape clears temporary selection");
@@ -90,7 +94,7 @@ separate (Files_Suite.Model)
          Files.Operation_Results.Operation_Success,
          "temporary-row item click reports successful context cancel");
       Assert
-        (not Files.Model.Temporary_Item_Is_Active (Model),
+        (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
          "temporary-row item click cancels pending create");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Command_Reasons;
 with Files.Items;
 with Files.Commands.Status;
@@ -52,7 +53,7 @@ separate (Files_Suite.Commands)
 
       --  The recent view: a search names the view, not a directory load error.
       Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Expect (Files.Commands.Search_Recursive_Command, "error.command.recent_view", "search in the recent view");
 
       --  An enabled command has no reason.

@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -31,7 +32,7 @@ separate (Files_Suite.Operations)
             procedure Check_Recent is
             begin
                Assert
-                 (Files.Model.In_Recent_View (Model),
+                 (Files.Model.Recent.In_Recent_View (Model),
                   "Duplicate and history operations retain the complete Recent view: still in Recent");
                Files_Suite.Support.Assert_Equal
                  (Files.Model.Current_Path (Model),

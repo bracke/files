@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files.Model.Sort_Menu;
@@ -14,7 +15,7 @@ separate (Files_Suite.Interaction)
       --  translator gives no scroll and the direct targeted entry refuses.
       declare
          Main_Before : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
-         Info_Before : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+         Info_Before : constant Natural := Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
          Outcome     : Files.Controller.Controller_Result;
       begin
          Files.Model.Sort_Menu.Toggle (Model);
@@ -37,7 +38,7 @@ separate (Files_Suite.Interaction)
            (Files.Model.Main_View_Scroll_Lines (Model), Main_Before,
             "the wheel is contained while a non-scrolling overlay owns input (main view scroll)");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Info_Pane_Scroll_Lines (Model), Info_Before,
+           (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), Info_Before,
             "the wheel is contained while a non-scrolling overlay owns input (info pane scroll)");
          Outcome :=
            Files.Controller.Handle_Targeted_Scroll

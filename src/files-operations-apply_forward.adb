@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 separate (Files.Operations)
 --  Apply the forward (redo) direction of Action. Returns True on full
 --  success. Undo_Restore_Trash is undo-only and never reaches here.
@@ -76,7 +77,7 @@ begin
                         Created : constant Boolean :=
                           (case Action.Create_Kind is
                               when Files.Undo.History.Create_Copy =>
-                                Files.File_System.Copy_Tree
+                                Files.File_System.Transfer.Copy_Tree
                                   (Source, Dest, Identity, Revision, Copy_Batch).Success,
                               when Files.Undo.History.Create_Symbolic_Link =>
                                 Files.File_System.Create_Symbolic_Link (Source, Dest).Success,

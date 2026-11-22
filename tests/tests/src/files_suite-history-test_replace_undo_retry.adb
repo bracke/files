@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -29,9 +30,9 @@ separate (Files_Suite.History)
             begin
                Write_Binary_File (Dest_A, "original A");
                Write_Binary_File (Dest_B, "original B");
-               Mutation := Files.File_System.Preserve_For_Replace (Dest_A, Back_A);
+               Mutation := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest_A, Back_A);
                Assert (Mutation.Success, "preserve the first replacement original");
-               Mutation := Files.File_System.Preserve_For_Replace (Dest_B, Back_B);
+               Mutation := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest_B, Back_B);
                Assert (Mutation.Success, "preserve the second replacement original");
                Backups.Append (Back_A);
                Backups.Append (Back_B);

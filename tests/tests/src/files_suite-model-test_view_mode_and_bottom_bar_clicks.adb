@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_View_Mode_And_Bottom_Bar_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -51,7 +52,7 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
          "info-pane click routes command with no selection");
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
+      Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
       Files.Model.Selection.Select_Visible (Model, 1);
       Result :=
         Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
@@ -59,12 +60,12 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
          "enabled info-pane click routes command");
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles open");
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info-pane click toggles open");
       --  Restore the closed state expected by the following command click
       --  checks.
       Result :=
         Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
+      Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Details_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

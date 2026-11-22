@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -37,7 +38,7 @@ separate (Files_Suite.History)
                Files.Operations.Undo_Recording.Record_Undo
                  (Model, Files.Undo.History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Prior),
                   Redoable => False);
-               Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
+               Files.Model.Filtering.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
                Files.Model.Selection.Select_All_Visible (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                if Partial then
@@ -74,7 +75,7 @@ separate (Files_Suite.History)
                      --  The first item committed before the second failed. It
                      --  must be present in the refreshed model, not merely on
                      --  disk and in the Undo entry.
-                     Files.Model.Set_Filter (Model, "");
+                     Files.Model.Filtering.Set_Filter (Model, "");
                      for Index in 1 .. Files.Model.Visible_Count (Model) loop
                         Found := Found or else
                           To_String (Files.Model.Visible_Item (Model, Index).Name) = Expected_Name;

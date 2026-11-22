@@ -1,3 +1,5 @@
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files.Rendering.Layouts;
@@ -15,10 +17,10 @@ separate (Files_Suite.Info)
       Write_File (Join (Root, "more.txt"), "efgh");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Filter (Model, ".txt");
+      Files.Model.Filtering.Set_Filter (Model, ".txt");
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (Natural (Snapshot.Selected_Info.Length),

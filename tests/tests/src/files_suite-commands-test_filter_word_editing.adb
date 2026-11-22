@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -29,7 +30,7 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "Control+Backspace deletes previous word");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Filter_Text (Model),
+        (Files.Model.Filtering.Filter_Text (Model),
          "alpha gamma",
          "Control+Backspace removes previous word and separator");
       Files_Suite.Support.Assert_Equal
@@ -41,7 +42,8 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
          "Control+Delete deletes next word");
-      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "alpha ", "Control+Delete removes next word");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "alpha ",
+                                        "Control+Delete removes next word");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

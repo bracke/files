@@ -360,4 +360,25 @@ private package Files.Model.Support is
    procedure Clear_Folder_Size
      (Model : in out Window_Model);
 
+   --  Record that the item at From now lives at To (a rename, a move, or Undo
+   --  or Redo of one), so the interaction layer can make labels, favorites and
+   --  recent entries follow it.
+   --
+   --  @param Model Model to update.
+   --  @param From Old full path.
+   --  @param To New full path.
+   procedure Note_Path_Move
+     (Model : in out Window_Model;
+      From  : String;
+      To    : String);
+
+   --  Set the info-pane scroll offset directly (clamped externally by the
+   --  renderer at draw time). Used by scrollbar drag-to-scroll.
+   --
+   --  @param Model Model to update.
+   --  @param Lines New info-pane scroll offset in logical text lines.
+   procedure Set_Info_Pane_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural);
+
 end Files.Model.Support;

@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Menus)
    function Calculate_Context_Menu_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;

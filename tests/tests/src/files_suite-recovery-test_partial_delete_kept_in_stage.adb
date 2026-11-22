@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_Identities;
 with Files.File_System.Testing;
 with Files.Protocol_Names;
@@ -39,7 +40,7 @@ separate (Files_Suite.Recovery)
       if not Ada.Directories.Exists (Folder) then
          Assert (Ada.Directories.Exists (Join (Join (Stage, "payload"), "f5")),
                  "what is left stays in its recovery stage");
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains
                    (To_Unbounded_String (Join (Stage, "payload"))),
                  "listed among the recoveries");
       end if;

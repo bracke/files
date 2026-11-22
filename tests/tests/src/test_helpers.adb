@@ -8,6 +8,7 @@ with Ada.Text_IO;
 with Files.File_Identities;
 with Files.File_Identities.Testing;
 with Files.File_System;
+with Files.File_System.Transfer;
 with Files.Jobs.Helper_Modes;
 with Files.Jobs.Context;
 with Files.Jobs.Transports;
@@ -282,7 +283,7 @@ package body Test_Helpers is
          declare
             Copy_Identity, Copy_Revision : Ada.Strings.Unbounded.Unbounded_String;
             Copied : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Copy_Tree (Source, Destination, Copy_Identity, Copy_Revision);
+              Files.File_System.Transfer.Copy_Tree (Source, Destination, Copy_Identity, Copy_Revision);
          begin
             if Copied.Success or else Ada.Directories.Exists (Destination)
               or else not Ada.Directories.Exists (Source)

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Rendering.Testing;
 with Files.File_Types;
 separate (Files_Suite.Info)
@@ -48,7 +49,7 @@ separate (Files_Suite.Info)
          Items.Append (Item);
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Items.Element (1).Filetype_Detail),

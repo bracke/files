@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
@@ -9,7 +10,7 @@ separate (Files_Suite.Model)
       Mixed_Items : Files.Items.Item_Vectors.Vector;
       Operation : Files.Operation_Results.Operation_Result;
    begin
-      Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Mixed_Model, "pending.txt");
       Files.Model.Selection.Select_Visible_Range
         (Mixed_Model,
          Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),

@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Open_Terminal
   (Model : in out Files.Model.Window_Model)
@@ -7,7 +8,7 @@ is
    Terminal  : constant String := Detected_Terminal;
 begin
    if Directory = ""
-     or else Files.Model.In_Recent_View (Model)
+     or else Files.Model.Recent.In_Recent_View (Model)
      or else Files.File_System.Trash.Is_Trash_Files_Directory (Directory)
    then
       return Disabled (Model, "error.terminal.unavailable");

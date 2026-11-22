@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
@@ -41,7 +42,7 @@ separate (Files_Suite.Operations)
         (Result.Status,
          Files.Operation_Results.Operation_Navigated,
          "entering the recent view navigates");
-      Assert (Files.Model.In_Recent_View (Model), "the recent view is active after Navigate_Recent");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "the recent view is active after Navigate_Recent");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
          2,
@@ -61,7 +62,7 @@ separate (Files_Suite.Operations)
            (Routed.Operation.Status,
             Files.Operation_Results.Operation_Navigated,
             "double-clicking a recent folder opens it");
-         Assert (not Files.Model.In_Recent_View (Model), "opening a folder leaves the recent view");
+         Assert (not Files.Model.Recent.In_Recent_View (Model), "opening a folder leaves the recent view");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Current_Path (Model),
             Ada.Directories.Full_Name (Dir),
@@ -76,6 +77,6 @@ separate (Files_Suite.Operations)
          "re-entering the recent view relists the items");
       Files.Settings.Path_References.Clear_Recent (Settings);
       Result := Files.Operations.Navigate_Recent (Model, Settings);
-      Assert (Files.Model.In_Recent_View (Model), "the view stays active after clearing");
+      Assert (Files.Model.Recent.In_Recent_View (Model), "the view stays active after clearing");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "clearing empties the recent listing");
    end Test_Recent_View_Operation;

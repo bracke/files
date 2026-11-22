@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_System.Trash;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
@@ -18,21 +19,21 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "original");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
       begin
          --  As the stage looks between Preserve's Register and its move.
          Ada.Directories.Rename (To_String (Backup), Dest);
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Assert (Ada.Directories.Exists (Stage), "an unmarked stage without its payload survives the sweep");
          Assert (Ada.Directories.Exists (Join (Stage, Files.Protocol_Names.Recovery_Owner)),
                  "its owner record is kept");
          --  Preserve completes: the payload arrives and is registered still.
          Ada.Directories.Rename (Dest, To_String (Backup));
-         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+         Assert (Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
                  "the stage's record survived, so the payload is still found");
          Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Backup)).Success,
                  "and the payload is discarded normally");

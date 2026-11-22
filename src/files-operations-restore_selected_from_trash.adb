@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Restore_Selected_From_Trash
   (Model    : in out Files.Model.Window_Model;
@@ -27,7 +28,7 @@ begin
            Files.File_System.Trash.Restore_From_Trash (To_String (Item.Full_Path));
       begin
          if Mutation.Success then
-            Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), Original);
+            Files.Model.Recent.Note_Path_Move (Model, To_String (Item.Full_Path), Original);
          else
             Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));

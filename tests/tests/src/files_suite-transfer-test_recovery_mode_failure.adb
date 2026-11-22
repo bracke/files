@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
 with Files.File_System.Trash;
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
          --  something new appears at its name meanwhile.
          Files.File_System.Testing.Fail_Directory_Restore
            (Join (Root, ".files-recovery-1/payload"), (if Block_Rollback then Source else ""));
-         Mutation := Files.File_System.Preserve_For_Replace (Source, Backup);
+         Mutation := Files.File_System.Recovery_Registry.Preserve_For_Replace (Source, Backup);
          Assert (not Mutation.Success, "a failed mode restoration reports failure");
          if Block_Rollback then
             Assert (Length (Backup) > 0 and then File_Has_Bytes (Join (To_String (Backup), "child"),

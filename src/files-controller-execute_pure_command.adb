@@ -1,3 +1,5 @@
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
 with Files.Commands; use Files.Commands;
 with Files.Model.Rename;
 with Files.Model.Selection;
@@ -22,7 +24,7 @@ separate (Files.Controller)
          when Select_Details_Command =>
             Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
          when Toggle_Info_Pane_Command =>
-            Files.Model.Toggle_Info_Pane (Model);
+            Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          when Toggle_Sort_Menu_Command =>
             Files.Model.Sort_Menu.Toggle (Model);
          when Sort_Command_Id =>
@@ -39,7 +41,7 @@ separate (Files.Controller)
             Files.Model.Command_Palette.Toggle (Model);
             Files.Model.Set_Error (Model, "");
          when Clear_Filter_Command =>
-            Files.Model.Clear_Filter (Model);
+            Files.Model.Filtering.Clear_Filter (Model);
          when Select_All_Command =>
             Files.Model.Selection.Select_All_Visible (Model);
          when Invert_Selection_Command =>

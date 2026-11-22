@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Context_Menu;
 with Files_Suite.Support.Disk;
@@ -22,9 +23,9 @@ separate (Files_Suite.Context_Menu)
          Assert (Files.Model.Context_Menu.Is_Open (Model), "the empty-area menu opens on empty space");
          Dispatch_Menu_Command (Model, Settings, "", Files.Commands.New_Folder_Command, Result, Found);
          Assert (Found, "the empty-area menu offers the new-folder command");
-         Assert (Files.Model.Temporary_Item_Is_Active (Model), "new folder activates a temporary item");
+         Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "new folder activates a temporary item");
          Assert
-           (Files.Model.Temporary_Item_Is_Directory (Model),
+           (Files.Model.Creation.Temporary_Item_Is_Directory (Model),
             "the new-folder temporary item is marked as a directory");
       end;
 

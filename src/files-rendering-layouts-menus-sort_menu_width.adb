@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Menus)
    function Sort_Menu_Width
      (Line_Height : Positive)
       return Natural

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Models;
@@ -10,7 +11,7 @@ separate (Files_Suite.Interaction)
       Main_X, Main_Y : Natural;
    begin
       Open_Targeted_Scroll_Fixture (Model);
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "the info pane is open for the scroll-target test");
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "the info pane is open for the scroll-target test");
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -58,7 +59,7 @@ separate (Files_Suite.Interaction)
 
       Scroll_Down_At (Model, Settings, Info_X, Info_Y);
       Assert
-        (Files.Model.Info_Pane_Scroll_Lines (Model) > 0,
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model) > 0,
          "scrolling over the info pane moves the info-pane offset");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Main_View_Scroll_Lines (Model),
@@ -66,14 +67,14 @@ separate (Files_Suite.Interaction)
          "scrolling over the info pane leaves the main view untouched");
 
       declare
-         Info_Before : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+         Info_Before : constant Natural := Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
       begin
          Scroll_Down_At (Model, Settings, Main_X, Main_Y);
          Assert
            (Files.Model.Main_View_Scroll_Lines (Model) > 0,
             "scrolling over the main view moves the main-view offset");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Info_Pane_Scroll_Lines (Model),
+           (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
             Info_Before,
             "scrolling over the main view leaves the info-pane offset unchanged");
       end;

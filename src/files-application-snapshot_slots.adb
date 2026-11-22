@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Snapshot_Policy;
 with Files.Timing;
 with Files.Model.Tree_Panel;
@@ -50,7 +51,8 @@ package body Files.Application.Snapshot_Slots is
                end;
             end if;
             View.Snapshots (View.Current_Slot).Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
-            View.Snapshots (View.Current_Slot).Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
+            View.Snapshots (View.Current_Slot).Info_Pane_Scroll_Lines :=
+              Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
             View.Snapshots (View.Current_Slot).Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel.Scroll_Rows (Model);
             View.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Model);
          end if;

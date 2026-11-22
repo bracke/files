@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
@@ -16,7 +17,7 @@ separate (Files_Suite.Refresh)
       Write_File (Join (First, "one.txt"));
       Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
-      Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "failed-home-pending.txt");
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -37,12 +38,12 @@ separate (Files_Suite.Refresh)
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
          "failed home records path error");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
       Assert (Files.Model.Rename.Is_Active (Model), "failed home preserves rename state");
       Assert (Files.Model.Command_Palette.Is_Open (Model), "failed home preserves command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Files.Model.Begin_Create_File (Model, "home-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "home-pending.txt");
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -53,7 +54,7 @@ separate (Files_Suite.Refresh)
         (To_String (Result.Operation.Path),
          Ada.Directories.Full_Name (First),
          "home operation reports normalized home path");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "home clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "home clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "home clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "home clears rename focus");

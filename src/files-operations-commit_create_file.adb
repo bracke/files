@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Creation;
 separate (Files.Operations)
 function Commit_Create_File
   (Model    : in out Files.Model.Window_Model;
@@ -6,10 +8,10 @@ function Commit_Create_File
 is
    Name : constant String := Files.Model.Rename.Text (Model);
 begin
-   if not Files.Model.Temporary_Item_Is_Active (Model) then
+   if not Files.Model.Creation.Temporary_Item_Is_Active (Model) then
       return Disabled (Model, "error.create.no_temporary_item");
    elsif Files.Model.Current_Path (Model) = ""
-     or else Files.Model.In_Recent_View (Model)
+     or else Files.Model.Recent.In_Recent_View (Model)
      or else Is_Trash_Directory (Files.Model.Current_Path (Model))
    then
       return Disabled (Model, "error.file.parent_missing");
@@ -23,7 +25,7 @@ begin
    declare
       Path     : constant String := Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name);
       Mutation : constant Files.File_System.Mutation_Result :=
-        (if Files.Model.Temporary_Item_Is_Directory (Model)
+        (if Files.Model.Creation.Temporary_Item_Is_Directory (Model)
          then Files.File_System.Create_Directory (Path)
          else Files.File_System.Create_Empty_File (Path));
    begin

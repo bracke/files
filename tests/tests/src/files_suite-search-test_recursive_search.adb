@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
@@ -37,7 +38,7 @@ separate (Files_Suite.Search)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
          "recursive search command is disabled without filter text");
-      Files.Model.Set_Filter (Model, "match");
+      Files.Model.Filtering.Set_Filter (Model, "match");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
          "recursive search command is enabled with filter text");

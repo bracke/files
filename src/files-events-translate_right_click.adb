@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Rendering.Layouts;
 separate (Files.Events)
    function Translate_Right_Click
@@ -11,8 +12,8 @@ separate (Files.Events)
    is
       Layout : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Menu   : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
+      Menu   : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
       --  The menu is drawn over the view: the item beneath it is not what a
       --  right click on it meant.
       Over_Menu : constant Boolean := Files.Rendering.Hit.Context_Menu_Contains (Menu, X, Y);

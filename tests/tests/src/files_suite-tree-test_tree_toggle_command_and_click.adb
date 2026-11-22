@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Tree;
 with Files.Input_Actions;
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
@@ -26,8 +27,8 @@ separate (Files_Suite.Tree)
            Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
          Panel    : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
            Files.Rendering.Layouts.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line);
-         Rows     : constant Files.Rendering.Layouts.Tree_Row_Layout_Vectors.Vector :=
-           Files.Rendering.Layouts.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
+         Rows     : constant Files.Rendering.Layouts.Tree.Tree_Row_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Tree.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
          Target   : constant String := Files.Model.Tree_Panel.Node_Path (Model, 1);
          Expected : constant Files.File_System.Path_Result :=
            Files.File_System.Normalize_Path (Target);
@@ -36,7 +37,7 @@ separate (Files_Suite.Tree)
       begin
          Assert (not Rows.Is_Empty, "the open tree lays out at least one row");
          declare
-            Row : constant Files.Rendering.Layouts.Tree_Row_Layout := Rows.Element (1);
+            Row : constant Files.Rendering.Layouts.Tree.Tree_Row_Layout := Rows.Element (1);
          begin
             X := Row.Triangle_X + Line + 2;
             Y := Row.Y + Row.Height / 2;

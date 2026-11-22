@@ -1,3 +1,4 @@
+with Files.Model.Ownership_Input;
 separate (Files.Operations)
 procedure Focus_Ownership_Input
   (Model         : in out Files.Model.Window_Model;
@@ -11,7 +12,7 @@ begin
    declare
       Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
    begin
-      Files.Model.Focus_Ownership_Input
+      Files.Model.Ownership_Input.Focus_Ownership_Input
         (Model,
          Editing_Group,
          (if Editing_Group

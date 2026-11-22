@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -25,7 +26,7 @@ separate (Files_Suite.Search)
          for Contents in Boolean loop
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Set_Filter (Model, "needle");
+            Files.Model.Filtering.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
             Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,
               Files.UI_Types.Search_Contents)
@@ -44,7 +45,7 @@ separate (Files_Suite.Search)
                0,
                "a skipped deep subtree still shows the search's answer: nothing found above it");
             Assert
-              (Files.Model.Search_Results_Are_Active (Model),
+              (Files.Model.Filtering.Search_Results_Are_Active (Model),
                "a skipped deep subtree still shows the search's answer: results active");
          end loop;
       end loop;
@@ -68,7 +69,7 @@ separate (Files_Suite.Search)
             end;
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Set_Filter (Model, "needle");
+            Files.Model.Filtering.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
             Step := Complete_Operation
               (Model, Settings, Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents));

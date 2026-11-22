@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Input_Actions;
 with Files.Model.Clipboard;
 with Guikit.Draw;
@@ -47,8 +48,8 @@ separate (Files_Suite.Context_Menu)
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-           Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+         Menu     : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+           Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
       begin
          --  Every row a screen reader is offered resolves, at its node's
          --  centre, to that row's command.
@@ -78,7 +79,7 @@ separate (Files_Suite.Context_Menu)
             if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
                Assert
                  (Click (Menu.X + Menu.Width / 2,
-                         Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row)).Kind
+                         Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Row)).Kind
                   = Files.Input_Actions.No_Input_Action,
                   "a click on a separator is swallowed");
                exit;
@@ -97,8 +98,8 @@ separate (Files_Suite.Context_Menu)
       Open_Menu;
       declare
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
-         Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-           Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+         Menu     : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+           Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
          Outside  : constant Natural :=
            (if Menu.X >= 10 then Menu.X - 5 else Menu.X + Menu.Width + 5);
          Action   : constant Files.Input_Actions.Input_Action := Click (Outside, Menu.Y + Menu.Height / 2);

@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.UI_Types;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -14,7 +16,7 @@ separate (Files_Suite.Names)
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.file.create");
-      Files.Model.Begin_Create_File (Model, "created.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "created.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "create commit succeeds");
@@ -27,7 +29,7 @@ separate (Files_Suite.Names)
         (Files.Model.Last_Error_Key (Model),
          "",
          "successful create clears stale error state");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create commit clears temporary state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "create commit clears temporary state");
       Assert (not Files.Model.Rename.Is_Active (Model), "create commit clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "create commit reloads the directory model");
       Files_Suite.Support.Assert_Equal
@@ -61,7 +63,7 @@ separate (Files_Suite.Names)
         (not Ada.Directories.Exists ("recent-renamed-must-not-write-7f62b1"),
          "direct recent-view rename cannot move an item into the process directory: nothing written");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Files.Model.Begin_Create_File (Model, Guard_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Guard_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Disabled
@@ -78,7 +80,7 @@ separate (Files_Suite.Names)
          and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",
          "direct paste rejects the virtual recent view's empty destination");
 
-      Files.Model.Set_Filter (Model, "created");
+      Files.Model.Filtering.Set_Filter (Model, "created");
       Files.Model.Set_Background_Transfers (Model, True);
       Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Files_Suite.Support.Assert_Equal

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -13,7 +14,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       --  Visit each item so its lazy extra info is computed and cached (as
       --  happens when the selection lands on it with the info pane open), then
       --  select them all, so the info pane's snapshot carries every item's

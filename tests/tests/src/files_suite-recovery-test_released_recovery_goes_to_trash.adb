@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.File_System.Trash;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
@@ -23,13 +24,13 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery
       --  folder, since that trash cannot restore it programmatically.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "Replace keeps the original as a recovery payload");
 
       --  That trash refuses here: releasing fails and keeps it.
-      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
-      Assert (not Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Release_Recovery_Payload (To_String (Backup));
+      Assert (not Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "a release the trash refuses leaves the payload recoverable");
       --  A native trash records where an item was trashed from, so the
       --  release trashes it from beside its original; refused, it goes back.
@@ -38,8 +39,8 @@ separate (Files_Suite.Recovery)
       --  As after a real Replace: the replacement holds the name, so the
       --  original would go beside it as "replaced 2.txt" -- and come back.
       Write_Binary_File (Dest, "replacement");
-      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
-      Assert (not Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Release_Recovery_Payload (To_String (Backup));
+      Assert (not Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "a refused release beside a replacement keeps the payload recoverable");
       Assert (File_Has_Bytes (Dest, "replacement"), "the replacement is left as it was");
       Assert (not Ada.Directories.Exists (Join (Root, "replaced 2.txt")),
@@ -49,7 +50,7 @@ separate (Files_Suite.Recovery)
 
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
-      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Result := Files.File_System.Recovery_Registry.Release_Recovery_Payload (To_String (Backup));
       Assert (Result.Success, "a released payload goes to the trash");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Trashed),

@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.File_Types;
 with Files.Environment;
 with Ada.Exceptions;
@@ -332,8 +333,8 @@ package body Files.Application is
       --  not by toggling: toggling from the model's default sort field mis-set the
       --  direction, leaving the model out of step with the settings.
       Files.Operations.Apply_Ui_State (Model, Settings);
-      if Settings.Info_Pane_Open and then not Files.Model.Info_Pane_Is_Open (Model) then
-         Files.Model.Toggle_Info_Pane (Model);
+      if Settings.Info_Pane_Open and then not Files.Model.Info_Pane.Info_Pane_Is_Open (Model) then
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       end if;
    end Apply_Persisted_UI_State;
 

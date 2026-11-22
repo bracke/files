@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Delete_Selected_Permanently
   (Model    : in out Files.Model.Window_Model;
@@ -43,7 +44,7 @@ begin
                    (To_String (Item.Full_Path)));
       begin
          if Mutation.Success then
-            Files.Model.Note_Path_Removed (Model, Labeled);
+            Files.Model.Recent.Note_Path_Removed (Model, Labeled);
          else
             Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -34,7 +35,7 @@ separate (Files_Suite.History)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
-         Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
+         Files.Model.Filtering.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Step := Complete_Operation

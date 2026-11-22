@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Input_Actions;
@@ -19,7 +20,7 @@ separate (Files_Suite.Info)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, True);
          Select_Name (Model, (if Unsupported then "selected.bin" else "selected.txt"));
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Write_Binary_File (Join (Root, "new.txt"), "new");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",

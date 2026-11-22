@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
@@ -17,7 +18,7 @@ separate (Files_Suite.Model)
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector can reopen after palette Escape");
-      Files.Model.Begin_Create_File (Model, "root-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "root-pending.txt");
       --  A row for a root that is gone, and one for Target, picked as a click
       --  on the row picks it.
       Rows.Append (To_Unbounded_String (Join (Root, "missing-root")));
@@ -50,7 +51,8 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
          "invalid root selection records error");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid root selection preserves temporary create state");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "invalid root selection preserves temporary create state");
       Assert (Files.Model.Rename.Is_Active (Model), "invalid root selection preserves rename state");
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 0);
       Files_Suite.Support.Assert_Equal
@@ -84,7 +86,8 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "",
          "root selection clears stale error state");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "root selection clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
+              "root selection clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "root selection clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "selected root directory items are loaded");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "root selection closes selector");

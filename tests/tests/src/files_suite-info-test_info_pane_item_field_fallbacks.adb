@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -26,7 +27,7 @@ separate (Files_Suite.Info)
          Items.Append (Broken_Item);
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 800, Line_Height => 20);
 
@@ -58,13 +59,13 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "blob.bin");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
          Files.Localization.Text ("info.extra.extension", "extension", "bin"),
          "info pane captures extension metadata fallback");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
 
       Write_File (Join (Root, "run.sh"), "#!/bin/sh" & ASCII.LF);
       declare
@@ -81,7 +82,7 @@ separate (Files_Suite.Info)
          Items.Append (Exec_Item);
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
@@ -101,7 +102,7 @@ separate (Files_Suite.Info)
                Filetype    => "application/octet-stream"));
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Toggle_Info_Pane (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Assert
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =

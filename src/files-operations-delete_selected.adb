@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.File_System.Trash;
 with Files.Items;
 
@@ -99,7 +100,7 @@ begin
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.
-         Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), To_String (Trashed));
+         Files.Model.Recent.Note_Path_Move (Model, To_String (Item.Full_Path), To_String (Trashed));
          Checkpoint_Undo (Model, Progress);
       end;
    end loop;

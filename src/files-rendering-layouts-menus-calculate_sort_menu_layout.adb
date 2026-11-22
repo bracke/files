@@ -1,5 +1,5 @@
 with Files.UI_Types;
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Menus)
    function Calculate_Sort_Menu_Layout
      (Width       : Natural;
       Height      : Natural;

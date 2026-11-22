@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Commands.Status;
@@ -42,7 +43,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "the settings toggle closes the open pane");
-      Files.Model.Begin_Create_File (Model, "settings-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "settings-pending.txt");
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -50,7 +51,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Settings_Pane.Is_Open (Model),
          "controller opens settings pane over pending create");
       Assert
-        (not Files.Model.Temporary_Item_Is_Active (Model),
+        (not Files.Model.Creation.Temporary_Item_Is_Active (Model),
          "settings pane opening clears pending create state");
       Assert
         (not Files.Model.Rename.Is_Active (Model),

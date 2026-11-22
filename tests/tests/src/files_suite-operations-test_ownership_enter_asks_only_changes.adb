@@ -1,3 +1,4 @@
+with Files.Model.Ownership_Input;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -28,7 +29,7 @@ separate (Files_Suite.Operations)
       procedure Commit (Group : Boolean; Text : String) is
       begin
          Select_Name (Model, "enter_own.txt");
-         Files.Model.Focus_Ownership_Input (Model, Editing_Group => Group, Account_Name => "");
+         Files.Model.Ownership_Input.Focus_Ownership_Input (Model, Editing_Group => Group, Account_Name => "");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Model), Files.UI_Types.Focus_Ownership_Input, "the ownership field is edited");
          Files.Controller.Testing.Replace_Focused_Text (Model, Text);

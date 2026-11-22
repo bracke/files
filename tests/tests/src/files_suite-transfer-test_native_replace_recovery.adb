@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
@@ -34,7 +35,7 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Fake_Payload, "unowned");
          Write_Binary_File (Join (Fake_Stage, "original"), Dest);
          Assert
-           (not Files.File_System.Is_Recovery_Payload (Fake_Payload),
+           (not Files.File_System.Recovery_Registry.Is_Recovery_Payload (Fake_Payload),
             "a matching filename without an ownership record is not recovery data");
          Assert
            (Ada.Directories.Exists (Fake_Payload),
@@ -49,7 +50,7 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Guards.Save (Test_Temp, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Relative_Registry);
-         Result := Files.File_System.Preserve_For_Replace (Registry_Source, Backup);
+         Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Registry_Source, Backup);
       end;
       Assert
         (not Result.Success,
@@ -103,7 +104,7 @@ separate (Files_Suite.Transfer)
             Assert (not Files.Model.History.Redo_Available (Model), "Replace with a backup remains undo-only");
          end loop;
       end loop;
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success, "the rollback failure fixture preserves the original");
       declare
          Owner_Path : constant String :=
@@ -116,7 +117,7 @@ separate (Files_Suite.Transfer)
       begin
          if Hostkit.Fs.Create_Hard_Link (Owner_Path, Owner_Alias) then
             Assert
-              (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              (not Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
                "recovery rejects a multiply-linked ownership record");
             Ada.Directories.Delete_File (Owner_Alias);
          else
@@ -124,16 +125,16 @@ separate (Files_Suite.Transfer)
          end if;
          Write_Binary_File (Owner_Path, Owner_Data & "trailing");
          Assert
-           (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+           (not Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
             "recovery ownership records reject trailing data");
          Write_Binary_File (Owner_Path, Owner_Data);
          Assert
-           (Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+           (Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
             "restoring the exact ownership record restores recognition");
       end;
       declare
          Registered : constant Files.Types.String_Vectors.Vector :=
-           Files.File_System.Registered_Recovery_Payloads;
+           Files.File_System.Recovery_Registry.Registered_Recovery_Payloads;
          Found : Boolean := False;
          Intruder : constant String := Join
            (Ada.Directories.Containing_Directory (To_String (Backup)), "unrelated");

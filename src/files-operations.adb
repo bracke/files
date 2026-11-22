@@ -1,3 +1,6 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
+with Files.File_System.Search;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
@@ -127,7 +130,7 @@ package body Files.Operations is
    function Content_Matches
      (Bytes : String;
       Query : String)
-      return Boolean renames Files.File_System.Content_Matches;
+      return Boolean renames Files.File_System.Search.Content_Matches;
 
    procedure Apply_Ui_State
      (Model    : in out Files.Model.Window_Model;
@@ -232,9 +235,9 @@ package body Files.Operations is
 
    function Search_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
    begin
-      if Files.Model.Filter_Text (Model) = "" then
+      if Files.Model.Filtering.Filter_Text (Model) = "" then
          return Disabled (Model, "error.filter.empty");
-      elsif Files.Model.Current_Path (Model) = "" or else Files.Model.In_Recent_View (Model) then
+      elsif Files.Model.Current_Path (Model) = "" or else Files.Model.Recent.In_Recent_View (Model) then
          return Disabled (Model, Files.IO.Errors.Directory_Load_Key);
       end if;
       return (Status => Operation_Success, others => <>);

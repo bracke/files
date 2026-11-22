@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Layouts.Menus)
    function Context_Menu_Row_Width
      (Menu : Context_Menu_Layout;
       Row  : Positive)

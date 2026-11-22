@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.File_Types;
 with Files.Command_Reasons;
 with Files.Jobs.Context;
@@ -7,6 +8,7 @@ with Files.Diagnostics;
 with Hostkit.Process;
 
 with Files.File_System;
+with Files.File_System.Transfer;
 with Files.Undo.Journal;
 with Files.Timing;
 with Files.Refresh;
@@ -121,7 +123,7 @@ package body Files.Operations.Support is
          --  directory load would spuriously fail and a mutation performed from
          --  Recent would be reported as failed with the view left stale. Rebuild it
          --  from the recorded recent paths instead (Load_Recent_Items).
-         if Files.Model.In_Recent_View (Model) then
+         if Files.Model.Recent.In_Recent_View (Model) then
             Files.Model.Navigate_Recent (Model, Files.Refresh.Load_Recent_Items (Settings));
             if Preserve_Selection and then Select_Name = "" then
                Files.Model.Selection.Restore
@@ -329,7 +331,7 @@ package body Files.Operations.Support is
       Target   : String;
       Identity : out Ada.Strings.Unbounded.Unbounded_String;
       Revision : out Ada.Strings.Unbounded.Unbounded_String)
-      return Boolean renames Files.File_System.Publish_Staged;
+      return Boolean renames Files.File_System.Transfer.Publish_Staged;
 
    procedure Discard_Stage (Stage : String) is
    begin

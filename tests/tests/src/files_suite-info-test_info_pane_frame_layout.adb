@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       --  Tall enough that every info-pane row (now including the owner/group

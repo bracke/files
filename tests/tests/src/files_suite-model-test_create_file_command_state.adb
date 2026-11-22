@@ -1,3 +1,5 @@
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Items;
@@ -18,8 +20,8 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Command_Palette.Open (Model);
-      Files.Model.Begin_Create_File (Model, "draft.txt");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
+      Files.Model.Creation.Begin_Create_File (Model, "draft.txt");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "direct create closes stale root selector");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Count (Model),
@@ -27,7 +29,7 @@ separate (Files_Suite.Model)
          "direct create clears stale root selector entries");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "direct create closes stale command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      Files.Model.Filtering.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Scroll_Main_View (Model, 4);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
@@ -43,9 +45,9 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "",
          "create command clears stale error state");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "create command adds temporary item");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "create command adds temporary item");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          "untitled 3.txt",
          "temporary item name is deterministic");
       Files_Suite.Support.Assert_Equal
@@ -78,7 +80,7 @@ separate (Files_Suite.Model)
          "error.create.pending",
          "second create records error");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Temporary_Item_Name (Model),
+        (Files.Model.Creation.Temporary_Item_Name (Model),
          "untitled 3.txt",
          "ignored create keeps pending name");
    end Test_Create_File_Command_State;

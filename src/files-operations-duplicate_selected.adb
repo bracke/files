@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.File_System.Transfer;
 with Files.Name_Parts;
 
 separate (Files.Operations)
@@ -38,7 +40,7 @@ begin
          return Refusal;
       end if;
    end;
-   if Items.Is_Empty or else (Directory = "" and then not Files.Model.In_Recent_View (Model)) then
+   if Items.Is_Empty or else (Directory = "" and then not Files.Model.Recent.In_Recent_View (Model)) then
       return Failed;
    end if;
 
@@ -69,7 +71,7 @@ begin
             Dest_Name : constant String := Files.Name_Parts.Leaf_Of (Dest_Path);
             Identity, Revision : Files.Types.UString;
             Mutation  : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
+              Files.File_System.Transfer.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
          begin
             if not Mutation.Success then
                return Failed;

@@ -1,3 +1,5 @@
+with Files.Model.Recent;
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Input_Actions;
@@ -94,11 +96,11 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "gamma"), "gamma");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Ready;
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Await_Refresh (False);
       Assert (Files.Model.Item_Count (Model) = 2 and then Files.Model.Visible_Count (Model) = 1,
               "a completed old read cannot overwrite a later model edit");
-      Files.Model.Set_Filter (Model, "");
+      Files.Model.Filtering.Set_Filter (Model, "");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Refresh (True);
       Files_Suite.Support.Assert_Equal
@@ -139,7 +141,7 @@ separate (Files_Suite.Refresh)
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_F5, Result => Routed);
       Await_Refresh (True);
-      Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1,
+      Assert (Files.Model.Recent.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1,
               "explicit Recent refresh also loads its items in a helper");
    exception
       when others =>

@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
@@ -22,11 +23,11 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Skip ("Test_Copy_Read_Only_Cause", "a read-only directory does not refuse writes here");
          return;
       end if;
-      Mutation := Files.File_System.Copy_Tree (Source, Join (Locked, "source.txt"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Locked, "source.txt"));
       Assert (not Mutation.Success, "a read-only folder refuses a copied file");
       Assert_Equal
         (To_String (Mutation.Error_Key), "error.io.denied", "the refused file copy says permission was denied");
-      Mutation := Files.File_System.Copy_Tree (Folder, Join (Locked, "folder"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Folder, Join (Locked, "folder"));
       Assert_Equal
         (To_String (Mutation.Error_Key), "error.io.denied", "the refused folder copy says permission was denied");
       for Mode in Files.File_System.Drop_Import_Mode loop
@@ -54,7 +55,7 @@ separate (Files_Suite.Operations)
               "refused copies and moves leave the sources and add nothing: no folder added");
 
       --  The next copy starts afresh: the earlier refusal does not explain it.
-      Mutation := Files.File_System.Copy_Tree (Join (Root, "absent.txt"), Join (Root, "copy.txt"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Join (Root, "absent.txt"), Join (Root, "copy.txt"));
       Assert_Equal (To_String (Mutation.Error_Key), "error.copy.failed", "an unrelated failure keeps the generic key");
    exception
       when others =>

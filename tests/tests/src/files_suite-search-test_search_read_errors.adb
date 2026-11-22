@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -28,7 +29,7 @@ separate (Files_Suite.Search)
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Model.Set_Background_Transfers (Model, Background);
-               Files.Model.Set_Filter (Model, "needle");
+               Files.Model.Filtering.Set_Filter (Model, "needle");
                Denied := To_Unbounded_String
                  ((case Case_Id is when 1 => Root, when 2 => Join (Root, "sub"),
                    when others => Join (Root, "needle.txt")));
@@ -50,7 +51,7 @@ separate (Files_Suite.Search)
                      2,
                      "an unreadable root preserves the listing and reports an error: item count");
                   Assert
-                    (not Files.Model.Search_Results_Are_Active (Model),
+                    (not Files.Model.Filtering.Search_Results_Are_Active (Model),
                      "an unreadable root preserves the listing and reports an error: results inactive");
                   Files_Suite.Support.Assert_Equal
                     (To_String (Step.Error_Key),
@@ -64,7 +65,7 @@ separate (Files_Suite.Search)
                      Files.Operation_Results.Operation_Success,
                      "an unreadable folder or file below the root still shows the other match: status");
                   Assert
-                    (Files.Model.Search_Results_Are_Active (Model),
+                    (Files.Model.Filtering.Search_Results_Are_Active (Model),
                      "an unreadable folder or file below the root still shows the other match: results active");
                   Files_Suite.Support.Assert_Equal
                     (Files.Model.Item_Count (Model),

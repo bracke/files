@@ -433,14 +433,14 @@ package body Files.Rendering.Hit is
       return Files.Commands.Command_Id
    is
       --  No sort button, no menu: its width is then 0.
-      Menu   : constant Layouts.Sort_Menu_Layout :=
-        Layouts.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
-      Row    : constant Natural := Layouts.Sort_Menu_Row_At (Menu, X, Y);
+      Menu   : constant Layouts.Menus.Sort_Menu_Layout :=
+        Layouts.Menus.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
+      Row    : constant Natural := Layouts.Menus.Sort_Menu_Row_At (Menu, X, Y);
    begin
       if Row = 0 then
          return Files.Commands.No_Command;
       end if;
-      return Files.Commands.Sort_Command (Layouts.Sort_Menu_Row_Field (Row));
+      return Files.Commands.Sort_Command (Layouts.Menus.Sort_Menu_Row_Field (Row));
    end Bottom_Bar_Sort_Menu_Command_At;
 
    function Bottom_Bar_Sort_Menu_Contains
@@ -452,8 +452,8 @@ package body Files.Rendering.Hit is
       Line_Height : Positive)
       return Boolean
    is
-      Menu        : constant Layouts.Sort_Menu_Layout :=
-        Layouts.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
+      Menu        : constant Layouts.Menus.Sort_Menu_Layout :=
+        Layouts.Menus.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
       Menu_Bottom : constant Natural :=
         Natural'Min (Height, Saturating_Add (Menu.Y, Menu.Height));
    begin

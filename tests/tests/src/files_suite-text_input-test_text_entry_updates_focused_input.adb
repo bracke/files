@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
@@ -20,7 +21,7 @@ separate (Files_Suite.Text_Input)
             "typed text lands in the focused filter input (status)");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Filter_Text (Model),
+        (Files.Model.Filtering.Filter_Text (Model),
          "rep",
          "typed text lands in the focused filter input");
 

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Commands.Overlay_Buttons;
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
@@ -147,8 +148,8 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  The context menu: a row runs its command, a click on its padding or a
    --  separator is swallowed, and one outside it closes it.
    function Context_Menu_Click return Input_Action is
-      Menu : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
+      Menu : constant Files.Rendering.Layouts.Menus.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Menus.Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
       Row  : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
    begin
       if Row in 1 .. Menu.Row_Count then

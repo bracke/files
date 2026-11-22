@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files_Suite.Support.Models;
@@ -36,7 +37,7 @@ separate (Files_Suite.Info)
 
       --  Info pane open: the selected folder's child count is computed lazily,
       --  replacing the fallback with the actual count detail.
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (Folder_Extra /= Fallback and then Folder_Extra'Length > 0,
               "folder child count is computed lazily when the info pane is open");

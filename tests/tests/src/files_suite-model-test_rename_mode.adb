@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Model.Command_Palette;
@@ -66,13 +67,13 @@ separate (Files_Suite.Model)
 
       Files.Model.Selection.Select_Visible (Model, 3);
       Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
-      Files.Model.Set_Filter (Model, "Alpha");
+      Files.Model.Filtering.Set_Filter (Model, "Alpha");
       Assert (not Files.Model.Rename.Is_Active (Model), "filter hiding rename target cancels rename mode");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Name (Model),
          "Alpha.txt",
          "filter reconciliation selects visible item");
-      Files.Model.Clear_Filter (Model);
+      Files.Model.Filtering.Clear_Filter (Model);
       Files.Model.Selection.Select_Visible (Model, 2);
       Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);

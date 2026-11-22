@@ -1,3 +1,5 @@
+with Files.Model.Info_Pane;
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
@@ -17,9 +19,9 @@ separate (Files_Suite.Refresh)
       Files.Model.Initialize (Model, First, Load.Items, First);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Write_File (Join (First, "fresh.txt"));
-      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       Files.Model.Selection.Select_Visible (Model, 3);
-      Files.Model.Scroll_Info_Pane (Model, Lines => 4);
+      Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 4);
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
@@ -32,7 +34,7 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Full_Name (First),
          "refresh operation reports current path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "refresh loads newly created item");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "refresh clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "refresh clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "refresh clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
@@ -41,7 +43,7 @@ separate (Files_Suite.Refresh)
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "refresh clears command palette");
       Assert (not Files.Model.Testing.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "refresh resets info pane scroll");
       Files.Model.Selection.Select_Visible (Model, 1);

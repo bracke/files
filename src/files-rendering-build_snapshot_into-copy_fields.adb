@@ -1,3 +1,7 @@
+with Files.Model.Recent;
+with Files.Model.Info_Pane;
+with Files.Model.Filtering;
+with Files.Model.Creation;
 with Files.Model.Jobs;
 with Files.File_System_Types;
 with Files.Settings.Path_References;
@@ -9,7 +13,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
         Files.Settings.Path_References.Is_Favorite (Settings, Files.Model.Current_Path (Model));
-      Snapshot.In_Recent_View := Files.Model.In_Recent_View (Model);
+      Snapshot.In_Recent_View := Files.Model.Recent.In_Recent_View (Model);
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
@@ -37,9 +41,9 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Snapshot.Free_Space_Bytes := Space.Free_Bytes;
          Snapshot.Total_Space_Bytes := Space.Total_Bytes;
       end;
-      Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
-      Snapshot.Search_Scope := Files.Model.Search_Scope_Of (Model);
-      Snapshot.Search_Results_Active := Files.Model.Search_Results_Are_Active (Model);
+      Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model));
+      Snapshot.Search_Scope := Files.Model.Filtering.Search_Scope_Of (Model);
+      Snapshot.Search_Results_Active := Files.Model.Filtering.Search_Results_Are_Active (Model);
       Snapshot.Last_Error_Key := To_Unbounded_String (Files.Model.Last_Error_Key (Model));
       Snapshot.Last_Error_Text :=
         (if Length (Snapshot.Last_Error_Key) = 0 then Null_Unbounded_String
@@ -58,15 +62,15 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Path_Input_Valid := Files.Model.Path_Input_Is_Valid (Model);
       Snapshot.Path_Input_Error_Key := To_Unbounded_String (Files.Model.Path_Input_Error_Key (Model));
       Snapshot.Rename_Active := Files.Model.Rename.Is_Active (Model);
-      Snapshot.Temporary_Item_Active := Files.Model.Temporary_Item_Is_Active (Model);
-      Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Temporary_Item_Name (Model));
-      Snapshot.Info_Pane_Open := Files.Model.Info_Pane_Is_Open (Model);
+      Snapshot.Temporary_Item_Active := Files.Model.Creation.Temporary_Item_Is_Active (Model);
+      Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Creation.Temporary_Item_Name (Model));
+      Snapshot.Info_Pane_Open := Files.Model.Info_Pane.Info_Pane_Is_Open (Model);
       --  As the window layer draws it (Window_Overlay_Shown): not under the
       --  palette or a paste dialog, so the frame does not leave a hole for it.
       Snapshot.Settings_Pane_Open :=
         Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Settings_Pane_Overlay);
       Snapshot.Icon_Theme := Settings.Icon_Theme;
-      Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
+      Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
       Snapshot.Context_Menu_Open := Files.Model.Context_Menu.Is_Open (Model);
       Snapshot.Context_Menu_Highlight := Files.Model.Context_Menu.Highlight (Model);

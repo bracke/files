@@ -1,3 +1,5 @@
+with Files.Model.Creation;
+with Files.File_System.Transfer;
 with Files.IO.Fs_Primitives;
 separate (Files.Operations)
 function Begin_Paste_To
@@ -49,7 +51,7 @@ begin
    if Directory = "" or else Is_Trash_Directory (Directory) then
       return Disabled (Model, "error.drop.invalid_destination");
    end if;
-   if Files.Model.Temporary_Item_Is_Active (Model) then
+   if Files.Model.Creation.Temporary_Item_Is_Active (Model) then
       return Disabled (Model, "error.create.pending");
    end if;
    if Mode = Files.File_System.Drop_Move then
@@ -63,7 +65,7 @@ begin
    --  Reuse the drag-and-drop planner purely to validate the sources
    --  (missing source, invalid name, drop-into-self) and to detect same-dir
    --  move no-ops; its auto-renamed destinations are discarded.
-   Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Directory, Mode);
+   Plans := Files.File_System.Transfer.Plan_Drop_Import (Source_Paths, Directory, Mode);
    if not Plans.Success then
       Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
       return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Directory);

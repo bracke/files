@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Refresh
   (Model         : in out Files.Model.Window_Model;
@@ -16,7 +17,7 @@ begin
    end if;
    --  The virtual recent view has no backing directory to reload; rebuild its
    --  synthetic listing from the current recent paths instead.
-   if Files.Model.In_Recent_View (Model) then
+   if Files.Model.Recent.In_Recent_View (Model) then
       return Navigate_Recent (Model, Settings);
    end if;
    --  Preserve the complete current selection across a manual refresh when

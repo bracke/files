@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Operation_Results;
 with Files.Overlays.Command_Palette;
 with Files.Model.Command_Palette;
@@ -76,7 +77,7 @@ separate (Files_Suite.Open_Actions)
                and then Ada.Directories.Exists (Marker_Two),
                "Open With executes one %f launch for every selected target");
             declare
-               Opened : constant Files.Types.String_Vectors.Vector := Files.Model.Take_Recent_Opens (Model);
+               Opened : constant Files.Types.String_Vectors.Vector := Files.Model.Recent.Take_Recent_Opens (Model);
             begin
                Assert
                  (Natural (Opened.Length) = 2
@@ -126,7 +127,7 @@ separate (Files_Suite.Open_Actions)
                and then not Files.Model.Command_Palette.Is_Open (Model),
                "Open With exposes the diagnostic and closes the handled picker");
             Assert
-              (Files.Model.Take_Recent_Opens (Model).Is_Empty,
+              (Files.Model.Recent.Take_Recent_Opens (Model).Is_Empty,
                "an Open With that launched nothing adds nothing to the recent list");
          end;
       end Check;

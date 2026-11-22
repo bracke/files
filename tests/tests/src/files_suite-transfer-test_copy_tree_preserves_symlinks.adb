@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Tree_Preserves_Symlinks (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -32,7 +33,7 @@ separate (Files_Suite.Transfer)
          null;
       end;
 
-      Result := Files.File_System.Copy_Tree (Tree, Dest);
+      Result := Files.File_System.Transfer.Copy_Tree (Tree, Dest);
 
       --  Capture every outcome BEFORE cleanup, so an assertion failure cannot skip
       --  the cleanup and leave symlink-bearing fixtures that Reset_Root then trips

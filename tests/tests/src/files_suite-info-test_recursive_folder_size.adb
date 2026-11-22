@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Info)
@@ -156,7 +157,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
       Files.Application.Window_Polls.Update_Folder_Size (Model);
 

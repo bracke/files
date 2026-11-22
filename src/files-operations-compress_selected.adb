@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Name_Parts;
 with Files.Text_Case;
 
@@ -11,7 +12,7 @@ is
    Items     : constant Files.Items.Item_Vectors.Vector :=
      Files.Model.Selection.Selected_Items (Model);
    Directory : constant String :=
-     (if Files.Model.In_Recent_View (Model) and then not Items.Is_Empty
+     (if Files.Model.Recent.In_Recent_View (Model) and then not Items.Is_Empty
       then Files.IO.Fs_Primitives.Parent_Directory (To_String (Items.First_Element.Full_Path))
       else Files.Model.Current_Path (Model));
 

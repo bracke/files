@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Settings.Path_References;
@@ -26,19 +27,19 @@ separate (Files_Suite.Recovery)
       Files.Model.Set_Background_Transfers (Model, True);
 
       --  Another window zooms and opens a file while the search runs.
-      Files.Model.Set_Filter (Model, "needle");
+      Files.Model.Filtering.Set_Filter (Model, "needle");
       Step := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the search runs as the window's job");
       Changed.Font_Pixel_Size := Settings.Font_Pixel_Size + 4;
       Files.Settings.Path_References.Note_Recent (Changed, Join (Root, "a.txt"));
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Changed);
-      Assert (Files.Model.Search_Results_Are_Active (Model),
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model),
               "the search's results stand though unrelated settings changed while it ran");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "with its one match");
 
       --  Back to the folder; a job runs while hidden files are shown elsewhere.
-      Files.Model.Set_Filter (Model, "");
-      Files.Model.Clear_Search_Results (Model);
+      Files.Model.Filtering.Set_Filter (Model, "");
+      Files.Model.Filtering.Clear_Search_Results (Model);
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Replace_Items (Model, Load.Items);
       Select_Name (Model, "a.txt");

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
@@ -104,7 +105,7 @@ separate (Files_Suite.Drags)
             Header_X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
             Header_Y : constant Natural :=
               (if Cell_1.Y > Line then Cell_1.Y - Line / 2 else Cell_1.Y);
-            Header   : constant Files.Rendering.Layouts.Detail_Header_Cell :=
+            Header   : constant Files.Rendering.Layouts.Details.Detail_Header_Cell :=
               Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, Header_X, Header_Y, Line);
             Action   : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click

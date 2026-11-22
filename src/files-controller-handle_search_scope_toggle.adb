@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Controller.Operation_Commands;
@@ -9,22 +10,22 @@ separate (Files.Controller)
    is
       use type Files.UI_Types.Search_Scope;
       Next : constant Files.UI_Types.Search_Scope :=
-        Files.UI_Types.Next_Scope (Files.Model.Search_Scope_Of (Model));
-      Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
-      Has_Query   : constant Boolean := Files.Model.Filter_Text (Model) /= "";
+        Files.UI_Types.Next_Scope (Files.Model.Filtering.Search_Scope_Of (Model));
+      Had_Results : constant Boolean := Files.Model.Filtering.Search_Results_Are_Active (Model);
+      Has_Query   : constant Boolean := Files.Model.Filtering.Filter_Text (Model) /= "";
       Operation   : Files.Operation_Results.Operation_Result;
    begin
       if Files.Model.Input_Owning_Overlay_Is_Open (Model) then
          return Make_Result (Controller_Ignored);
       end if;
 
-      Files.Model.Set_Search_Scope (Model, Next);
+      Files.Model.Filtering.Set_Search_Scope (Model, Next);
 
       case Next is
          when Files.UI_Types.Filter_Here =>
             --  Returning to live filtering: drop any recorded search results and
             --  reload the real directory so the plain listing comes back.
-            Files.Model.Clear_Search_Results (Model);
+            Files.Model.Filtering.Clear_Search_Results (Model);
             if Had_Results then
                Operation := Files.Operations.Refresh (Model, Settings);
                return Make_Result
@@ -36,8 +37,8 @@ separate (Files.Controller)
                Operation := Operation_Commands.Run_Search (Model, Settings, Next);
             elsif Had_Results then
                Operation := Files.Operations.Refresh (Model, Settings);
-               Files.Model.Clear_Search_Results (Model);
-               Files.Model.Set_Search_Scope (Model, Next);
+               Files.Model.Filtering.Clear_Search_Results (Model);
+               Files.Model.Filtering.Set_Search_Scope (Model, Next);
             end if;
             return Make_Result
               (Controller_Command_Executed,

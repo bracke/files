@@ -734,7 +734,7 @@ package Files.Operations is
    --  Open the info-pane ownership editor for the single selected item,
    --  prefilled with the owner's (or group's) resolved account name. Does
    --  nothing on a platform without chown support, or when the model refuses
-   --  (see Files.Model.Focus_Ownership_Input).
+   --  (see Files.Model.Ownership_Input.Focus_Ownership_Input).
    --
    --  @param Model Window model to update.
    --  @param Editing_Group True to edit the group, False to edit the owner.

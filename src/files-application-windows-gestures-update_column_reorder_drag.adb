@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
@@ -65,7 +66,7 @@ is
       Y_Frame     : Natural;
       Line_Height : Positive)
    is
-      Cell : constant Files.Rendering.Layouts.Detail_Header_Cell :=
+      Cell : constant Files.Rendering.Layouts.Details.Detail_Header_Cell :=
         Files.Rendering.Hit.Details_Header_Cell_At
           (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
    begin

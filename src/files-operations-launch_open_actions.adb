@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 function Launch_Open_Actions
   (Model   : in out Files.Model.Window_Model;
@@ -62,7 +63,7 @@ begin
 
    --  All started: what they opened joins the recent list, freshest last.
    for Path of Paths loop
-      Files.Model.Note_Recent_Open (Model, To_String (Path));
+      Files.Model.Recent.Note_Recent_Open (Model, To_String (Path));
    end loop;
    Files.Model.Set_Error (Model, "");
    return

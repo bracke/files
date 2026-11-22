@@ -861,4 +861,28 @@ package body Files.Model.Support is
       end if;
    end Clear_Folder_Size;
 
+   procedure Note_Path_Move
+     (Model : in out Window_Model;
+      From  : String;
+      To    : String) is
+   begin
+      if From /= "" and then To /= "" and then From /= To then
+         Model.Path_Move_Queue.Append
+           (Files.Types.Path_Move'
+              (From => To_Unbounded_String (From), To => To_Unbounded_String (To), Kind => Files.Types.Moved));
+      end if;
+   end Note_Path_Move;
+
+   procedure Set_Info_Pane_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural) is
+   begin
+      if Model.Info_Pane_Scroll = Lines then
+         return;
+      end if;
+
+      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+      Model.Info_Pane_Scroll := Lines;
+   end Set_Info_Pane_Scroll_Lines;
+
 end Files.Model.Support;

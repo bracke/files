@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -36,7 +37,7 @@ separate (Files_Suite.Refresh)
         (Files.Model.Root_Selector.Count (Model),
          0,
          "direct navigation clears stale root selector entries");
-      Files.Model.Begin_Create_File (Model, "history-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "history-pending.txt");
       Files.Model.Selection.Select_Visible (Model, 2);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -52,11 +53,11 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Full_Name (First),
          "back restores first path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 3, "back loads first path items");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "back clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "back clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "back clears rename focus");
-      Files.Model.Begin_Create_File (Model, "forward-history-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "forward-history-pending.txt");
       Files.Model.Selection.Select_Visible (Model, 3);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
@@ -73,7 +74,7 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Full_Name (Second),
          "forward restores second path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "forward loads second path items");
-      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
+      Assert (not Files.Model.Creation.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "forward clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
@@ -81,7 +82,7 @@ separate (Files_Suite.Refresh)
          "forward clears rename focus");
 
       Project_Tools.Files.Delete_Tree (First);
-      Files.Model.Begin_Create_File (Model, "failed-history-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "failed-history-pending.txt");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -100,7 +101,7 @@ separate (Files_Suite.Refresh)
          "error.directory.load",
          "failed back records load error");
       Assert (Files.Model.Can_Go_Back (Model), "failed back preserves back history");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed back preserves temporary create state");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "failed back preserves temporary create state");
       Assert (Files.Model.Rename.Is_Active (Model), "failed back preserves rename state");
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
@@ -131,7 +132,7 @@ separate (Files_Suite.Refresh)
          Files.UI_Types.Focus_Rename_Input,
          "failed forward restores rename focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Files.Model.Begin_Create_File (Model, "failed-forward-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "failed-forward-pending.txt");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -151,7 +152,7 @@ separate (Files_Suite.Refresh)
          "error.directory.load",
          "failed forward records load error");
       Assert (Files.Model.Can_Go_Forward (Model), "failed forward preserves forward history");
-      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed forward preserves temporary create state");
+      Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "failed forward preserves temporary create state");
       Assert (Files.Model.Rename.Is_Active (Model), "failed forward preserves rename state");
       Ada.Directories.Create_Path (Second);
       Write_File (Join (Second, "two.txt"));

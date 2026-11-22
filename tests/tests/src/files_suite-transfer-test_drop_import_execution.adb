@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
@@ -22,7 +23,7 @@ separate (Files_Suite.Transfer)
       Write_File (Join (Source_Dir, "inside.txt"), "inside");
       Sources.Append (To_Unbounded_String (Source_File));
       Sources.Append (To_Unbounded_String (Source_Dir));
-      Plans := Files.File_System.Plan_Drop_Import (Sources, Drop_Target);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target);
       Assert (Plans.Success, "drop import planning accepts valid dropped paths");
       Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "drop import plans every source path");
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
@@ -99,7 +100,7 @@ separate (Files_Suite.Transfer)
       Sources.Clear;
       Write_File (Join (Root, "move-source.txt"), "move");
       Sources.Append (To_Unbounded_String (Join (Root, "move-source.txt")));
-      Plans := Files.File_System.Plan_Drop_Import (Sources, Drop_Target, Files.File_System.Drop_Move);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target, Files.File_System.Drop_Move);
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import move executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "move-source.txt")), "drop move creates destination");

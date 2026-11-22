@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Model.Jobs;
 with Files.File_System_Types;
 with Ada.Calendar;
@@ -36,7 +37,7 @@ package body Files.Application.Window_Polls is
       Owner       : Files.Application.Extra_Info_Reader.Requester;
       Show_Hidden : Boolean := True) is
    begin
-      if Files.Model.Selected_Item_Needs_Extra (Model) then
+      if Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model) then
          declare
             Item  : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
             Extra : Files.Extra_Info.Info;
@@ -49,7 +50,7 @@ package body Files.Application.Window_Polls is
             if not Asked then
                Files.Application.Extra_Info_Reader.Request (Owner, Item, Show_Hidden);
             elsif Ready then
-               Files.Model.Set_Selected_Item_Extra (Model, Extra);
+               Files.Model.Info_Pane.Set_Selected_Item_Extra (Model, Extra);
             end if;
          end;
       end if;
@@ -264,7 +265,7 @@ package body Files.Application.Window_Polls is
          return;
       end if;
       --  The same items Build_Snapshot lists in the info pane.
-      if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selection.Selected_Count (Model) > 0 then
+      if Files.Model.Info_Pane.Info_Pane_Is_Open (Model) and then Files.Model.Selection.Selected_Count (Model) > 0 then
          declare
             Items : constant Files.Items.Item_Vectors.Vector :=
               Files.Model.Selection.Selected_Items (Model, Limit => Files.UI_Types.Max_Info_Items);

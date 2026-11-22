@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Input_Actions;
@@ -40,7 +41,7 @@ separate (Files_Suite.Text_Input)
       Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Disk.Root);
       Full_Count := Files.Model.Item_Count (Model);
-      Files.Model.Set_Filter (Model, "needle");
+      Files.Model.Filtering.Set_Filter (Model, "needle");
 
       --  The frame draws the chip: an accessibility node advertises it.
       declare
@@ -76,7 +77,7 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Names,
+        (Files.Model.Filtering.Search_Scope_Of (Model) = Files.UI_Types.Search_Names,
          "the first chip click cycles to the Search_Names scope");
       Assert
         (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Filter_Input,
@@ -94,9 +95,9 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Contents,
+        (Files.Model.Filtering.Search_Scope_Of (Model) = Files.UI_Types.Search_Contents,
          "the second chip click cycles to the Search_Contents scope");
-      Assert (Files.Model.Search_Results_Are_Active (Model), "content results are shown");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "content results are shown");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
          1,
@@ -110,10 +111,10 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Filter_Here,
+        (Files.Model.Filtering.Search_Scope_Of (Model) = Files.UI_Types.Filter_Here,
          "the third chip click cycles back to Filter_Here");
       Assert
-        (not Files.Model.Search_Results_Are_Active (Model),
+        (not Files.Model.Filtering.Search_Results_Are_Active (Model),
          "returning to Filter_Here drops the search-results state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Guikit.Item_Grid;
 with Ada.Real_Time;
 with Ada.Text_IO;
@@ -332,7 +333,7 @@ separate (Files_Suite.Rendering)
          --  the filter is folded once, not once per item.
          Start := Ada.Real_Time.Clock;
          for Round in 1 .. Rounds loop
-            Files.Model.Set_Filter (Model, (if Round mod 2 = 0 then "ITEM1" else "Item12"));
+            Files.Model.Filtering.Set_Filter (Model, (if Round mod 2 = 0 then "ITEM1" else "Item12"));
             Refresh;
          end loop;
          Ada.Text_IO.Put_Line ("large-folder: filter keystroke and refresh" & Per_Round (Start, Rounds));

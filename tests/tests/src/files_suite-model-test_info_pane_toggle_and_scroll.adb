@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files.Input_Actions;
 separate (Files_Suite.Model)
    procedure Test_Info_Pane_Toggle_And_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,24 +20,25 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
          "Control+4 toggles the info pane with no selection");
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane opens without a selection");
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info pane opens without a selection");
       --  Close it again, then reopen with a selection so the rest of the
       --  scenario starts from an open, selection-backed info pane.
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
+      Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
          "Control+4 routes info-pane command");
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane toggles open");
-      Files_Suite.Support.Assert_Equal (Files.Model.Info_Pane_Scroll_Lines (Model), 0, "info pane opens unscrolled");
+      Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info pane toggles open");
+      Files_Suite.Support.Assert_Equal (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 0,
+                                        "info pane opens unscrolled");
 
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
-         Files.Model.Set_Info_Pane_Scroll_Lines (Model, 0);
+         Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 0);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Revision (Model),
             Before,
@@ -69,7 +71,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Command_Executed,
          "PageDown pages info pane");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          10,
          "PageDown scrolls info pane by page");
 
@@ -79,7 +81,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Command_Executed,
          "large info scroll is handled");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          Natural'Last,
          "large info scroll saturates");
 
@@ -89,13 +91,13 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Command_Executed,
          "large negative info scroll is handled");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "large negative info scroll clamps to top");
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          10,
          "info pane scroll resumes after saturation");
 
@@ -105,7 +107,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Command_Executed,
          "PageUp pages info pane");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model),
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "PageUp scrolls info pane back to top");
    end Test_Info_Pane_Toggle_And_Scroll;

@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -21,12 +22,12 @@ separate (Files_Suite.Search)
       for Background in Boolean loop
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Filter (Model, "absent");
+         Files.Model.Filtering.Set_Filter (Model, "absent");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
            (Model, Settings, Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
-                 and then Files.Model.Search_Results_Are_Active (Model)
+                 and then Files.Model.Filtering.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = 0,
                  "a name search with no match shows an empty answer, background " & Background'Image);
          Files_Suite.Support.Assert_Equal

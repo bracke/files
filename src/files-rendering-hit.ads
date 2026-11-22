@@ -1,3 +1,6 @@
+with Files.Rendering.Layouts.Tree;
+with Files.Rendering.Layouts.Details;
+with Files.Rendering.Layouts.Menus;
 with Files.Rendering.Layouts;
 
 --  Pure geometry hit-tests: map a window pixel to the item, row, header cell,
@@ -11,6 +14,9 @@ with Files.Rendering.Layouts;
 package Files.Rendering.Hit is
 
    use Files.Rendering.Layouts;
+   use Files.Rendering.Layouts.Menus;
+   use Files.Rendering.Layouts.Details;
+   use Files.Rendering.Layouts.Tree;
 
    --  Whether a window coordinate is on the main view. The folder tree and
    --  the info pane sit beside it, so its rectangle is all of it.

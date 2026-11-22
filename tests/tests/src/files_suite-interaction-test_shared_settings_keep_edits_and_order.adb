@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Preference_Types;
@@ -39,7 +40,7 @@ separate (Files_Suite.Interaction)
       Write_File (Join (Root, ".hidden_two"));
       Settings.Show_Hidden_Files := True;
       Load (Model);
-      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
 
       --  A rename in progress over the results.
       Select_Name (Model, "Beta.txt");

@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 with Files.Input_Actions;
 with Files.Model.Tree_Panel;
 with Files.Settings.Path_References;
@@ -66,7 +67,7 @@ separate (Files_Suite.Tree)
          Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          Run (Files.Commands.Toggle_Favorite_Command);
          Assert (Tree_Has_Root (Item), "the file is a tree root again");
-         Files.Model.Note_Path_Move (Model, Item, Moved);
+         Files.Model.Recent.Note_Path_Move (Model, Item, Moved);
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, Path);
          Assert (Followed, "the favorite follows the move");
          Assert (Tree_Has_Root (Moved) and then not Tree_Has_Root (Item),

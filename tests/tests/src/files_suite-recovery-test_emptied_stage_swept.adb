@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
@@ -26,8 +27,8 @@ separate (Files_Suite.Recovery)
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Write_Binary_File (Dest, "original");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "an original is kept for recovery");
       declare
          Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
@@ -37,12 +38,12 @@ separate (Files_Suite.Recovery)
          Leave_Marker (Join (Stage, Files.Protocol_Names.Recovery_Vacated));
          Ada.Directories.Rename (To_String (Backup), Join (Root, "restored-by-hand"));
          Assert (Ada.Directories.Exists (Stage), "the emptied stage is still there before the sweep");
-         Payloads := Files.File_System.Registered_Recovery_Payloads;
+         Payloads := Files.File_System.Recovery_Registry.Registered_Recovery_Payloads;
          Assert (not Payloads.Contains (Backup), "a stage without its payload is no registered payload");
          Assert (Ada.Directories.Exists (Stage), "the query alone leaves the emptied stage");
-         Files.File_System.Sweep_Recovery_Registry;
+         Files.File_System.Recovery_Registry.Sweep_Recovery_Registry;
          Assert (not Ada.Directories.Exists (Stage), "the sweep removes the emptied, marked stage");
-         Assert (not Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+         Assert (not Files.File_System.Recovery_Registry.Registered_Recovery_Payloads.Contains (Backup),
                  "and a later sweep finds nothing of it");
       end;
       Assert (Project_Tools.Files.Read_Raw_File (Join (Root, "restored-by-hand")) = "original",

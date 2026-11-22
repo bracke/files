@@ -1,3 +1,4 @@
+with Files.File_System.Recovery_Registry;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -34,19 +35,19 @@ separate (Files_Suite.Recovery)
 
       Write_Binary_File (Dest, "original");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success and then not Ada.Directories.Exists (Dest), "the original is kept as a payload");
       Assert (Run ("--recover", To_String (Backup)), "--recover puts the original back: handled as a command");
       Assert (not Failed, "--recover puts the original back: succeeded");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Dest), "original", "--recover puts the original back: bytes");
 
-      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Result := Files.File_System.Recovery_Registry.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success, "the restored original is kept as a payload again");
       Assert (Run ("--discard-recovery", To_String (Backup)),
               "--discard-recovery deletes the payload: handled as a command");
       Assert (not Failed, "--discard-recovery deletes the payload: succeeded");
-      Assert (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+      Assert (not Files.File_System.Recovery_Registry.Is_Recovery_Payload (To_String (Backup)),
               "--discard-recovery deletes the payload: payload gone");
 
       --  The list keeps each path on its line and in its field, and sends no

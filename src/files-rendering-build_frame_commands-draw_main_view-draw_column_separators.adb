@@ -1,7 +1,9 @@
+with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The Details view's column dividers, down the rows on screen.
    procedure Draw_Column_Separators is
+      use Files.Rendering.Layouts.Details;
       Content   : constant Content_Rectangle := Main_Content_Rect (Layout);
       Content_Y : constant Natural := Content.Y;
       Separator_Y : constant Natural := Content_Y;

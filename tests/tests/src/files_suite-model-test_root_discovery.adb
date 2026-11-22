@@ -1,3 +1,4 @@
+with Files.File_System.Roots;
 with Hostkit.Mounts;
 with Files.File_System.Testing;
 
@@ -39,7 +40,7 @@ separate (Files_Suite.Model)
       Write_File (Join (Target, "inside.txt"));
       Roots_A := Files.File_System.Testing.Available_Roots;
       Roots_B := Files.File_System.Testing.Available_Roots;
-      Entries := Files.File_System.Available_Root_Entries;
+      Entries := Files.File_System.Roots.Available_Root_Entries;
       Root_Status := Files.File_System.Testing.Root_Discovery_Status;
       Assert (not Roots_A.Is_Empty, "available roots is never empty");
       Files_Suite.Support.Assert_Equal

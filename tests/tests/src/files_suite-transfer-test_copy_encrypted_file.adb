@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    --  A copy of a file Windows encrypts (EFS) is encrypted from its creation,
@@ -40,12 +41,12 @@ separate (Files_Suite.Transfer)
       Encrypt (Join (Folder, "inside"));
       Assert (Encrypted (Source) and then Encrypted (Folder), "the fixtures are encrypted");
 
-      Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "secret-copy.txt"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "secret-copy.txt"));
       Assert (Mutation.Success, "copy an encrypted file: " & To_String (Mutation.Error_Key));
       Assert (File_Has_Bytes (Join (Root, "secret-copy.txt"), "secret bytes"), "the copy holds the file's bytes");
       Assert (Encrypted (Join (Root, "secret-copy.txt")), "the copy is encrypted, not decrypted");
 
-      Mutation := Files.File_System.Copy_Tree (Folder, Join (Root, "secrets-copy"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Folder, Join (Root, "secrets-copy"));
       Assert (Mutation.Success, "copy an encrypted folder: " & To_String (Mutation.Error_Key));
       Assert
         (Encrypted (Join (Root, "secrets-copy")) and then Encrypted (Join (Root, "secrets-copy/inside"))

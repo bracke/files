@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -82,7 +83,7 @@ separate (Files_Suite.History)
             Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Old_Dest), "retain the original inode at another path");
-            Mutation := Files.File_System.Copy_Tree (Source, Dest);
+            Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
             Assert (Mutation.Success, "replace the pathname with an identical but unrelated entry");
             Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);

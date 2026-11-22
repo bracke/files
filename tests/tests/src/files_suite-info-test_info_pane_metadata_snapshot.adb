@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files_Suite.Support.Models;
@@ -34,7 +35,7 @@ separate (Files_Suite.Info)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
-      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       --  Extra info is computed lazily for the selected item when the info pane
       --  is open (the interaction reducer does this after each input).
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);

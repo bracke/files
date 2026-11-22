@@ -1,3 +1,6 @@
+with Files.Rendering.Layouts.Tree;
+with Files.Rendering.Layouts.Details;
+with Files.Rendering.Layouts.Menus;
 with Files.Preference_Types;
 with Files.Events;
 with Files.Input_Actions;
@@ -62,6 +65,9 @@ package body Files_Suite.Rendering is
    use AUnit.Assertions;
    use Files.Rendering;
    use Files.Rendering.Layouts;
+   use Files.Rendering.Layouts.Menus;
+   use Files.Rendering.Layouts.Details;
+   use Files.Rendering.Layouts.Tree;
    use Files.Rendering.Text;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;

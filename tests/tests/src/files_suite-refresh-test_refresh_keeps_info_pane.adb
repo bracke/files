@@ -1,3 +1,4 @@
+with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Extra_Info;
@@ -50,14 +51,14 @@ separate (Files_Suite.Refresh)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "notes.txt");
-      Files.Model.Toggle_Info_Pane (Model);
-      Files.Model.Set_Selected_Item_Extra (Model, Marker);
+      Files.Model.Info_Pane.Toggle_Info_Pane (Model);
+      Files.Model.Info_Pane.Set_Selected_Item_Extra (Model, Marker);
       Assert (Marked, "the details are set for the selected item");
-      Files.Model.Set_Info_Pane_Scroll_Lines (Model, 3);
+      Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 3);
 
       Watch_Refresh ("arrived");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model), 3, "the refresh keeps the info pane's scroll");
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 3, "the refresh keeps the info pane's scroll");
       Assert (To_String (Files.Model.Selection.Selected_Item (Model).Name) = "notes.txt", "the selection stays");
       Assert (Marked, "the details read for the unchanged item are kept, not read again");
 
@@ -66,13 +67,13 @@ separate (Files_Suite.Refresh)
       Watch_Refresh ("arrived-too");
       Assert (not Marked, "a changed item's details are read again");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model), 3, "and the pane still keeps its scroll");
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 3, "and the pane still keeps its scroll");
 
       --  A forced reload reads them afresh too.
-      Files.Model.Set_Info_Pane_Scroll_Lines (Model, 2);
+      Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 2);
       Step := Files.Refresh.Start (Model, Settings, Force => True);
       Await_View (Model, Settings);
       Assert (not Marked, "a forced reload reads the details again");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Info_Pane_Scroll_Lines (Model), 2, "a forced reload keeps the pane's scroll as well");
+        (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model), 2, "a forced reload keeps the pane's scroll as well");
    end Test_Refresh_Keeps_Info_Pane;

@@ -1,3 +1,4 @@
+with Files.Model.Recent;
 separate (Files.Operations)
 --  Apply the reverse (undo) direction of Action, one journaled history
 --  entry. Returns True on full success.
@@ -86,7 +87,7 @@ is
          else
             --  Its labels come back out of the trash with it.
             if Length (Item.To) > 0 then
-               Files.Model.Note_Path_Move (Model, To_String (Item.From), To_String (Item.To));
+               Files.Model.Recent.Note_Path_Move (Model, To_String (Item.From), To_String (Item.To));
             end if;
             Action.Reverse_Completed.Append (Item.From);
             Reversed.Include (To_String (Item.From));
@@ -144,7 +145,7 @@ is
             Outcome := Item_Failed;
          else
             --  Its labels, favorite and recent entry come back with it.
-            Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
+            Files.Model.Recent.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
             Action.Restores_Completed.Append (Original.Trash);
             Restored.Include (To_String (Original.Trash));
             Files.Undo.Journal.Checkpoint

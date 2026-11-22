@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -22,7 +23,7 @@ separate (Files_Suite.Search)
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Background_Transfers (Model, True);
-            Files.Model.Set_Filter (Model, "alpha");
+            Files.Model.Filtering.Set_Filter (Model, "alpha");
             Files.Model.Focus_Filter_Input (Model);
             Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,
               Files.UI_Types.Search_Contents)
@@ -34,7 +35,7 @@ separate (Files_Suite.Search)
                Files.Controller.Controller_Ignored,
                "native character input cannot edit the active search snapshot: status");
             Files_Suite.Support.Assert_Equal
-              (Files.Model.Filter_Text (Model),
+              (Files.Model.Filtering.Filter_Text (Model),
                "alpha",
                "native character input cannot edit the active search snapshot: filter");
             Files_Suite.Support.Assert_Equal
@@ -42,7 +43,7 @@ separate (Files_Suite.Search)
                Revision,
                "native character input cannot edit the active search snapshot: revision");
             if Stale then
-               Files.Model.Set_Filter (Model, "beta");
+               Files.Model.Filtering.Set_Filter (Model, "beta");
             end if;
             Step := Complete_Operation (Model, Settings, Step);
             Files_Suite.Support.Assert_Equal
@@ -50,7 +51,7 @@ separate (Files_Suite.Search)
                Files.Operation_Results.Operation_Success,
                "changed queries discard old outcomes while unchanged searches apply: status");
             Files_Suite.Support.Assert_Equal
-              (Files.Model.Search_Results_Are_Active (Model),
+              (Files.Model.Filtering.Search_Results_Are_Active (Model),
                not Stale,
                "changed queries discard old outcomes while unchanged searches apply: results active");
             Files_Suite.Support.Assert_Equal

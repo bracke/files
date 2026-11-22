@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Menus;
 with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Files.File_Types;
@@ -77,7 +78,7 @@ separate (Files_Suite.Rendering)
             Double : constant Context_Menu_Layout := Menu_At (2 * Reference);
             Row_X  : constant Natural := Double.X + Double.Width / 2;
             Row_Y  : constant Natural :=
-              Files.Rendering.Layouts.Context_Menu_Row_Top (Double, 1) + Double.Row_Height / 2;
+              Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Double, 1) + Double.Row_Height / 2;
          begin
             Files_Suite.Support.Assert_Equal (Single.Padding, 4, "the context menu's padding at the reference");
             Assert (Single.Width >= 180, "the context menu is at least 180 px wide at the reference");

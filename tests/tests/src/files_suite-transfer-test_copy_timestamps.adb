@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
@@ -40,12 +41,12 @@ separate (Files_Suite.Transfer)
    begin
       Reset_Root;
       Prepare;
-      Mutation := Files.File_System.Copy_Tree (Source, Dest);
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
       Assert (Mutation.Success, "copy timestamp fixture");
       Assert_Times (Dest);
       Write_Binary_File (Join (Source, "precise"), "current timestamp with subsecond precision");
       File_Time := Ada.Directories.Modification_Time (Join (Source, "precise"));
-      Mutation := Files.File_System.Copy_Tree (Join (Source, "precise"), Join (Root, "precise-copy"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Join (Source, "precise"), Join (Root, "precise-copy"));
       Assert (Mutation.Success and then Ada.Directories.Modification_Time (Join (Root, "precise-copy")) = File_Time,
               "timestamp copies preserve the source's subsecond precision");
       Remote.Create ("files-test-timestamps-");

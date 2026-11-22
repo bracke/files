@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -191,7 +192,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Index (Model),
          1,
          "select-all keeps first visible item primary");
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Files.Model.Selection.Select_All_Visible (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
@@ -201,7 +202,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Name (Model),
          "Alpha.txt",
          "filtered select-all selects visible item");
-      Files.Model.Set_Filter (Model, "");
+      Files.Model.Filtering.Set_Filter (Model, "");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -232,7 +233,7 @@ separate (Files_Suite.Model)
          "second invert restores the original selection count");
       Assert (Files.Model.Selection.Is_Selected (Model, 1), "second invert restores the original selected item");
       Assert (not Files.Model.Selection.Is_Selected (Model, 2), "second invert clears the intermediate selection");
-      Files.Model.Set_Filter (Model, "alpha");
+      Files.Model.Filtering.Set_Filter (Model, "alpha");
       Files.Model.Selection.Clear (Model);
       Files.Model.Selection.Invert (Model);
       Files_Suite.Support.Assert_Equal
@@ -243,7 +244,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Name (Model),
          "Alpha.txt",
          "invert selects the visible filtered item");
-      Files.Model.Set_Filter (Model, "");
+      Files.Model.Filtering.Set_Filter (Model, "");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_I, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

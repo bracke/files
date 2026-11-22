@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Hard_Link_Trees (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -28,7 +29,7 @@ separate (Files_Suite.Transfer)
       Write_Binary_File (Join (Source, "unrelated"), "linked bytes");
       Assert (Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")),
               "prepare a nested hard-link set");
-      Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "copy"));
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
       Assert (Mutation.Success, "copy the hard-link tree");
       Check (Join (Root, "copy"));
       Assert (File_Has_Bytes (Join (Source, "first"), "linked bytes"), "a copy's links are independent of the source");
