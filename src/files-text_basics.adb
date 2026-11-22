@@ -37,4 +37,10 @@ package body Files.Text_Basics is
    begin
       return Image (Image'First + 1 .. Image'Last);
    end Natural_Text;
+
+   function Integer_Text (Value : Long_Long_Integer) return String is
+      Image : constant String := Long_Long_Integer'Image (Value);
+   begin
+      return (if Image (Image'First) = ' ' then Image (Image'First + 1 .. Image'Last) else Image);
+   end Integer_Text;
 end Files.Text_Basics;

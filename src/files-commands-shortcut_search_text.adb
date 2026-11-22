@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 separate (Files.Commands)
    function Shortcut_Search_Text
      (Id : Command_Id)
@@ -35,8 +36,7 @@ separate (Files.Commands)
          procedure Add_Shift_Control_Aliases is
          begin
             if Text'Length > Shift_Control_Prefix'Length
-              and then Text (Text'First .. Text'First + Shift_Control_Prefix'Length - 1) =
-                Shift_Control_Prefix
+              and then Files.Text_Basics.Starts_With (Text, Shift_Control_Prefix)
             then
                declare
                   Suffix : constant String :=

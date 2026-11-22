@@ -308,19 +308,6 @@ procedure Cldr_To_Catalog is
       return "";
    end Digital_Unit_Label;
 
-   function Month_Name
-     (Calendar : String;
-      Width    : String;
-      Number   : Positive)
-      return String
-   is
-      Months  : constant String := Section (Calendar, "<months", "</months>");
-      Context : constant String := Section (Months, "<monthContext type=""format""", "</monthContext>");
-      Names   : constant String := Section (Context, "<monthWidth type=""" & Width & """", "</monthWidth>");
-   begin
-      return Element_Text (Names, "month", Ada.Strings.Fixed.Trim (Positive'Image (Number), Ada.Strings.Both));
-   end Month_Name;
-
    function Day_Name
      (Calendar : String;
       Width    : String;
@@ -334,28 +321,6 @@ procedure Cldr_To_Catalog is
       return Element_Text (Names, "day", Day);
    end Day_Name;
 
-   function Pattern
-     (Calendar : String;
-      Group    : String;
-      Length   : String)
-      return String
-   is
-      Formats     : constant String := Section (Calendar, "<" & Group, "</" & Group & ">");
-      Length_Node : constant String :=
-        Section (Formats, "<" & Group (Group'First .. Group'Last - 1) & "Length type=""" & Length & """", "</"
-                 & Group (Group'First .. Group'Last - 1) & "Length>");
-   begin
-      return Element_Text (Length_Node, "pattern", "");
-   end Pattern;
-
-   function Date_Time_Pattern (Calendar : String) return String is
-      Formats     : constant String := Section (Calendar, "<dateTimeFormats", "</dateTimeFormats>");
-      Length_Node : constant String :=
-        Section (Formats, "<dateTimeFormatLength type=""medium""", "</dateTimeFormatLength>");
-   begin
-      return Element_Text (Length_Node, "pattern", "");
-   end Date_Time_Pattern;
-
    function Relative_Day
      (Calendar : String;
       Offset   : String)
@@ -367,135 +332,6 @@ procedure Cldr_To_Catalog is
       return Element_Text (Day, "relative", Offset);
    end Relative_Day;
 
-   function Convert_Pattern (Pattern_Text : String) return String is
-      Result : Unbounded_String;
-      Index  : Positive := Pattern_Text'First;
-
-      procedure Append_Run
-        (Symbol : Character;
-         Count  : Natural) is
-      begin
-         case Symbol is
-            when 'E' =>
-               if Count >= 4 then
-                  Append (Result, "%A");
-               else
-                  Append (Result, "%a");
-               end if;
-            when 'M' | 'L' =>
-               if Count >= 4 then
-                  Append (Result, "%B");
-               elsif Count = 3 then
-                  Append (Result, "%b");
-               else
-                  Append (Result, "%m");
-               end if;
-            when 'd' =>
-               Append (Result, "%d");
-            when 'y' | 'Y' =>
-               if Count = 2 then
-                  Append (Result, "%y");
-               else
-                  Append (Result, "%Y");
-               end if;
-            when 'H' =>
-               Append (Result, "%H");
-            when 'h' =>
-               Append (Result, "%I");
-            when 'm' =>
-               Append (Result, "%M");
-            when 's' =>
-               Append (Result, "%S");
-            when 'a' =>
-               Append (Result, "%p");
-            when 'z' | 'Z' =>
-               Append (Result, "%Z");
-            when others =>
-               for Repeat in 1 .. Count loop
-                  Append (Result, Symbol);
-               end loop;
-         end case;
-      end Append_Run;
-   begin
-      while Index <= Pattern_Text'Last loop
-         if Pattern_Text (Index) = ''' then
-            Index := Index + 1;
-            while Index <= Pattern_Text'Last and then Pattern_Text (Index) /= ''' loop
-               Append (Result, Pattern_Text (Index));
-               Index := Index + 1;
-            end loop;
-            Index := Index + 1;
-         elsif Pattern_Text (Index) in 'A' .. 'Z' or else Pattern_Text (Index) in 'a' .. 'z' then
-            declare
-               Symbol : constant Character := Pattern_Text (Index);
-               Start  : constant Positive := Index;
-            begin
-               while Index <= Pattern_Text'Last and then Pattern_Text (Index) = Symbol loop
-                  Index := Index + 1;
-               end loop;
-               Append_Run (Symbol, Index - Start);
-            end;
-         else
-            Append (Result, Pattern_Text (Index));
-            Index := Index + 1;
-         end if;
-      end loop;
-
-      return To_String (Result);
-   end Convert_Pattern;
-
-   function Combined_Date_Time
-     (Date_Time : String;
-      Date_Text : String;
-      Time_Text : String)
-      return String
-   is
-      function Replace_Once
-        (Text        : String;
-         Placeholder : String;
-         Value       : String)
-         return String
-      is
-         Pos : constant Natural := Ada.Strings.Fixed.Index (Text, Placeholder);
-      begin
-         if Pos = 0 then
-            return Text;
-         end if;
-
-         declare
-            Prefix : constant String :=
-              (if Pos = Text'First then "" else Text (Text'First .. Pos - 1));
-            Suffix_Start : constant Natural := Pos + Placeholder'Length;
-            Suffix : constant String :=
-              (if Suffix_Start > Text'Last then "" else Text (Suffix_Start .. Text'Last));
-         begin
-            return Prefix & Value & Suffix;
-         end;
-      end Replace_Once;
-   begin
-      if Date_Time = "" then
-         return Date_Text & " " & Time_Text;
-      end if;
-
-      declare
-         With_Time : constant String := Replace_Once (Date_Time, "{0}", Time_Text);
-      begin
-         if With_Time = Date_Time then
-            return Date_Text & " " & Time_Text;
-         end if;
-
-         declare
-            With_Date : constant String := Replace_Once (With_Time, "{1}", Date_Text);
-         begin
-            if With_Date = With_Time then
-               return Date_Text & " " & Time_Text;
-            end if;
-
-            return With_Date;
-         end;
-      end;
-   end Combined_Date_Time;
-
    procedure Import_File
      (Path    : String;
       Entries : in out Entry_Vectors.Vector)
@@ -503,9 +339,6 @@ procedure Cldr_To_Catalog is
       Content  : constant String := Project_Tools.Files.Read_Raw_File (Path);
       Locale   : constant String := Locale_Name (Content);
       Calendar : constant String := Gregorian_Calendar (Content);
-      Date_Med : constant String := Convert_Pattern (Pattern (Calendar, "dateFormats", "medium"));
-      Time_Med : constant String := Convert_Pattern (Pattern (Calendar, "timeFormats", "medium"));
-      DateTime : constant String := Date_Time_Pattern (Calendar);
       Day_Map  : constant array (Natural range 0 .. 6) of String (1 .. 3) :=
         ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -543,38 +376,12 @@ procedure Cldr_To_Catalog is
       Add (Entries, Locale, "details.size.unit.tib", Digital_Unit_Label (Content, "digital-terabyte"));
       Add (Entries, Locale, "details.size.unit.pib", Digital_Unit_Label (Content, "digital-petabyte"));
 
-      Add (Entries, Locale, "time.format.clock", "%H:%M:%S");
-
-      if Date_Med /= "" and then Time_Med /= "" then
-         Add (Entries, Locale, "time.format.full", Combined_Date_Time (DateTime, Date_Med, Time_Med));
-         Add (Entries, Locale, "time.locale.datetime_pattern", Combined_Date_Time (DateTime, Date_Med, Time_Med));
-      end if;
-
-      Add (Entries, Locale, "time.locale.date_pattern", Date_Med);
-      Add (Entries, Locale, "time.locale.time_pattern", Time_Med);
-      Add (Entries, Locale, "time.locale.am", Element_Text (Calendar, "dayPeriod", "am"));
-      Add (Entries, Locale, "time.locale.pm", Element_Text (Calendar, "dayPeriod", "pm"));
       Add (Entries, Locale, "time.relative.now", Relative_Day (Calendar, "0"));
       Add (Entries, Locale, "time.relative.today", Relative_Day (Calendar, "0"));
       Add (Entries, Locale, "time.relative.yesterday", Relative_Day (Calendar, "-1"));
 
-      for Month in 1 .. 12 loop
-         declare
-            Image : constant String := Ada.Strings.Fixed.Trim (Positive'Image (Month), Ada.Strings.Both);
-         begin
-            Add (Entries, Locale, "time.month" & Image & ".short", Month_Name (Calendar, "abbreviated", Month));
-            Add (Entries, Locale, "time.month" & Image & ".long", Month_Name (Calendar, "wide", Month));
-         end;
-      end loop;
-
       for Day in Day_Map'Range loop
-         declare
-            Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Day), Ada.Strings.Both);
-         begin
-            Add (Entries, Locale, "time.day" & Image & ".short", Day_Name (Calendar, "abbreviated", Day_Map (Day)));
-            Add (Entries, Locale, "time.day" & Image & ".long", Day_Name (Calendar, "wide", Day_Map (Day)));
-            Add (Entries, Locale, "time.weekday." & Day_Key (Day), Day_Name (Calendar, "wide", Day_Map (Day)));
-         end;
+         Add (Entries, Locale, "time.weekday." & Day_Key (Day), Day_Name (Calendar, "wide", Day_Map (Day)));
       end loop;
    end Import_File;
 

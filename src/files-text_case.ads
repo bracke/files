@@ -11,6 +11,11 @@ package Files.Text_Case is
    --  @return Text with A .. Z lower-cased.
    function To_Lower_Ascii (Text : String) return String;
 
+   --  @param Item One byte of text.
+   --  @return Item lower-cased when it is A .. Z, else Item.
+   function To_Lower_Ascii (Item : Character) return Character is
+     (if Item in 'A' .. 'Z' then Character'Val (Character'Pos (Item) + 32) else Item);
+
    --  Text in lower case by Unicode's simple mapping, every script alike
    --  ("ДОК" is "док"), with no normalization and no data to load, so it
    --  answers the same everywhere; text that is not valid UTF-8 is lowered

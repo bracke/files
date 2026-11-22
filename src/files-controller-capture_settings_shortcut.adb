@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 separate (Files.Controller)
    function Capture_Settings_Shortcut
      (Model     : in out Files.Model.Window_Model;
@@ -22,7 +23,7 @@ separate (Files.Controller)
             function Default_Text return String is
             begin
                if Field_Key'Length > Prefix'Length
-                 and then Field_Key (Field_Key'First .. Field_Key'First + Prefix'Length - 1) = Prefix
+                 and then Files.Text_Basics.Starts_With (Field_Key, Prefix)
                then
                   declare
                      Id : constant Files.Commands.Command_Id :=

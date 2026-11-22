@@ -10,6 +10,13 @@ package Files.Text_Basics is
    --  @return Its decimal digits.
    function Natural_Text (Value : Natural) return String;
 
+   --  A whole number in decimal: "-12" with its sign, "12" without the
+   --  blank Long_Long_Integer'Image gives a positive one.
+   --
+   --  @param Value Number to print.
+   --  @return Its sign and decimal digits.
+   function Integer_Text (Value : Long_Long_Integer) return String;
+
    --  Text without the spaces, tabs and carriage returns around it, as a
    --  line of a settings or desktop-entry file is read.
    --

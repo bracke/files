@@ -1,5 +1,7 @@
 with Ada.Directories;
 with Files.IO.Errors;
+with Files.Text_Basics;
+with Hostkit.Fs;
 with Hostkit.Private_Paths;
 
 package body Files.IO.Private_Directories is
@@ -16,6 +18,28 @@ package body Files.IO.Private_Directories is
             raise Ada.Directories.Use_Error;
       end case;
    end Try_Create;
+
+   function Create_Numbered
+     (Parent  : String;
+      Prefix  : String;
+      Reclaim : access function (Path : String) return Boolean := null)
+      return String is
+   begin
+      for N in 1 .. 9_999 loop
+         declare
+            Candidate : constant String := Hostkit.Fs.Join (Parent, Prefix & Files.Text_Basics.Natural_Text (N));
+         begin
+            if Try_Create (Candidate) = Created
+              or else (Reclaim /= null
+                       and then Reclaim (Candidate)
+                       and then Try_Create (Candidate) = Created)
+            then
+               return Candidate;
+            end if;
+         end;
+      end loop;
+      return "";
+   end Create_Numbered;
 
    procedure Create (Path : String) is
    begin

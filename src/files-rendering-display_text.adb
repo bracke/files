@@ -1,3 +1,4 @@
+with I18N.Date_Time_Format;
 with I18N.Number_Format;
 with Files.Grouping;
 with Ada.Calendar.Arithmetic;
@@ -5,10 +6,6 @@ with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Strings;
 with Ada.Strings.Unbounded;
-
-with Util.Dates;
-with Util.Dates.Formats;
-with Util.Properties;
 
 with Files.Localization;
 with Humanize.Bytes;
@@ -19,106 +16,77 @@ with Files.Text_Basics;
 package body Files.Rendering.Display_Text is
 
    --  @param Value The time.
-   --  @param Format A Util.Dates.Formats pattern.
-   --  @return Value formatted in the time locale.
-   function Formatted_Time_Text (Value : Ada.Calendar.Time; Format : String) return String;
-
-   --  @param Value A number.
-   --  @return It in decimal, without the sign's blank.
-   function Integer_Text (Value : Long_Long_Integer) return String;
+   --  @param With_Date Whether the date is written before the time.
+   --  @return Value in CLDR's medium form in the time locale.
+   function Formatted_Time_Text (Value : Ada.Calendar.Time; With_Date : Boolean) return String;
 
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
 
-   --  Building the Util date bundle costs ~43 localization catalog lookups plus
-   --  environment reads (System_Time_Locale). It depends only on the time
-   --  locale, which is invariant across a frame (effectively across a session),
-   --  while Formatted_Time_Text runs several times per visible details row per
-   --  frame. It is cached and rebuilt only when the locale changes.
-   --  Single-threaded render, so package-level state is safe here.
-   Cached_Bundle        : Util.Properties.Manager;
-   Cached_Bundle_Locale : Ada.Strings.Unbounded.Unbounded_String;
-   Cached_Bundle_Ready  : Boolean := False;
+   --  Value's local wall-clock time, at the offset in force on that date, in
+   --  ISO 8601: "2026-11-22T14:05:09", or the time alone.
+   function Local_Iso_Text (Value : Ada.Calendar.Time; With_Date : Boolean) return String is
+      Year       : Ada.Calendar.Year_Number;
+      Month      : Ada.Calendar.Month_Number;
+      Day        : Ada.Calendar.Day_Number;
+      Hour       : Ada.Calendar.Formatting.Hour_Number;
+      Minute     : Ada.Calendar.Formatting.Minute_Number;
+      Second     : Ada.Calendar.Formatting.Second_Number;
+      Sub_Second : Ada.Calendar.Formatting.Second_Duration;
 
-   function Date_Bundle return Util.Properties.Manager is
-      Locale : constant String := Files.Localization.System_Time_Locale;
+      function Two (Number : Natural) return String is
+        ([Character'Val (Character'Pos ('0') + Number / 10 mod 10),
+          Character'Val (Character'Pos ('0') + Number mod 10)]);
    begin
-      if Cached_Bundle_Ready
-        and then Ada.Strings.Unbounded.To_String (Cached_Bundle_Locale) = Locale
-      then
-         return Cached_Bundle;
-      end if;
-
+      Ada.Calendar.Formatting.Split
+        (Value, Year, Month, Day, Hour, Minute, Second, Sub_Second,
+         Time_Zone => Ada.Calendar.Time_Zones.UTC_Time_Offset (Value));
       declare
-         Result : Util.Properties.Manager;
-
-         procedure Set_Text
-           (Util_Key : String;
-            Text_Key : String)
-         is
-         begin
-            Result.Set (Util_Key, Files.Localization.Text (Text_Key, Locale));
-         end Set_Text;
+         Clock : constant String := Two (Hour) & ":" & Two (Minute) & ":" & Two (Second);
       begin
-         Set_Text (Util.Dates.Formats.DATE_TIME_LOCALE_NAME, "time.locale.datetime_pattern");
-         Set_Text (Util.Dates.Formats.DATE_LOCALE_NAME, "time.locale.date_pattern");
-         Set_Text (Util.Dates.Formats.TIME_LOCALE_NAME, "time.locale.time_pattern");
-         Set_Text (Util.Dates.Formats.AM_NAME, "time.locale.am");
-         Set_Text (Util.Dates.Formats.PM_NAME, "time.locale.pm");
-
-         for Index in 1 .. 12 loop
-            declare
-               Image : constant String := Files.Text_Basics.Natural_Text (Index);
-            begin
-               Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
-               Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
-            end;
-         end loop;
-
-         for Index in 0 .. 6 loop
-            declare
-               Image : constant String := Files.Text_Basics.Natural_Text (Index);
-            begin
-               Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
-               Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");
-            end;
-         end loop;
-
-         Cached_Bundle := Result;
+         if not With_Date then
+            return Clock;
+         end if;
+         return Two (Year / 100) & Two (Year mod 100) & "-" & Two (Month) & "-" & Two (Day) & "T" & Clock;
       end;
-
-      Cached_Bundle_Locale := Ada.Strings.Unbounded.To_Unbounded_String (Locale);
-      Cached_Bundle_Ready := True;
-      return Cached_Bundle;
-   end Date_Bundle;
+   end Local_Iso_Text;
 
    function Formatted_Time_Text
-     (Value  : Ada.Calendar.Time;
-      Format : String)
+     (Value     : Ada.Calendar.Time;
+      With_Date : Boolean)
       return String
    is
-      --  Util's Time overload splits at UTC. A file manager shows local
-      --  time, at the offset in force on that date, not today's.
-      Local  : Util.Dates.Date_Record;
-      Result : Ada.Strings.Unbounded.Unbounded_String;
+      Iso      : constant String := Local_Iso_Text (Value, With_Date);
+      Locale   : constant String := Files.Localization.System_Time_Locale;
+      Target   : String (1 .. I18N.Date_Time_Format.Max_Formatted_Length);
+      Last     : Natural;
+      Ok       : Boolean;
+      Overflow : Boolean;
    begin
-      Util.Dates.Split (Local, Value, Ada.Calendar.Time_Zones.UTC_Time_Offset (Value));
-      Util.Dates.Formats.Format (Result, Format, Local, Date_Bundle);
-      return Ada.Strings.Unbounded.To_String (Result);
+      --  CLDR's medium form: the locale's own order, month names and hour
+      --  cycle ("Nov 22, 2026, 2:05:09 PM", "22.11.2026, 14:05:09").
+      if With_Date then
+         --  The text is already local wall-clock time: given as UTC and
+         --  written in UTC, it is not shifted to the locale's default zone.
+         I18N.Date_Time_Format.Format_Date_Time_Into (Iso & "Z", Locale, "medium,UTC", Target, Last, Ok, Overflow);
+      else
+         I18N.Date_Time_Format.Format_Time_Into (Iso, Locale, "medium", Target, Last, Ok, Overflow);
+      end if;
+      if Ok and then not Overflow and then Last >= Target'First then
+         return Target (Target'First .. Last);
+      end if;
+      --  Without the CLDR data: ISO 8601, which reads the same everywhere.
+      return (if With_Date then Iso (Iso'First .. Iso'First + 9) & " " & Iso (Iso'First + 11 .. Iso'Last) else Iso);
    end Formatted_Time_Text;
 
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String is
    begin
-      return
-        Formatted_Time_Text
-          (Value, Files.Localization.Text ("time.format.clock", Files.Localization.System_Time_Locale));
+      return Formatted_Time_Text (Value, With_Date => False);
    end Clock_Time_Text;
 
    function Full_Time_Text (Value : Ada.Calendar.Time) return String is
    begin
-      return
-        Formatted_Time_Text
-          (Value, Files.Localization.Text ("time.format.full", Files.Localization.System_Time_Locale));
+      return Formatted_Time_Text (Value, With_Date => True);
    end Full_Time_Text;
 
    function Weekday_Key (Value : Ada.Calendar.Time) return String is
@@ -238,39 +206,9 @@ package body Files.Rendering.Display_Text is
          end;
    end Humanized_Time_Text;
 
-   function Integer_Text (Value : Long_Long_Integer) return String is
-      Image : constant String := Long_Long_Integer'Image (Value);
-   begin
-      if Image'Length > 0 and then Image (Image'First) = ' ' then
-         return Image (Image'First + 1 .. Image'Last);
-      end if;
-
-      return Image;
-   end Integer_Text;
-
-   function Number_Symbol
-     (Key      : String;
-      Fallback : String)
-      return String
-   is
-      Locale : constant String := Files.Localization.System_Number_Locale;
-      Text   : constant String := Files.Localization.Text (Key, Locale);
-   begin
-      if Text = Key then
-         return Fallback;
-      end if;
-
-      return Text;
-   end Number_Symbol;
-
-   function Group_Separator return String is
-   begin
-      return Number_Symbol ("number.group", ",");
-   end Group_Separator;
-
    function Digits_Text (Value : Natural) return String is
       Locale : constant String := Files.Localization.System_Number_Locale;
-      Latin  : constant String := Integer_Text (Long_Long_Integer (Value));
+      Latin  : constant String := Files.Text_Basics.Integer_Text (Long_Long_Integer (Value));
       Result : Unbounded_String;
    begin
       for Digit of Latin loop
@@ -280,44 +218,21 @@ package body Files.Rendering.Display_Text is
    end Digits_Text;
 
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String is
-      Text        : constant String := Integer_Text (Value);
-      --  CLDR's form first, in the number locale: its digits (Arabic-Indic
-      --  in Arabic, as sizes have them), its grouping and when it starts.
-      Formatted   : String (1 .. I18N.Number_Format.Max_Formatted_Length);
-      Last        : Natural;
-      Ok          : Boolean;
-      Overflow    : Boolean;
-      --  The sign is not a digit: "-123" must not read "-,123".
-      Signed      : constant Boolean := Text'Length > 0 and then Text (Text'First) = '-';
-      Number_Text : constant String := (if Signed then Text (Text'First + 1 .. Text'Last) else Text);
-      Separator  : constant String := Group_Separator;
-      First_Size : Natural := Number_Text'Length mod 3;
-      Result     : Unbounded_String;
+      Text      : constant String := Files.Text_Basics.Integer_Text (Value);
+      --  CLDR's form, in the number locale: its digits (Arabic-Indic in
+      --  Arabic, as sizes have them), its grouping and when it starts.
+      Formatted : String (1 .. I18N.Number_Format.Max_Formatted_Length);
+      Last      : Natural;
+      Ok        : Boolean;
+      Overflow  : Boolean;
    begin
       I18N.Number_Format.Format_Into
         (Text, Files.Localization.System_Number_Locale, "", Formatted, Last, Ok, Overflow);
       if Ok and then not Overflow and then Last >= Formatted'First then
          return Formatted (Formatted'First .. Last);
       end if;
-
-      if Separator'Length = 0 or else Number_Text'Length <= 3 then
-         return Text;
-      end if;
-
-      if First_Size = 0 then
-         First_Size := 3;
-      end if;
-
-      for Index in Number_Text'Range loop
-         if Index > Number_Text'First
-           and then (Index - Number_Text'First - First_Size) mod 3 = 0
-         then
-            Append (Result, Separator);
-         end if;
-         Append (Result, Number_Text (Index));
-      end loop;
-
-      return (if Signed then "-" else "") & To_String (Result);
+      --  Without the CLDR data: the plain digits, which no locale misreads.
+      return Text;
    end Grouped_Integer_Text;
 
    --  A size as humanize writes it in the number locale: decimal units in

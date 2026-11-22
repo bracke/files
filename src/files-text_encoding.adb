@@ -13,9 +13,6 @@ package body Files.Text_Encoding is
    --  no well-formed sequence: past every codepoint, so never a real one.
    Invalid : constant Natural := Natural'Last;
 
-   function Is_Continuation (Value : Character) return Boolean is
-     (Character'Pos (Value) in 16#80# .. 16#BF#);
-
    function Utf8_Sequence_Length (Text : String; At_Index : Positive) return Natural is
       Next      : Integer := At_Index;
       Codepoint : Natural;
@@ -230,7 +227,7 @@ package body Files.Text_Encoding is
       --  Step back over at most three continuation bytes (10xxxxxx).
       while Lead >= Raw'First
         and then Raw'Last - Lead < 3
-        and then Is_Continuation (Raw (Lead))
+        and then Is_Continuation_Byte (Raw (Lead))
       loop
          Lead := Lead - 1;
       end loop;

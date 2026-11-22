@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.Protocol_Names;
 with Files.Diagnostics;
 with Ada.Directories;
@@ -332,32 +333,24 @@ package body Files.Jobs.Context is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      for N in 1 .. 9_999 loop
-         declare
-            Image : constant String := Natural'Image (N);
-            Record_Directory : constant String :=
-              Hostkit.Fs.Join (Stages, "stage-" & Image (2 .. Image'Last));
-         begin
-            if Files.IO.Private_Directories.Try_Create (Record_Directory) =
-              Files.IO.Private_Directories.Collision
-            then
-               goto Continue;
+      declare
+         Record_Directory : constant String := Files.IO.Private_Directories.Create_Numbered (Stages, "stage-");
+      begin
+         if Record_Directory = "" then
+            raise Ada.Directories.Use_Error;
+         end if;
+         --  Publish the intended pathname before creating it. A crash can
+         --  therefore leave an unfinished record, never an undiscoverable
+         --  staging directory.
+         Write_Stage_Record (Record_Directory, Path, "");
+         return Record_Directory;
+      exception
+         when others =>
+            if Record_Directory /= "" then
+               Remove_Record (Record_Directory);
             end if;
-            begin
-               --  Publish the intended pathname before creating it. A crash
-               --  can therefore leave an unfinished record, never an
-               --  undiscoverable staging directory.
-               Write_Stage_Record (Record_Directory, Path, "");
-               return Record_Directory;
-            exception
-               when others =>
-                  Remove_Record (Record_Directory);
-                  raise;
-            end;
-            <<Continue>>
-         end;
-      end loop;
-      raise Ada.Directories.Use_Error;
+            raise;
+      end;
    end Begin_Stage_Record;
 
    function Create_Stage (Parent : String) return String is
@@ -367,9 +360,8 @@ package body Files.Jobs.Context is
       end if;
       for N in 1 .. 9_999 loop
          declare
-            Image : constant String := Natural'Image (N);
             Candidate : constant String :=
-              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & Image (2 .. Image'Last));
+              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & Files.Text_Basics.Natural_Text (N));
             Identity : Files.Types.UString;
             Record_Directory : Files.Types.UString;
          begin
@@ -997,8 +989,7 @@ package body Files.Jobs.Context is
          pragma Unreferenced (Stop);
          Prefix : constant String := "stage-";
       begin
-         if Name'Length >= Prefix'Length
-           and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+         if Files.Text_Basics.Starts_With (Name, Prefix)
            and then Files.IO.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Stages, Name))
          then
             Records.Append (To_Unbounded_String (Hostkit.Fs.Join (Stages, Name)));

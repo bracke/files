@@ -195,7 +195,7 @@ jobs:
           clone_at messages 6d092f9590c6b0cb0d7704ce20c33b3ac76b8d14
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 17d0d70f3554383b47eef8efac3beacc1abc4f0b
-          clone_at zlib fe25a26b481ae851d4d6ef3b5b3ec57cb8716c56
+          clone_at zlib 05c623af59fab193e552496f0bffb1df36e34b3c
           clone_at guikit 927a98ab233269d756c87087ee90a35456d6f929
           clone_at hostkit 221fbd752eacc8b7d7897f4a9ee1a185ad6b2ef3
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
@@ -284,7 +284,7 @@ jobs:
       - name: Give Alire's dependency solver room to finish (slow runners drop deps)
         # The default solver.timeout is 5 s (+10 s grace). On the slower macOS
         # runner the solve for files' large graph (df_vulkan, openglada_glfw,
-        # utilada, plus the path-pinned siblings) does not finish in that window,
+        # plus the path-pinned siblings) does not finish in that window,
         # so Alire ships an INCOMPLETE solution -- silently dropping openglada and
         # libglfw3, after which the build dies with "opengl.gpr not found". The
         # graph is solvable (Linux and Windows solve it in time), so a generous

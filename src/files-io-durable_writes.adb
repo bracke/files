@@ -276,7 +276,7 @@ package body Files.IO.Durable_Writes is
       function Temporary_Name (Name : String) return Boolean is
         (Name = Prefix
          or else (Name'Length in Prefix'Length + 2 .. Prefix'Length + 5
-                  and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+                  and then Files.Text_Basics.Starts_With (Name, Prefix)
                   and then Name (Name'First + Prefix'Length) = '-'
                   and then Name (Name'First + Prefix'Length + 1) in '1' .. '9'
                   and then (for all C of Name (Name'First + Prefix'Length + 2 .. Name'Last) => C in '0' .. '9')));

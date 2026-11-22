@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.Types;
 with Ada.Strings.Unbounded;
 with Files.IO.Fs_Primitives;
@@ -80,7 +81,7 @@ package body Files.IO.Durability is
            or else
              (Faults.Stage
               and then Leaf'Length > Prefix'Length
-              and then Leaf (Leaf'First .. Leaf'First + Prefix'Length - 1) = Prefix
+              and then Files.Text_Basics.Starts_With (Leaf, Prefix)
               --  refusal-safe: a test's fault injection only; it decides
               --  whether to feign a failed sync, never what is kept.
               and then Files.IO.Fs_Primitives.Entry_Exists

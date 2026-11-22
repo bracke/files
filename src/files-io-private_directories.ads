@@ -10,6 +10,21 @@ package Files.IO.Private_Directories is
    --  @return Created, or Collision when Path already existed.
    function Try_Create (Path : String) return Create_Result;
 
+   --  Create the first free numbered directory Prefix & "1" .. Prefix &
+   --  "9999" under Parent, atomically and owner-only, so a bounded set of
+   --  names serves staging and recovery slots.
+   --  @param Parent Directory the slot is made in.
+   --  @param Prefix The slot name's text before its number.
+   --  @param Reclaim Asked about a name already taken: True when it removed
+   --    a stale slot there, so the create is tried once more; null keeps
+   --    every taken name.
+   --  @return The created directory, or "" when every name is taken.
+   function Create_Numbered
+     (Parent  : String;
+      Prefix  : String;
+      Reclaim : access function (Path : String) return Boolean := null)
+      return String;
+
    --  Create Path atomically with owner-only access and without an inherited
    --  default ACL. Raises Use_Error on failure or collision.
    --  @param Path Unused directory pathname to create.

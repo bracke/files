@@ -548,8 +548,7 @@ package body Files.Jobs.Scavenger is
             pragma Unreferenced (Stop);
             Prefix : String renames Files.Protocol_Names.Transport_Prefix;
          begin
-            if Name'Length >= Prefix'Length
-              and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+            if Files.Text_Basics.Starts_With (Name, Prefix)
               and then Files.IO.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Temp, Name))
             then
                Directories.Append (To_Unbounded_String (Hostkit.Fs.Join (Temp, Name)));

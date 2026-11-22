@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.File_System.Trash;
 with Files.Protocol_Names;
 with Files.Diagnostics;
@@ -117,8 +118,7 @@ package body Files.Recovery_CLI is
          --  Absolute, however the folder was named on the command line.
          Stage : constant String := Hostkit.Fs.Join (Files.IO.Fs_Primitives.Full_Name (Directory), Name);
       begin
-         if Name'Length >= Prefix'Length
-           and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+         if Files.Text_Basics.Starts_With (Name, Prefix)
            and then Files.IO.Fs_Primitives.Directory_Exists (Stage)
          then
             declare

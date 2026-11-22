@@ -8,8 +8,8 @@ separate (Check_All)
       for Index in Items.First_Index .. Items.Last_Index loop
          declare
             Item : constant Token := Items (Index);
-            --  A literal the code completes at run time ("time.month" &
-            --  Image) is a fragment only when '&' follows it; a literal that
+            --  A literal the code completes at run time ("key.name." &
+            --  Key) is a fragment only when '&' follows it; a literal that
             --  merely begins some catalog key is a key, possibly truncated.
             Joined : constant Boolean :=
               Index < Items.Last_Index and then Is_Symbol (Items (Index + 1), "&");

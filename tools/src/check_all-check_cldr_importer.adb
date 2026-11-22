@@ -8,6 +8,6 @@ separate (Check_All)
          Args            =>
            [1 => new String'(Root & "/tools/testdata/cldr/main/zz.xml")],
          Output_Path     => Temp_Path ("cldr.out"),
-         Required_First  => "zz-ZZ.time.locale.datetime_pattern = %d %b %Y at %H.%M.%S",
+         Required_First  => "zz-ZZ.time.weekday.monday = Monday Z",
          Required_Second => "zz-ZZ.details.size.unit.mib = zmb");
    end Check_CLDR_Importer;

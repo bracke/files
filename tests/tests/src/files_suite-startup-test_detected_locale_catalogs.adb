@@ -1,3 +1,4 @@
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -26,12 +27,8 @@ separate (Files_Suite.Startup)
          "I dag",
          "detected Danish time locale uses date/time catalog resources");
       Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("time.format.locale_date", "da-DK"),
-         "%x",
-         "Danish catalog includes named utilada date format patterns");
-      Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("time.month1.long", "sv-SE"),
-         "januari",
+        (Files.Localization.Text ("time.weekday.monday", "sv-SE"),
+         Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("måndag"),
          "regional locales fall back to generated base-language date resources");
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("time.relative.today", "de-DE"),
@@ -52,19 +49,11 @@ separate (Files_Suite.Startup)
       --  the English one: the catalog that defines the key decides, not
       --  whether its text looks like the default standing in.
       Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("time.locale.date_pattern", "es-PR"),
-         "%m/%d/%Y",
-         "Puerto Rico keeps its own month-first date pattern, not Spanish's");
-      Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("time.locale.time_pattern", "sr-BA"),
-         "%H:%M:%S",
-         "Bosnian Serbian keeps its colon time pattern, not Serbian's dots");
-      Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("number.group", "es-419"),
          ",",
          "Latin American Spanish keeps its comma digit group, not Spanish's dot");
       Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("time.locale.date_pattern", "es-ES"),
-         Files.Localization.Text ("time.locale.date_pattern", "es"),
+        (Files.Localization.Text ("time.weekday.monday", "es-ES"),
+         Files.Localization.Text ("time.weekday.monday", "es"),
          "a region without its own value still takes its language's");
    end Test_Detected_Locale_Catalogs;

@@ -585,7 +585,7 @@ package body Files.Overlays.Settings_Form is
                Set_Entry (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
                           D.Open_Action_Token, D.Open_Action_Command, Editing_Key => False, New_Value => Val);
             elsif Key'Length > Shortcut_Key_Prefix'Length
-              and then Key (Key'First .. Key'First + Shortcut_Key_Prefix'Length - 1) = Shortcut_Key_Prefix
+              and then Files.Text_Basics.Starts_With (Key, Shortcut_Key_Prefix)
             then
                Apply_Shortcut (Key, To_String (Val), Applied => Save, Conflict => Conflict);
             else

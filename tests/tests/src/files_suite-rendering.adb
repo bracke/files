@@ -185,6 +185,7 @@ package body Files_Suite.Rendering is
    procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Day_Labels_Across_Clock_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Full_Times_Use_The_Locale_Form (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grouped_Numbers_Keep_The_Sign (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Counts_Use_The_Locale_Digits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -541,6 +542,8 @@ package body Files_Suite.Rendering is
         (T, Test_Day_Labels_Across_Clock_Changes'Access,
          "yesterday and the weekdays survive a daylight-saving change");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Full_Times_Use_The_Locale_Form'Access, "full times are written in the time locale's CLDR form");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Snapshot_Policy'Access, "a window reuses, patches or rebuilds its snapshot by what changed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
@@ -628,6 +631,7 @@ package body Files_Suite.Rendering is
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Day_Labels_Across_Clock_Changes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Full_Times_Use_The_Locale_Form (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Grouped_Numbers_Keep_The_Sign (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -11,9 +11,7 @@ package body Files.Text_Case is
       Result : String := Text;
    begin
       for Char of Result loop
-         if Char in 'A' .. 'Z' then
-            Char := Character'Val (Character'Pos (Char) + 32);
-         end if;
+         Char := To_Lower_Ascii (Char);
       end loop;
       return Result;
    end To_Lower_Ascii;
@@ -326,8 +324,7 @@ package body Files.Text_Case is
    end Contains_Case_Insensitive;
 
    function Contains_Folded (Haystack : String; Folded_Needle : String) return Boolean is
-      function Lower (C : Character) return Character is
-        (if C in 'A' .. 'Z' then Character'Val (Character'Pos (C) + 32) else C);
+      function Lower (C : Character) return Character renames To_Lower_Ascii;
    begin
       if Folded_Needle = "" then
          return True;

@@ -52,7 +52,6 @@ package body Files.File_System.Recovery is
    use Files.File_System.Support;
    use type Ada.Directories.File_Size;
    use type Ada.Directories.File_Kind;
-   use type Files.IO.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
 

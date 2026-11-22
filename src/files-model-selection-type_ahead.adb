@@ -17,9 +17,6 @@ package body Files.Model.Selection.Type_Ahead is
    is
       --  One ASCII letter lowered, any other byte kept (the bytes this is
       --  asked about are ASCII).
-      function Lower_Ascii (C : Character) return Character is
-        (if C in 'A' .. 'Z' then Character'Val (Character'Pos (C) + 32) else C);
-
       Prefix_Length : constant Natural := Folded_Prefix'Length;
       Name_Length   : constant Natural := Length (Name);
       Checked       : constant Natural := Natural'Min (Name_Length, Prefix_Length + 1);
@@ -28,7 +25,7 @@ package body Files.Model.Selection.Type_Ahead is
       if Prefix_Ascii and then (for all I in 1 .. Checked => Character'Pos (Element (Name, I)) < 128) then
          return Name_Length >= Prefix_Length
            and then (for all I in 1 .. Prefix_Length =>
-                       Lower_Ascii (Element (Name, I))
+                       Files.Text_Case.To_Lower_Ascii (Element (Name, I))
                        = Folded_Prefix (Folded_Prefix'First + I - 1));
       end if;
       return Files.Text_Basics.Starts_With (Files.Text_Case.Fold_Case (To_String (Name)), Folded_Prefix);

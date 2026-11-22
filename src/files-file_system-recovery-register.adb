@@ -1,11 +1,20 @@
-with Files.Text_Basics;
-
 separate (Files.File_System.Recovery)
    function Register (Payload : String) return String is
       Root : constant String := Registry_Root (Create => True);
       Hold : Registry_Hold;
       Directory : UString;
       File : aliased Files.IO.Exclusive_Streams.Output_Stream;
+
+      --  Reclaim a slot left by a stage that is already gone, so leaked
+      --  records cannot exhaust the bounded name space.
+      function Reclaim_Stale (Candidate : String) return Boolean is
+      begin
+         if not Is_Stale_Record (Candidate) then
+            return False;
+         end if;
+         Delete_Registry_Record (Candidate);
+         return True;
+      end Reclaim_Stale;
    begin
       if Root = "" or else not Valid_Absolute_Path (Payload) then
          raise Ada.Directories.Use_Error;
@@ -15,31 +24,10 @@ separate (Files.File_System.Recovery)
       --  names are reused once freed, so any record already naming this
       --  payload belongs to an earlier, finished stage of the same name.
       Unregister (Payload);
-      for N in 1 .. 9_999 loop
-         declare
-            Candidate : constant String :=
-              Hostkit.Fs.Join (Root, Files.Protocol_Names.Recovery_Stage_Prefix & Files.Text_Basics.Natural_Text (N));
-         begin
-            if Files.IO.Private_Directories.Try_Create (Candidate) =
-              Files.IO.Private_Directories.Collision
-            then
-               --  Reclaim a slot left by a stage that is already gone, so
-               --  leaked records cannot exhaust the bounded name space.
-               if not Is_Stale_Record (Candidate) then
-                  goto Continue;
-               end if;
-               Delete_Registry_Record (Candidate);
-               if Files.IO.Private_Directories.Try_Create (Candidate) =
-                 Files.IO.Private_Directories.Collision
-               then
-                  goto Continue;
-               end if;
-            end if;
-            Directory := To_Unbounded_String (Candidate);
-            exit;
-            <<Continue>>
-         end;
-      end loop;
+      Directory :=
+        To_Unbounded_String
+          (Files.IO.Private_Directories.Create_Numbered
+             (Root, Files.Protocol_Names.Recovery_Stage_Prefix, Reclaim_Stale'Access));
       if Length (Directory) = 0 then
          raise Ada.Directories.Use_Error;
       end if;

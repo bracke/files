@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 separate (Files.File_System)
 function Storable_Leaf_Name_At
   (Name      : String;
@@ -19,7 +20,7 @@ begin
             if Index + 2 <= Name'Last
               and then Character'Pos (Name (Index)) = 16#ED#
               and then Character'Pos (Name (Index + 1)) in 16#A0# .. 16#BF#
-              and then Character'Pos (Name (Index + 2)) in 16#80# .. 16#BF#
+              and then Files.Text_Encoding.Is_Continuation_Byte (Name (Index + 2))
             then
                Last := Last + 1;
                Checked (Last) := '_';

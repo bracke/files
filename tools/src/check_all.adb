@@ -599,7 +599,7 @@ procedure Check_All is
    end In_Localization_Namespace;
 
    --  Whether Text begins some catalog key without being one: a prefix the
-   --  code completes at run time ("time.month" & N & ".short"). Callers ask
+   --  code completes at run time ("key.name." & Key). Callers ask
    --  only for a literal that '&' follows; a bare literal that is a prefix
    --  is a truncated key, not a fragment.
    function Is_Key_Fragment (Text : String) return Boolean is

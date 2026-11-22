@@ -10,6 +10,7 @@ with Ada.Strings.Fixed;
 with Files.File_System;
 with Files.Model.Selection;
 
+with Files.Text_Basics;
 package body Files.Application.Windows.Smoke is
    use Ada.Strings.Unbounded;
    use type Files.Rendering.Text.Text_Render_Status;
@@ -241,8 +242,7 @@ package body Files.Application.Windows.Smoke is
    begin
       for Index in 1 .. Scenario_Overflow_Item_Count loop
          declare
-            Suffix : constant String :=
-              Ada.Strings.Fixed.Trim (Integer'Image (Index), Ada.Strings.Left);
+            Suffix : constant String := Files.Text_Basics.Natural_Text (Index);
             Name   : constant String := "smoke-item-" & Suffix;
          begin
             Items.Append

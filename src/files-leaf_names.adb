@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+with Files.Text_Encoding;
 with Guikit.Utf8;
 
 package body Files.Leaf_Names is
@@ -5,9 +7,6 @@ package body Files.Leaf_Names is
    --  The longest extension Fit keeps whole: anything longer after the last
    --  dot is part of the name, not a type a program opens it by.
    Max_Extension : constant := 32;
-
-   function Is_Continuation (Item : Character) return Boolean is
-     (Character'Pos (Item) in 16#80# .. 16#BF#);
 
    function Length_Under
      (Name : String;
@@ -52,7 +51,9 @@ package body Files.Leaf_Names is
       --  Move Last back so the prefix ends with a whole character.
       procedure Back_Off is
       begin
-         while Last >= Head'First and then Last < Head'Last and then Is_Continuation (Head (Last + 1)) loop
+         while Last >= Head'First and then Last < Head'Last
+           and then Files.Text_Encoding.Is_Continuation_Byte (Head (Last + 1))
+         loop
             Last := Last - 1;
          end loop;
       end Back_Off;
@@ -86,24 +87,17 @@ package body Files.Leaf_Names is
       return Cut (Name (Name'First .. Dot - 1), Insert & Name (Dot .. Name'Last), Room, Unit);
    end Fit;
 
-   --  Value in decimal, without Natural'Image's leading blank.
-   function Decimal (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Decimal;
-
    function Counted_Marker (Word : String; Attempt : Natural) return String is
-     (if Attempt <= 1 then " (" & Word & ")" else " (" & Word & " " & Decimal (Attempt) & ")");
+     (if Attempt <= 1 then " (" & Word & ")" else " (" & Word & " " & Files.Text_Basics.Natural_Text (Attempt) & ")");
 
    function Numbered_Marker (Attempt : Natural) return String is
-     (if Attempt = 0 then "" else " (" & Decimal (Attempt) & ")");
+     (if Attempt = 0 then "" else " (" & Files.Text_Basics.Natural_Text (Attempt) & ")");
 
    function Spaced_Number (Attempt : Natural) return String is
-     (if Attempt <= 1 then "" else " " & Decimal (Attempt));
+     (if Attempt <= 1 then "" else " " & Files.Text_Basics.Natural_Text (Attempt));
 
    function Dotted_Number (Attempt : Natural) return String is
-     (if Attempt <= 1 then "" else "." & Decimal (Attempt));
+     (if Attempt <= 1 then "" else "." & Files.Text_Basics.Natural_Text (Attempt));
 
    function Candidate
      (Stem      : String;

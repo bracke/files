@@ -31,6 +31,11 @@ package Files.Text_Encoding is
    --  @return Raw's UTF-16 layout; Not_Utf16 when it does not read as UTF-16.
    function Utf16_Layout_Of (Raw : String) return Utf16_Layout;
 
+   --  @param Item A byte of UTF-8 text.
+   --  @return True when Item continues a multibyte sequence (10xxxxxx).
+   function Is_Continuation_Byte (Item : Character) return Boolean is
+     (Character'Pos (Item) in 16#80# .. 16#BF#);
+
    --  The length of the well-formed UTF-8 multibyte sequence starting at
    --  Text (At_Index): no overlong form, surrogate or value past U+10FFFF.
    --

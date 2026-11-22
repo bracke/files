@@ -1,4 +1,3 @@
-with Files.Text_Basics;
 
 separate (Files.File_System.Recovery)
    function Preserve (Path : String; Backup : out Files.Types.UString) return Mutation_Result is
@@ -31,21 +30,9 @@ separate (Files.File_System.Recovery)
       if not Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
       end if;
-      for N in 1 .. 9_999 loop
-         declare
-            Candidate : constant String :=
-              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Files.Text_Basics.Natural_Text (N));
-         begin
-            if Files.IO.Private_Directories.Try_Create (Candidate) =
-              Files.IO.Private_Directories.Collision
-            then
-               goto Continue;
-            end if;
-            Stage := To_Unbounded_String (Candidate);
-            exit;
-            <<Continue>>
-         end;
-      end loop;
+      Stage :=
+        To_Unbounded_String
+          (Files.IO.Private_Directories.Create_Numbered (Parent, Files.Protocol_Names.Recovery_Stage_Prefix));
       if Length (Stage) = 0 then
          raise Ada.Directories.Use_Error;
       end if;

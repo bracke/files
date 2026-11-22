@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.IO.Fs_Primitives;
 with Files.Environment;
 with Files.Diagnostics;
@@ -63,7 +64,7 @@ package body Files.File_System.Thumbnails is
       Digest_First : constant Integer := Name'Last - Suffix'Length - 63;
    begin
       return Name'Length >= Prefix'Length + 1 + 1 + 64 + Suffix'Length
-        and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+        and then Files.Text_Basics.Starts_With (Name, Prefix)
         and then Name (Name'Last - Suffix'Length + 1 .. Name'Last) = Suffix
         and then Name (Digest_First - 1) = '_'
         and then (for all Index in Digest_First .. Digest_First + 63 =>

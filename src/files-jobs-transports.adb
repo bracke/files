@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.Hex_Text;
 with Files.Protocol_Names;
 with Files.IO.Fs_Primitives;
@@ -153,7 +154,7 @@ package body Files.Jobs.Transports is
 
    function Is_Transport_Name (Name : String) return Boolean is
      (Name'Length = Transport_Prefix'Length + 32
-      and then Name (Name'First .. Name'First + Transport_Prefix'Length - 1) = Transport_Prefix
+      and then Files.Text_Basics.Starts_With (Name, Transport_Prefix)
       and then (for all Position in Name'First + Transport_Prefix'Length .. Name'Last =>
         Name (Position) in '0' .. '9' | 'a' .. 'f'));
 
@@ -748,7 +749,7 @@ package body Files.Jobs.Transports is
          pragma Unreferenced (Stop);
       begin
          if Name'Length = Witness_Prefix'Length + 32
-           and then Name (Name'First .. Name'First + Witness_Prefix'Length - 1) = Witness_Prefix
+           and then Files.Text_Basics.Starts_With (Name, Witness_Prefix)
            and then (for all Position in Name'First + Witness_Prefix'Length .. Name'Last =>
              Name (Position) in '0' .. '9' | 'a' .. 'f')
          then
