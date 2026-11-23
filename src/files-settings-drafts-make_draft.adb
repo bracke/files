@@ -91,6 +91,7 @@ separate (Files.Settings.Drafts)
          Open_Action_Keys       => Action_Keys,
          Open_Action_Commands   => Action_Values,
          Open_Action_Index      => (if Action_Keys.Is_Empty then 0 else 1),
+         Shortcut_Overrides     => Settings.Shortcut_Overrides,
          Error_Key              => Null_Unbounded_String,
          Valid                  => True);
    end Make_Draft;

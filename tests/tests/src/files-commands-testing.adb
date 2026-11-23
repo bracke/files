@@ -17,4 +17,12 @@ package body Files.Commands.Testing is
 
    function Contains (Identifier_Text : String) return Boolean renames Files.Commands.Contains;
 
+   function Live_Keymap return Keymap renames Files.Commands.Live_Keymap;
+
+   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut) renames Files.Commands.Set_Shortcut_Override;
+
+   procedure Clear_Shortcut_Override (Id : Command_Id) renames Files.Commands.Clear_Shortcut_Override;
+
+   procedure Reset_Shortcut_Overrides renames Files.Commands.Reset_Shortcut_Overrides;
+
 end Files.Commands.Testing;

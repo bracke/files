@@ -1,26 +1,30 @@
 with Files.Settings;
 
---  The live keymap (Files.Commands' shortcut overrides) and the settings'
---  [shortcuts] section kept in step: what a save writes, and what loading or
---  taking in settings makes the keymap. Neither the settings pane nor the
---  window owns this; both, and the settings store, call it.
+--  The live keymap (Files.Commands) and the settings' [shortcuts] section
+--  kept in step, and a keymap read from or written to those overrides: the
+--  settings pane edits a draft's overrides through a Keymap of its own, and
+--  only settings put in force change the live one.
 package Files.Commands.Keymap_Settings is
 
-   --  Settings with their shortcut overrides taken from the live keymap
-   --  (Files.Commands), which the pane's shortcut rows change before any
-   --  save: what a save writes. The [shortcuts] section is thus always a
-   --  mirror of the effective overrides; an explicit unbind persists as an
-   --  empty combo (Shortcut_Text of an absent shortcut is "").
+   --  The keymap Overrides describe. An override for a command this build
+   --  does not know, or with a combo it cannot read (a typo), is dropped:
+   --  the command keeps its default binding rather than losing it or taking
+   --  whatever the rest names. An empty combo is an explicit unbind.
    --
-   --  @param Settings Settings to update in place.
-   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);
+   --  @param Overrides A settings [shortcuts] section.
+   --  @return The keymap they describe.
+   function Keymap_Of (Overrides : Files.Settings.Shortcut_Override_Vectors.Vector) return Keymap;
 
-   --  Make Settings' shortcut overrides the live keymap's (Files.Commands),
-   --  then hold them as a save writes them (Store_Shortcut_Overrides). An
-   --  override for a command this build does not know, or with a combo it
-   --  cannot read (a typo), is dropped: the command keeps its default
-   --  binding rather than losing it or taking whatever the rest names. An
-   --  empty combo is an explicit unbind.
+   --  The [shortcuts] section that describes Map: one entry per command Map
+   --  overrides, in command order; an explicit unbind is an empty combo.
+   --
+   --  @param Map The keymap.
+   --  @return Its overrides as the settings hold them.
+   function Overrides_Of (Map : Keymap) return Files.Settings.Shortcut_Override_Vectors.Vector;
+
+   --  Put Settings' shortcut overrides in force as the live keymap, then
+   --  hold them as the live keymap reads (Overrides_Of): an entry Keymap_Of
+   --  drops is dropped from Settings too.
    --
    --  @param Settings Settings whose overrides take effect, updated in place.
    procedure Apply_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);

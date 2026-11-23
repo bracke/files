@@ -93,6 +93,27 @@ package body Files.Operations.Support is
       return (Status => Operation_Success, others => <>);
    end Real_Selection_Refusal;
 
+   --  Load the folder at Path to show it: listed with Settings'
+   --  classification and listing options, its new images' thumbnails left
+   --  to a background listing (Load_Directory_Deferring_Thumbnails). The
+   --  one load every view change and in-place reload makes.
+   function Load_Folder
+     (Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Files.File_System.Directory_Load_Result;
+
+   --  What every folder loaded to show in a view moved to it ends with,
+   --  once Load_And_Show's caller installed Load's items: the trash flag
+   --  settled, the signature the watch compares with stored, the error
+   --  line cleared, and the images still lacking a thumbnail owed to a
+   --  background listing (Files.Model.Note_Owed_Refresh, which the window's
+   --  poll pays through Files.Refresh.Resume_Owed), so nothing waits on
+   --  decoding. A folder read again in place goes through
+   --  Files.Refresh.Reinstall_Listing instead, which keeps the place in it.
+   procedure Show_Loaded_Folder
+     (Model : in out Files.Model.Window_Model;
+      Load  : Files.File_System.Directory_Load_Result);
+
    function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean is
      (Files.Model.Jobs.Background_Transfers (Model));
 
@@ -169,24 +190,15 @@ package body Files.Operations.Support is
                  Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
             end if;
 
-            Files.Model.Replace_Items (Model, Load.Items);
-            if Select_Path /= "" then
-               Files.Model.Selection.Restore
-                 (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1), Select_Path);
-            elsif Select_Name /= "" then
-               declare
-                  Selection_Restored : constant Boolean := Files.Model.Selection.Select_By_Name (Model, Select_Name);
-                  pragma Unreferenced (Selection_Restored);
-               begin
-                  null;
-               end;
-            elsif Preserve_Selection then
-               Files.Model.Selection.Restore
-                 (Model, Previous_Selection, Previous_Primary);
-            end if;
             --  A reload runs after every operation: it must not decode each
             --  new image while the UI waits, as no folder shown does.
-            Show_Loaded_Folder (Model, Load, Moved => False);
+            Files.Refresh.Reinstall_Listing
+              (Model, Load.Items, Load.Signature,
+               Select_Path    => Select_Path,
+               Select_Name    => Select_Name,
+               Keep_Selection => Preserve_Selection,
+               Owe_Thumbnails => True);
+            Files.Model.Set_Error (Model, "");
             Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
             return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
          end;
@@ -270,12 +282,9 @@ package body Files.Operations.Support is
 
    procedure Show_Loaded_Folder
      (Model : in out Files.Model.Window_Model;
-      Load  : Files.File_System.Directory_Load_Result;
-      Moved : Boolean := True) is
+      Load  : Files.File_System.Directory_Load_Result) is
    begin
-      if Moved then
-         Settle_Current_Is_Trash (Model);
-      end if;
+      Settle_Current_Is_Trash (Model);
       Files.Model.Set_Directory_Signature (Model, Load.Signature);
       Files.Model.Set_Error (Model, "");
       --  Last, once the listing it refreshes is the current one: a debt
@@ -284,6 +293,29 @@ package body Files.Operations.Support is
          Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
       end if;
    end Show_Loaded_Folder;
+
+   function Load_And_Show
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : Files.Settings.Settings_Model;
+      Path        : String;
+      Install     : not null access procedure
+        (Model : in out Files.Model.Window_Model;
+         Load  : Files.File_System.Directory_Load_Result);
+      Say_Failure : Boolean := True)
+      return Operation_Result
+   is
+      Load : constant Files.File_System.Directory_Load_Result := Load_Folder (Settings, Path);
+   begin
+      if not Load.Success then
+         if Say_Failure then
+            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+         end if;
+         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Path);
+      end if;
+      Install (Model, Load);
+      Show_Loaded_Folder (Model, Load);
+      return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+   end Load_And_Show;
 
    function Publish_Staged
      (Staged   : String;

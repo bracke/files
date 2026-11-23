@@ -47,4 +47,24 @@ package Files.Commands.Testing is
    --  @return True when a registered command exists.
    function Contains (Identifier_Text : String) return Boolean;
 
+   --  The live keymap, which the window's keys resolve against.
+   --
+   --  @return The keymap in force.
+   function Live_Keymap return Keymap;
+
+   --  Override a command's shortcut in the live keymap, as settings put in
+   --  force would.
+   --
+   --  @param Id Command identifier.
+   --  @param Value Shortcut to bind (Present False records an explicit unbind).
+   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
+
+   --  Clear a command's override in the live keymap.
+   --
+   --  @param Id Command identifier.
+   procedure Clear_Shortcut_Override (Id : Command_Id);
+
+   --  Clear every override of the live keymap.
+   procedure Reset_Shortcut_Overrides;
+
 end Files.Commands.Testing;

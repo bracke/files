@@ -1,3 +1,4 @@
+with Files.Jobs.Context.Testing;
 with Files.IO.Fs_Primitives.Testing;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -44,14 +45,14 @@ separate (Files_Suite.Recovery)
       --  still remove it (the refusal may have passed by then), but the
       --  record goes only with it: never a record forgotten, copy left.
       Files.IO.Fs_Primitives.Testing.Refuse_Lookups (To_String (Stage));
-      Files.Jobs.Process.Clean_Stages (Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Job);
       Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Assert
         (Records = 1 or else not Ada.Directories.Exists (To_String (Stage)),
          "a refused lookup never forgets the record of a staged copy still there");
 
       --  Once the host answers, the stage goes with its record.
-      Files.Jobs.Process.Clean_Stages (Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Job);
       Assert (not Ada.Directories.Exists (To_String (Stage)), "a later pass removes the staged copy");
       Files_Suite.Support.Assert_Equal (Records, 0, "and then its record");
       Files.Jobs.Context.Initialize ("");

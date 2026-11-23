@@ -10,9 +10,10 @@ separate (Files_Suite.Settings)
    --  entry without saving, Add/Remove edit the list and save, and the key
    --  field's label carries the "i/n" entry counter.
    --  The Shortcuts tab: the form emits one press-to-capture row per command
-   --  carrying its current binding, and Apply routes a captured chord to the live
-   --  Files.Commands keymap -- rebinding, rejecting a clash with another command,
-   --  unbinding on an empty chord, and clearing the override when set to default.
+   --  carrying its binding, and Apply routes a captured chord to the keymap the
+   --  draft holds -- rebinding, rejecting a clash with another command,
+   --  unbinding on an empty chord, and clearing the override when set to
+   --  default. The live keymap waits for an accepted save.
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
@@ -46,11 +47,26 @@ separate (Files_Suite.Settings)
          return "<absent>";
       end Row_Value;
 
+      --  The keymap the pane's draft holds.
+      function Draft_Map return Files.Commands.Keymap is
+        (Files.Commands.Keymap_Settings.Keymap_Of (Files.Model.Settings_Pane.Draft_Of (Model).Shortcut_Overrides));
+
+      --  Whether the draft overrides Identifier at all.
+      function Draft_Overrides (Identifier : String) return Boolean is
+      begin
+         for Item of Files.Model.Settings_Pane.Draft_Of (Model).Shortcut_Overrides loop
+            if To_String (Item.Command) = Identifier then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Draft_Overrides;
+
       Small_Text : constant String :=
         Files.Commands.Shortcut_Text
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Files.Overlays.Settings_Form.Begin_Edit (Model, Base);
       Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
 
@@ -66,17 +82,18 @@ separate (Files_Suite.Settings)
       Assert (Saved, "rebinding a shortcut saves");
       declare
          SC : constant Files.Commands.Shortcut :=
-           Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
+           Files.Commands.Shortcut_For (Draft_Map, Files.Commands.Select_Small_Icons_Command);
          Is_Set : Boolean;
          Ignore : constant Files.Commands.Shortcut :=
            Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
       begin
          pragma Unreferenced (Ignore);
-         Assert (SC.Present, "the live keymap reflects the rebind (present)");
-         Files_Suite.Support.Assert_Equal (SC.Key, Guikit.Input.Key_5, "the live keymap reflects the rebind (key)");
-         Assert (SC.Modifiers (Guikit.Input.Control_Key), "the live keymap reflects the rebind (Control)");
-         Assert (SC.Modifiers (Guikit.Input.Shift_Key), "the live keymap reflects the rebind (Shift)");
-         Assert (Is_Set, "the rebind is recorded as an override");
+         Assert (SC.Present, "the draft's keymap holds the rebind (present)");
+         Files_Suite.Support.Assert_Equal (SC.Key, Guikit.Input.Key_5, "the draft's keymap holds the rebind (key)");
+         Assert (SC.Modifiers (Guikit.Input.Control_Key), "the draft's keymap holds the rebind (Control)");
+         Assert (SC.Modifiers (Guikit.Input.Shift_Key), "the draft's keymap holds the rebind (Shift)");
+         Assert (Draft_Overrides ("view.small"), "the rebind is recorded as an override in the draft");
+         Assert (not Is_Set, "the live keymap waits for a save of the draft");
          Files_Suite.Support.Assert_Equal
            (Row_Value ("shortcut.view.small"),
             New_Chord,
@@ -87,7 +104,8 @@ separate (Files_Suite.Settings)
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.large", New_Chord));
       Assert (not Saved, "a conflicting rebind does not save");
       Assert (Files.Commands.Find_By_Shortcut
-                (Guikit.Input.Key_5,
+                (Draft_Map,
+                 Guikit.Input.Key_5,
                  [Guikit.Input.Control_Key => True, Guikit.Input.Shift_Key => True, others => False])
               = Files.Commands.Select_Small_Icons_Command,
               "the chord still resolves to its original command after a rejected clash");
@@ -95,46 +113,34 @@ separate (Files_Suite.Settings)
       --  An empty chord unbinds the command.
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", ""));
       Assert (Saved, "unbinding saves");
-      Assert (not Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command).Present,
+      Assert (not Files.Commands.Shortcut_For (Draft_Map, Files.Commands.Select_Small_Icons_Command).Present,
               "the command has no shortcut after an empty-chord unbind");
 
       --  Setting a command back to its built-in default clears the override.
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", Small_Text));
       Assert (Saved, "restoring the default saves");
-      declare
-         Is_Set : Boolean;
-         Ignore : constant Files.Commands.Shortcut :=
-           Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
-      begin
-         pragma Unreferenced (Ignore);
-         Assert (not Is_Set, "binding a command to its default clears the override");
-      end;
+      Assert (not Draft_Overrides ("view.small"), "binding a command to its default clears the override");
 
       --  The pane's Reset button is a full reset: it clears shortcut overrides
-      --  too, not just the draft values.
-      Files.Commands.Set_Shortcut_Override
-        (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
-      --  ... saved, so that dropping it changes what is saved.
+      --  too, not just the draft values -- here one that is saved, so that
+      --  dropping it changes what is saved.
       declare
          With_Override : Files.Settings.Settings_Model := Base;
       begin
-         Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (With_Override);
-         Files.Overlays.Settings_Form.Mark_Saved (Model, With_Override);
+         With_Override.Shortcut_Overrides.Append
+           (Files.Settings.Shortcut_Override'
+              (Command => To_Unbounded_String ("view.small"), Combo => To_Unbounded_String (New_Chord)));
+         Files.Overlays.Settings_Form.Begin_Edit (Model, With_Override);
       end;
+      Assert (Draft_Overrides ("view.small"), "the pane opens on the saved override");
       Saved := Files.Overlays.Settings_Form.Apply_Change
         (Model,
          (Kind  => SP.Button_Pressed,
           Key   => To_Unbounded_String ("form.actions"),
           Value => To_Unbounded_String ("reset")));
       Assert (Saved, "the reset button saves");
-      declare
-         Is_Set : Boolean;
-         Ignore : constant Files.Commands.Shortcut :=
-           Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
-      begin
-         pragma Unreferenced (Ignore);
-         Assert (not Is_Set, "Reset clears shortcut overrides, returning the keymap to defaults");
-      end;
+      Assert (Files.Model.Settings_Pane.Draft_Of (Model).Shortcut_Overrides.Is_Empty,
+              "Reset clears shortcut overrides, returning the draft's keymap to defaults");
 
       --  A command with a built-in secondary shortcut surfaces it (read-only) in
       --  its row help, so an "already used" rejection is explicable.

@@ -116,7 +116,11 @@ separate (Check_All)
               --  The monitor task reads the report label from a protected
               --  object and the report folder from the environment; the
               --  package's report variables are Scavenge's and Clean_Report's.
-              Name_Sets.To_Set ("files-jobs-scavenger.adb"));
+              --  The task's body is a subunit of the package's, declaring
+              --  no package state of its own.
+              Name_Sets.Union
+                (Name_Sets.To_Set ("files-jobs-scavenger.adb"),
+                 Name_Sets.To_Set ("files-jobs-scavenger-coordinator_monitor.adb")));
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.adb", Generated_Directories) loop
             declare

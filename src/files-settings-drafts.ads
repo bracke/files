@@ -20,10 +20,11 @@ package Files.Settings.Drafts is
    procedure Normalize_Draft
      (Draft : in out Settings_Draft);
 
-   --  Bring the pane-edited scalars of Draft up to date with a change made
-   --  outside the pane (a command run while it is open), so the pane shows
-   --  the change and its next save keeps it. A setting that did not change
-   --  between Before and After keeps what the pane holds, an edit included.
+   --  Bring the pane-edited scalars and the shortcuts of Draft up to date
+   --  with a change made outside the pane (a command run while it is open,
+   --  another process's rebind taken in), so the pane shows the change and
+   --  its next save keeps it. A setting that did not change between Before
+   --  and After keeps what the pane holds, an edit included.
    --
    --  @param Draft The pane's draft.
    --  @param Before Settings before the change.

@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
 with Files.Folder_Tree;
@@ -18,6 +19,16 @@ separate (Files.Application.Windows.Smoke)
    is
       Large_Font : constant Positive := Files.Settings.Max_Font_Pixel_Size - 1;
       Has_Item   : constant Boolean := Files.Model.Visible_Count (Runtime.Model) >= 1;
+
+      --  Put a font size in force for the run, the file left as it was.
+      procedure Show_Font_Size (Size : Positive) is
+         Accepted : Boolean;
+      begin
+         Files.Controller.Set_Font_Size
+           (Runtime.Model, Runtime.Settings, Settings_Path => "", Size => Size, Save_Now => False,
+            Accepted => Accepted);
+         pragma Unreferenced (Accepted);
+      end Show_Font_Size;
    begin
       case Scenario is
          when Scenario_Default =>
@@ -90,14 +101,12 @@ separate (Files.Application.Windows.Smoke)
                2 + Live_Smoke_Scenario'Pos (Scenario) - Live_Smoke_Scenario'Pos (Scenario_Settings_Tab_2));
 
          when Scenario_Settings_Light =>
-            Runtime.Settings.Theme := Files.Settings.Theme_Light;
-            Files.Model.Note_Settings_Changed (Runtime.Model);
+            Files.Controller.Show_Theme (Runtime.Model, Runtime.Settings, Files.Settings.Theme_Light);
             Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Large_Font =>
-            Runtime.Settings.Font_Pixel_Size := Large_Font;
-            Files.Model.Note_Settings_Changed (Runtime.Model);
+            Show_Font_Size (Large_Font);
             Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
 
@@ -115,13 +124,11 @@ separate (Files.Application.Windows.Smoke)
                   else Large_Font);
             begin
                --  In framebuffer pixels, as everywhere: a 2x runner draws it twice as big.
-               Runtime.Settings.Font_Pixel_Size := Target;
-               Files.Model.Note_Settings_Changed (Runtime.Model);
+               Show_Font_Size (Target);
             end;
 
          when Scenario_Light_Theme =>
-            Runtime.Settings.Theme := Files.Settings.Theme_Light;
-            Files.Model.Note_Settings_Changed (Runtime.Model);
+            Files.Controller.Show_Theme (Runtime.Model, Runtime.Settings, Files.Settings.Theme_Light);
 
          when Scenario_Details_View =>
             --  Render the details layout, unless the startup already uses it

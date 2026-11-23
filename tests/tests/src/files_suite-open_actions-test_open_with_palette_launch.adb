@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Model.Recent;
 with Files.Operation_Results;
 with Files.Overlays.Command_Palette;
@@ -28,7 +29,7 @@ separate (Files_Suite.Open_Actions)
             Files.Model.Command_Palette.Set_Query (Model, "Multi Target Marker");
             Files.Model.Command_Palette.Select_First (Model);
 
-            Routed := Files.Controller.Activate_Palette_Command
+            Routed := Files.Controller.Testing.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);
             Files_Suite.Support.Assert_Equal
               (Routed.Operation.Status,
@@ -106,7 +107,7 @@ separate (Files_Suite.Open_Actions)
                Natural (Files.Model.Command_Palette.Open_With_Applications (Model).Length),
                "the missing executable fixture, listed last, is selected from the Open With palette");
 
-            Routed := Files.Controller.Activate_Palette_Command
+            Routed := Files.Controller.Testing.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);
             Assert
               (Routed.Operation.Status = Files.Operation_Results.Operation_Failed

@@ -1,6 +1,7 @@
 with Ada.Containers.Vectors;
 with Files.Types;
 with Files.Jobs.Transports;
+private with Files.Jobs.Process;
 
 --  Cancellation and the staging journal, for whichever process is copying.
 --  Process-wide state, one instance per process, in two modes:
@@ -134,4 +135,9 @@ package Files.Jobs.Context is
       Discard_Unreadable : Boolean := False);
 private
    Current : Files.Types.UString;
+
+   --  Clean_Stages over Job's transport, under the lease Job holds on it;
+   --  nothing for a session not reserved.
+   --  @param Job The session whose stage records are cleaned.
+   procedure Clean_Session_Stages (Job : Files.Jobs.Process.Session);
 end Files.Jobs.Context;

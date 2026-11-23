@@ -62,6 +62,8 @@ separate (Files.Settings.Drafts)
          end if;
       end loop;
 
+      Result.Shortcut_Overrides := Draft.Shortcut_Overrides;
+
       Result.Open_Actions.Clear;
       for Index in 1 .. Natural (Action_Keys.Length) loop
          if not Blank_Row (Action_Keys, Action_Values, Index) then

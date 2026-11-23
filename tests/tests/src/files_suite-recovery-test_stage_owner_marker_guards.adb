@@ -1,3 +1,4 @@
+with Files.Jobs.Context.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -53,7 +54,7 @@ separate (Files_Suite.Recovery)
            Hostkit.Fs.Create_Hard_Link (Owner, Owner_Alias);
       begin
          if Owner_Linked then
-            Files.Jobs.Process.Clean_Stages (Transport_Job);
+            Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
             Assert
               (Ada.Directories.Exists (To_String (Stage))
                and then Ada.Directories.Exists
@@ -70,7 +71,7 @@ separate (Files_Suite.Recovery)
          Owner_Data : constant String := Project_Tools.Files.Read_Raw_File (Owner);
       begin
          Write_Binary_File (Owner, Owner_Data & "trailing");
-         Files.Jobs.Process.Clean_Stages (Transport_Job);
+         Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
          Assert
            (Ada.Directories.Exists (To_String (Stage)),
             "stage cleanup rejects an owner marker with trailing data");
@@ -84,7 +85,7 @@ separate (Files_Suite.Recovery)
       String'Output (Ada.Streams.Stream_IO.Stream (File), Transport);
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
       Ada.Streams.Stream_IO.Close (File);
-      Files.Jobs.Process.Clean_Stages (Transport_Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
       Assert
         (Ada.Directories.Exists (To_String (Stage)),
          "cleanup preserves a replacement and retains its ownership record for retry: replacement stage kept");
@@ -104,7 +105,7 @@ separate (Files_Suite.Recovery)
          Assert (Ada.Directories.Exists (To_String (Stage)),
                  "an unclaimed stage cleanup cannot delete a live stage");
       end;
-      Files.Jobs.Process.Clean_Stages (Transport_Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
       Assert (not Ada.Directories.Exists (To_String (Stage))
               and then not Ada.Directories.Exists (Join (Transport, "stages")),
               "cleanup retries and removes the restored owned stage");

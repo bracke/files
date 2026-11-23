@@ -1,3 +1,7 @@
+with Files.Commands.Keymap_Settings;
+with Files.Preference_Types;
+with Files.Settings.Path_References.Testing;
+with Files.Settings.Testing;
 with Files.Commands.Testing;
 with Files.Overlays;
 with Files.Model.Settings_Pane;
@@ -63,7 +67,7 @@ separate (Files_Suite.Keyboard)
          Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Files.Commands.Reset_Shortcut_Overrides;
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
          Assert (Files.Model.Settings_Pane.Is_Capturing (Model), "the first shortcut row is armed");
          Files_Suite.Support.Assert_Equal
@@ -93,7 +97,7 @@ separate (Files_Suite.Keyboard)
          Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Files.Commands.Reset_Shortcut_Overrides;
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
          Press (Model, Settings, Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers);
          Assert (not Files.Model.Settings_Pane.Is_Capturing (Model), "Escape disarms the row");
@@ -106,7 +110,7 @@ separate (Files_Suite.Keyboard)
          Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Files.Commands.Reset_Shortcut_Overrides;
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
          Press (Model, Settings, Guikit.Input.Key_Backspace, Guikit.Input.No_Modifiers);
          Assert (not Files.Commands.Shortcut_For (Cmd).Present,
@@ -119,9 +123,15 @@ separate (Files_Suite.Keyboard)
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Is_Set   : Boolean;
       begin
-         Files.Commands.Reset_Shortcut_Overrides;
-         Files.Commands.Set_Shortcut_Override
-           (Cmd, Files.Commands.Parse_Shortcut ("control+shift+5"));
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
+         --  The rebind as settings in force hold it: in the file's
+         --  [shortcuts] section and in the live keymap.
+         Settings.Shortcut_Overrides.Append
+           (Files.Settings.Shortcut_Override'
+              (Command => Ada.Strings.Unbounded.To_Unbounded_String (Files.Commands.Identifier (Cmd)),
+               Combo   => Ada.Strings.Unbounded.To_Unbounded_String
+                 (Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut ("control+shift+5")))));
+         Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
          Open_And_Arm (Model, Settings);
          Press (Model, Settings, Guikit.Input.Key_Delete, Guikit.Input.No_Modifiers);
          declare
@@ -132,5 +142,37 @@ separate (Files_Suite.Keyboard)
          end;
          Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
                  "the command resolves to its default binding after a reset");
+         Assert (Settings.Shortcut_Overrides.Is_Empty, "the settings in force drop the override too");
+      end;
+
+      --  (5) A rebind whose save the settings file cannot hold is refused,
+      --  and the live keymap stays as it was: it follows only an accepted
+      --  save.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Index    : Natural := 3_500;
+      begin
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
+         for Item in 1 .. Index loop
+            Files.Settings.Path_References.Testing.Set_Label
+              (Settings, "/d/f" & Item'Image, Files.Preference_Types.Gray);
+         end loop;
+         loop
+            Index := Index + 1;
+            Files.Settings.Path_References.Testing.Set_Label
+              (Settings, "/d/f" & Index'Image, Files.Preference_Types.Gray);
+            exit when not Files.Settings.Testing.Loadable (Settings);
+         end loop;
+         Files.Settings.Path_References.Testing.Set_Label
+           (Settings, "/d/f" & Index'Image, Files.Preference_Types.No_Label);
+         Assert (Files.Settings.Testing.Loadable (Settings), "the settings are full but load");
+         Open_And_Arm (Model, Settings);
+         Press (Model, Settings, Guikit.Input.Key_5, Ctrl_Shift);
+         Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
+                 "a refused rebind leaves the live keymap as it was");
+         Assert (Settings.Shortcut_Overrides.Is_Empty, "and the settings in force without it");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model), "error.settings.full", "the error line says why");
       end;
    end Test_Shortcut_Capture_Routing;

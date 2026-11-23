@@ -9,7 +9,7 @@ separate (Files_Suite.Commands)
       Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Ctrl (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
@@ -74,7 +74,7 @@ separate (Files_Suite.Commands)
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift),
          Files.Commands.No_Command,
          "ctrl+shift+b is unbound by default");
-      Files.Commands.Set_Shortcut_Override
+      Files.Commands.Testing.Set_Shortcut_Override
         (Files.Commands.Toggle_Show_Extensions_Command,
          (Present => True, Key => Guikit.Input.Key_B, Modifiers => Ctrl_Shift));
       Files_Suite.Support.Assert_Equal
@@ -87,7 +87,7 @@ separate (Files_Suite.Commands)
          "Shortcut_For resolves to the override");
 
       --  Clearing reverts to the default (here, no shortcut).
-      Files.Commands.Clear_Shortcut_Override (Files.Commands.Toggle_Show_Extensions_Command);
+      Files.Commands.Testing.Clear_Shortcut_Override (Files.Commands.Toggle_Show_Extensions_Command);
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift),
          Files.Commands.No_Command,

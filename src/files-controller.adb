@@ -29,7 +29,7 @@ with Files.Model.Settings_Pane;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
 with Files.Model.Rename;
-with Files.Model.Selection;
+with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
@@ -176,14 +176,12 @@ package body Files.Controller is
       use type Files.Settings.Shortcut_Override_Vectors.Vector;
       Taken_In : Boolean;
    begin
-      --  The live keymap is what the file is to hold of the shortcuts; a
-      --  rebind another process saved meanwhile is put in force here.
-      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Settings);
       declare
          Before : constant Files.Settings.Settings_Model := Settings;
          Saved  : constant Files.Settings.Settings_Write_Result :=
            Files.Settings.Storage.Persist (Settings_Path, Settings, Taken_In);
       begin
+         --  A rebind another process saved meanwhile is put in force here.
          if Taken_In and then Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
             Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
          end if;
@@ -207,8 +205,10 @@ package body Files.Controller is
 
    --  Put Updated in force without writing the file: the one decision every
    --  settings change takes (Files.Settings.Storage.Decide_Commit). A refused
-   --  one is said in the error line and changes nothing; an accepted one
-   --  replaces Settings, is noted on the window's settings revision, and is
+   --  one is said in the error line and changes nothing -- the live keymap
+   --  included; an accepted one replaces Settings, puts its shortcuts in
+   --  force when they changed (the pane edits them in its draft only), is
+   --  noted on the window's settings revision, and is
    --  taken in -- the favorites' tree roots followed, or with Take_In_All
    --  everything Take_In_Settings follows (a held key stepping the pane,
    --  whose steps can change the listing). The caller writes the file: at
@@ -230,9 +230,13 @@ package body Files.Controller is
             Files.Model.Set_Error (Model, "error.settings.full");
          when Files.Settings.Storage.Commit_Accepted =>
             declare
+               use type Files.Settings.Shortcut_Override_Vectors.Vector;
                Before : constant Files.Settings.Settings_Model := Settings;
             begin
                Settings := Updated;
+               if Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
+                  Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
+               end if;
                Files.Model.Note_Settings_Changed (Model);
                if Take_In_All then
                   Take_In_Settings (Model, Before, Settings);
@@ -360,6 +364,18 @@ package body Files.Controller is
          Accepted := Apply_Unsaved (Model, Settings, Updated) = Files.Settings.Storage.Commit_Accepted;
       end if;
    end Set_Font_Size;
+
+   procedure Show_Theme
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Theme    : Files.Settings.Theme_Choice)
+   is
+      Decision : constant Files.Settings.Storage.Commit_Decision :=
+        Apply_Unsaved (Model, Settings, (Settings with delta Theme => Theme));
+      pragma Unreferenced (Decision);
+   begin
+      null;
+   end Show_Theme;
 
    procedure Resize_Column
      (Model    : in out Files.Model.Window_Model;
@@ -1238,7 +1254,11 @@ package body Files.Controller is
       Drops : Files.Types.String_Vectors.Vector;
       Mode  : Files.File_System_Types.Drop_Import_Mode;
    begin
-      if Files.Drop_Events.Has_Pending (Source) and then Accepts_Drop_Import (Model) then
+      --  More drops than the source could hold: what was dropped is not
+      --  known in full, so none of it is imported.
+      if Files.Drop_Events.Take_Overflow (Source) then
+         Files.Model.Set_Error (Model, "error.drop.failed");
+      elsif Files.Drop_Events.Has_Pending (Source) and then Accepts_Drop_Import (Model) then
          Files.Drop_Events.Take (Source, Drops, Mode);
          declare
             Result : constant Controller_Result := Handle_Drop_Import (Model, Settings, Drops, Mode);
@@ -1248,6 +1268,43 @@ package body Files.Controller is
          end;
       end if;
    end Import_Pending_Drops;
+
+   function Click_Palette_Row
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      X         : Integer;
+      Y         : Integer;
+      Modifiers : Guikit.Input.Modifier_Set)
+      return Controller_Result is
+   begin
+      if Files.Model.Command_Palette.Is_Open (Model)
+        and then Files.Model.Command_Palette.Click (Model, X, Y)
+      then
+         return Activate_Palette_Command (Model, Settings, Modifiers);
+      end if;
+      return Make_Result (Controller_Ignored);
+   end Click_Palette_Row;
+
+   function Handle_Right_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Input_Actions.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural)
+      return Controller_Result is separate;
+
+   procedure Close_Context_Menu (Model : in out Files.Model.Window_Model) is
+   begin
+      Files.Model.Context_Menu.Close (Model);
+   end Close_Context_Menu;
+
+   procedure Select_Marquee_Rows
+     (Model : in out Files.Model.Window_Model;
+      Rows  : Files.Model.Selection.Visible_Index_List) is
+   begin
+      Files.Model.Selection.Select_Visible_Set (Model, Rows);
+   end Select_Marquee_Rows;
 
    --  How far Target is scrolled; 0 for a region without a position of
    --  its own (the palette scrolls its selection, Scroll_Palette_Selection).

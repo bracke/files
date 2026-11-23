@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files_Suite.Operations_Support;
 with Files.Settings.Storage.Testing;
 with Files.Settings.Storage;
@@ -29,7 +30,7 @@ separate (Files_Suite.Settings)
       Reset_Root;
       Ada.Directories.Create_Path (Favorite);
       Ada.Directories.Create_Path (Own_Star);
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Written := Files.Settings.Storage.Testing.Save_Text (Path, Files.Settings.To_Text (
         Files.Settings.Default_Settings));
       Assert (Written.Success, "the shared file is written");

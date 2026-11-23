@@ -16,24 +16,18 @@ is
        (if Typed = "" or else GNAT.OS_Lib.Is_Absolute_Path (Typed) then Typed
         else Hostkit.Fs.Join (Files.Model.Current_Path (Model), Typed));
    Empty_Items : Files.Items.Item_Vectors.Vector;
+
+   procedure Install
+     (Model : in out Files.Model.Window_Model;
+      Load  : Files.File_System.Directory_Load_Result) is
+   begin
+      Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
+   end Install;
 begin
    if Path_Result.Status /= Files.File_System_Types.Path_Valid then
       Files.Model.Commit_Path_Input (Model, Path_Result, Empty_Items);
       Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
       return Make_Result (Operation_Failed, To_String (Path_Result.Error_Key));
    end if;
-
-   declare
-      Load : constant Files.File_System.Directory_Load_Result :=
-        Support.Load_Folder (Settings, To_String (Path_Result.Directory_Path));
-   begin
-      if not Load.Success then
-         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Path_Result.Directory_Path));
-      end if;
-
-      Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
-      Support.Show_Loaded_Folder (Model, Load);
-      return Make_Result (Operation_Navigated, Path => To_String (Path_Result.Directory_Path));
-   end;
+   return Support.Load_And_Show (Model, Settings, To_String (Path_Result.Directory_Path), Install'Access);
 end Commit_Path_Input;

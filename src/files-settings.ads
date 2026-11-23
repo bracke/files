@@ -246,6 +246,10 @@ package Files.Settings is
       Open_Action_Keys       : String_Vectors.Vector;
       Open_Action_Commands   : String_Vectors.Vector;
       Open_Action_Index      : Natural := 0;
+      --  The shortcuts as the pane has them: the settings' [shortcuts]
+      --  section, edited here and put in force only once a save of the
+      --  draft is accepted.
+      Shortcut_Overrides     : Shortcut_Override_Vectors.Vector;
       Error_Key              : UString;
       Valid                  : Boolean := True;
    end record;

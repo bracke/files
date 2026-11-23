@@ -47,19 +47,16 @@ begin
          return Prepared;
       elsif To_String (Prepared.Action.Executable) = "" then
          declare
-            Load : constant Files.File_System.Directory_Load_Result :=
-              Support.Load_Folder (Settings, To_String (Prepared.Path));
+            procedure Install
+              (Model : in out Files.Model.Window_Model;
+               Load  : Files.File_System.Directory_Load_Result) is
+            begin
+               Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+               --  Opening a folder records it too: recent folders are useful.
+               Files.Model.Recent.Note_Recent_Open (Model, To_String (Load.Path));
+            end Install;
          begin
-            if not Load.Success then
-               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-               return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Prepared.Path));
-            end if;
-
-            Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
-            --  Opening a folder records it too: recent folders are useful.
-            Files.Model.Recent.Note_Recent_Open (Model, To_String (Load.Path));
-            Support.Show_Loaded_Folder (Model, Load);
-            return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+            return Support.Load_And_Show (Model, Settings, To_String (Prepared.Path), Install'Access);
          end;
       end if;
       return

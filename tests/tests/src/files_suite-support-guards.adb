@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Model.Jobs;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -7,7 +8,6 @@ with Ada.Text_IO;
 
 with Project_Tools.Files;
 
-with Files.Commands;
 with Files.Localization;
 with Files.Refresh;
 with Files.Localization.Testing;
@@ -49,7 +49,7 @@ package body Files_Suite.Support.Guards is
    overriding procedure Finalize (Guard : in out Shortcut_Guard) is
       pragma Unreferenced (Guard);
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
    exception
       when Error : others =>
          Ada.Text_IO.Put_Line

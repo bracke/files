@@ -1,4 +1,6 @@
+with Files.Commands.Testing;
 with Files.Overlays.Settings_Form;
+with Files.Commands.Keymap_Settings;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
@@ -21,31 +23,37 @@ separate (Files_Suite.Settings)
       function Change (Key, Value : String) return SP.Change is
         ((Kind => SP.Value_Changed, Key => To_Unbounded_String (Key), Value => To_Unbounded_String (Value)));
 
+      --  The keymap the pane's draft holds (the live one waits for a save).
+      function Draft_Map return Files.Commands.Keymap is
+        (Files.Commands.Keymap_Settings.Keymap_Of (Files.Model.Settings_Pane.Draft_Of (Model).Shortcut_Overrides));
+
       function Text (Chord : String) return String is
         (Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut (Chord)));
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Files.Overlays.Settings_Form.Begin_Edit
         (Model, Files.Settings.Default_Settings);
 
       --  By default Backspace deletes too.
-      Assert (Files.Commands.Find_By_Shortcut (GI.Key_Backspace, GI.No_Modifiers)
+      Assert (Files.Commands.Find_By_Shortcut (Draft_Map, GI.Key_Backspace, GI.No_Modifiers)
               = Files.Commands.Delete_Selected_Items_Command,
               "Backspace is Delete's built-in secondary");
 
       --  Unbinding Delete clears both of its bindings.
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.file.delete_selected", ""));
       Assert (Saved, "unbinding Delete saves");
-      Assert (not Files.Commands.Secondary_Shortcut_For (Files.Commands.Delete_Selected_Items_Command).Present,
+      Assert (not Files.Commands.Secondary_Shortcut_For
+                (Draft_Map, Files.Commands.Delete_Selected_Items_Command).Present,
               "an unbound command has no secondary either");
-      Assert (Files.Commands.Find_By_Shortcut (GI.Key_Backspace, GI.No_Modifiers) = Files.Commands.No_Command,
+      Assert (Files.Commands.Find_By_Shortcut (Draft_Map, GI.Key_Backspace, GI.No_Modifiers)
+              = Files.Commands.No_Command,
               "Backspace no longer deletes once Delete is unbound");
 
       --  Back to the default restores the secondary.
       Saved :=
         Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.file.delete_selected", Text ("delete")));
       Assert (Saved, "restoring Delete's default saves");
-      Assert (Files.Commands.Find_By_Shortcut (GI.Key_Backspace, GI.No_Modifiers)
+      Assert (Files.Commands.Find_By_Shortcut (Draft_Map, GI.Key_Backspace, GI.No_Modifiers)
               = Files.Commands.Delete_Selected_Items_Command,
               "the default binding brings Backspace back");
 
@@ -53,18 +61,18 @@ separate (Files_Suite.Settings)
       --  keeps its primary.
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+y")));
       Assert (Saved, "a chord held only by a secondary is not a conflict");
-      Assert (Files.Commands.Find_By_Shortcut (GI.Key_Y, Ctrl) = Files.Commands.Undo_Command,
+      Assert (Files.Commands.Find_By_Shortcut (Draft_Map, GI.Key_Y, Ctrl) = Files.Commands.Undo_Command,
               "Ctrl+Y now runs Undo");
       Assert (Files.Commands."="
-                (Files.Commands.Shortcut_For (Files.Commands.Redo_Command),
+                (Files.Commands.Shortcut_For (Draft_Map, Files.Commands.Redo_Command),
                  Files.Commands.Default_Shortcut_For (Files.Commands.Redo_Command)),
               "Redo keeps its primary shortcut");
-      Assert (not Files.Commands.Secondary_Shortcut_For (Files.Commands.Redo_Command).Present,
+      Assert (not Files.Commands.Secondary_Shortcut_For (Draft_Map, Files.Commands.Redo_Command).Present,
               "Redo gave up its secondary");
 
       --  A live primary still conflicts.
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+c")));
       Assert (not Saved, "another command's primary is a conflict");
-      Assert (Files.Commands.Find_By_Shortcut (GI.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
+      Assert (Files.Commands.Find_By_Shortcut (Draft_Map, GI.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
               "Ctrl+C still copies after the rejected rebind");
    end Test_Secondary_Shortcut_Overrides;

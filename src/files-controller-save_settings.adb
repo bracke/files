@@ -1,5 +1,4 @@
 with Files.Settings.Drafts;
-with Files.Commands.Keymap_Settings;
 with Files.Operation_Results;
 separate (Files.Controller)
    function Save_Settings
@@ -38,7 +37,6 @@ separate (Files.Controller)
       --  reported, not undone; a draft the file could not hold is refused and
       --  stays open for editing.
       Final := Applied.Settings;
-      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Final);
       --  A held arrow stepping a number (or cycling a choice): each step is
       --  in force for the session (Take_In_Settings, which reads the folder
       --  again only for a step that changes what it lists: the hidden filter

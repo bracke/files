@@ -210,25 +210,63 @@ package Files.Commands is
    --  @return The parsed shortcut.
    function Parse_Shortcut (Text : String) return Shortcut;
 
-   --  Override a command's shortcut (Value.Present False unbinds it). The
-   --  override replaces the whole default binding, built-in secondary included.
-   --  Shortcut_For / Find_By_Shortcut then resolve to the effective
-   --  (override-or-default) shortcut. Overrides are process-global.
+   --  A keymap: which commands are rebound or unbound, and to what; every
+   --  other command keeps its built-in binding. The process's live keymap
+   --  is one -- Shortcut_For, Secondary_Shortcut_For and Find_By_Shortcut
+   --  without a Map read it, and only the settings put in force change it
+   --  (Keymap_Settings.Apply_Shortcut_Overrides) -- and the settings pane
+   --  edits its own, held in its draft, until a save is accepted.
+   type Keymap is private;
+
+   --  No command rebound or unbound.
+   Default_Keymap : constant Keymap;
+
+   --  Map's primary shortcut for a command: its override when set, else its
+   --  built-in default.
    --
+   --  @param Map The keymap.
+   --  @param Id Command identifier.
+   --  @return Shortcut metadata.
+   function Shortcut_For (Map : Keymap; Id : Command_Id) return Shortcut;
+
+   --  Map's secondary shortcut for a command: the built-in secondary, which
+   --  belongs to the default binding, so absent once Map overrides Id.
+   --
+   --  @param Map The keymap.
+   --  @param Id Command identifier.
+   --  @return Secondary shortcut metadata.
+   function Secondary_Shortcut_For (Map : Keymap; Id : Command_Id) return Shortcut;
+
+   --  The command a chord runs under Map: the first whose primary or
+   --  secondary binding matches.
+   --
+   --  @param Map The keymap.
+   --  @param Key Key code.
+   --  @param Modifiers Active modifiers.
+   --  @return Matching command or No_Command.
+   function Find_By_Shortcut
+     (Map       : Keymap;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set)
+      return Command_Id;
+
+   --  Override a command's shortcut in Map (Value.Present False unbinds it).
+   --  The override replaces the whole default binding, built-in secondary
+   --  included.
+   --
+   --  @param Map The keymap to change.
    --  @param Id Command identifier.
    --  @param Value Shortcut to bind (Present False records an explicit unbind).
-   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
+   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut);
 
-   --  Clear a command's override so it reverts to its built-in default shortcut.
-   --  Its built-in secondary comes back too -- unless another command now
-   --  holds that chord, which then stays the other's: Id keeps its default
-   --  primary alone (as an override equal to it).
+   --  Clear a command's override in Map so it reverts to its built-in
+   --  default. Its built-in secondary comes back too -- unless another
+   --  command now holds that chord, which then stays the other's: Id keeps
+   --  its default primary alone (as an override equal to it).
    --
+   --  @param Map The keymap to change.
    --  @param Id Command identifier.
-   procedure Clear_Shortcut_Override (Id : Command_Id);
-
-   --  Clear every shortcut override, reverting all commands to their defaults.
-   procedure Reset_Shortcut_Overrides;
+   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id);
 
    --  The built-in default primary shortcut for a command, ignoring any override.
    --
@@ -340,6 +378,50 @@ package Files.Commands is
       return String;
 
 private
+
+   type Override_Table is array (Command_Id) of Shortcut;
+   type Override_Flags is array (Command_Id) of Boolean;
+
+   type Keymap is record
+      Overrides    : Override_Table := [others => (others => <>)];
+      Override_Set : Override_Flags := [others => False];
+   end record;
+
+   Default_Keymap : constant Keymap := (others => <>);
+
+   --  The live keymap, which Shortcut_For, Secondary_Shortcut_For and
+   --  Find_By_Shortcut without a Map read.
+   --
+   --  @return The keymap in force.
+   function Live_Keymap return Keymap;
+
+   --  Make Map the live keymap (Keymap_Settings puts the settings' in force).
+   --
+   --  @param Map The keymap to put in force.
+   procedure Set_Live_Keymap (Map : Keymap);
+
+   --  The override Map holds for a command, if any.
+   --
+   --  @param Map The keymap.
+   --  @param Id Command identifier.
+   --  @param Is_Set Out: whether Map overrides Id at all.
+   --  @return The override shortcut (meaningful only when Is_Set).
+   function Shortcut_Override (Map : Keymap; Id : Command_Id; Is_Set : out Boolean) return Shortcut;
+
+   --  Override a command's shortcut in the live keymap.
+   --
+   --  @param Id Command identifier.
+   --  @param Value Shortcut to bind (Present False records an explicit unbind).
+   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
+
+   --  Clear a command's override in the live keymap (Clear_Shortcut_Override
+   --  with a Map says what that brings back).
+   --
+   --  @param Id Command identifier.
+   procedure Clear_Shortcut_Override (Id : Command_Id);
+
+   --  Clear every override of the live keymap.
+   procedure Reset_Shortcut_Overrides;
 
    --  Return whether Identifier names a registered command.
    --

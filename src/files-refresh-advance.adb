@@ -73,7 +73,15 @@ separate (Files.Refresh)
          return False;
       end if;
       if Done.Reloaded then
-         Apply_Reloaded_Items (Model, Work, Done.Items);
+         Reinstall_Listing
+           (Model, Done.Items, Done.Signature,
+            Recent        => Work.Recent,
+            Searched      => Work.Searched,
+            Select_Path   => To_String (Work.Select_Path),
+            Select_Name   => To_String (Work.Selection),
+            Fresh_Details => Work.Force);
+      else
+         Files.Model.Set_Directory_Signature (Model, Done.Signature);
       end if;
       declare
          --  The error kept from before the read, else a search's notice.
@@ -86,7 +94,6 @@ separate (Files.Refresh)
             Files.Model.Set_Error (Model, Wanted);
          end if;
       end;
-      Files.Model.Set_Directory_Signature (Model, Done.Signature);
       Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
       return Done.Reloaded;
    exception

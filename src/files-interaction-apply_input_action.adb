@@ -151,12 +151,9 @@ separate (Files.Interaction)
          when Files.Input_Actions.Command_Result_Click_Input_Action =>
             --  The palette hit-tests the click and selects the row, which is
             --  then activated as Enter activates it.
-            if Files.Model.Command_Palette.Is_Open (Model)
-              and then Files.Model.Command_Palette.Click (Model, Action.Click_X, Action.Click_Y)
-            then
-               Asked := True;
-               Outcome := Files.Controller.Activate_Palette_Command (Model, Settings, Modifiers);
-            end if;
+            Outcome :=
+              Files.Controller.Click_Palette_Row (Model, Settings, Action.Click_X, Action.Click_Y, Modifiers);
+            Asked := Files.Controller."/=" (Outcome.Status, Files.Controller.Controller_Ignored);
          when Files.Input_Actions.Conflict_Click_Input_Action =>
             Asked := Action.Conflict_Button /= Files.Input_Actions.No_Conflict_Button;
             Outcome := Files.Controller.Handle_Conflict_Button (Model, Settings, Action.Conflict_Button);

@@ -5,6 +5,7 @@ with Files.Commands;
 with Files.Drop_Events;
 with Files.Input_Actions;
 with Files.Model;
+with Files.Model.Selection;
 with Files.Operations;
 with Files.Settings;
 with Guikit.Input;
@@ -182,6 +183,17 @@ package Files.Controller is
       Size          : Positive;
       Save_Now      : Boolean;
       Accepted      : out Boolean);
+
+   --  Put a colour theme in force for this session without writing the
+   --  file (a smoke scenario shows it), through the one settings decision.
+   --
+   --  @param Model Window whose settings change.
+   --  @param Settings Live settings model.
+   --  @param Theme The theme to show.
+   procedure Show_Theme
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Theme    : Files.Settings.Theme_Choice);
 
    --  Give a details column Width (in reference units) while it is dragged:
    --  in memory only -- Persist_Settings writes it once the drag ends -- but
@@ -445,22 +457,61 @@ package Files.Controller is
       Node_Index : Natural)
       return Controller_Result;
 
-   --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id),
-   --  the one activation a click on a row and Enter share: launch the chosen
-   --  application in Open-With mode, otherwise execute the command
-   --  (Execute_Non_Settings_Command, so a settings command comes back for
-   --  Complete_Settings_Command). Application preflight and spawn failures
-   --  are returned as failed operations; handled selections close the palette.
+   --  A click on the command palette: the row under (X, Y) selected and
+   --  activated as Enter activates it (Activate_Palette_Command); ignored
+   --  when the palette is closed or the click hits no row.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.
+   --  @param X Click column, in window pixels.
+   --  @param Y Click row, in window pixels.
    --  @param Modifiers Active modifier keys for open actions.
-   --  @return Controller result with command or operation details.
-   function Activate_Palette_Command
+   --  @return Controller result; Controller_Ignored when nothing ran.
+   function Click_Palette_Row
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      X         : Integer;
+      Y         : Integer;
+      Modifiers : Guikit.Input.Modifier_Set)
       return Controller_Result;
+
+   --  A right-click: the context menu for what it hit opened at (X, Y) --
+   --  the details header's column menu, an item's (selecting the item
+   --  first when it was not selected, so the menu's commands act on what
+   --  the user sees), or the empty view's -- or the open menu closed.
+   --  Swallowed behind an overlay that owns the input, as a left-click is;
+   --  a click on the open menu itself is left to it.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Target What the click hit.
+   --  @param Item_Index One-based visible item index, or zero for none.
+   --  @param X Click column, in window pixels.
+   --  @param Y Click row, in window pixels.
+   --  @return Controller result of the item selection, if any.
+   function Handle_Right_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Input_Actions.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural)
+      return Controller_Result;
+
+   --  The context menu closed for a row of it that was chosen (the caller
+   --  then runs the row's command).
+   --
+   --  @param Model Window model to update.
+   procedure Close_Context_Menu (Model : in out Files.Model.Window_Model);
+
+   --  A marquee drag's selection: exactly the visible rows Rows (one-based,
+   --  repeats ignored).
+   --
+   --  @param Model Window model to update.
+   --  @param Rows The rows the marquee selects.
+   procedure Select_Marquee_Rows
+     (Model : in out Files.Model.Window_Model;
+      Rows  : Files.Model.Selection.Visible_Index_List);
 
    --  Select or activate a visible item.
    --
@@ -577,6 +628,23 @@ package Files.Controller is
       return Controller_Result;
 
 private
+
+   --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id),
+   --  the one activation a click on a row and Enter share: launch the chosen
+   --  application in Open-With mode, otherwise execute the command
+   --  (Execute_Non_Settings_Command, so a settings command comes back for
+   --  Complete_Settings_Command). Application preflight and spawn failures
+   --  are returned as failed operations; handled selections close the palette.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Modifiers Active modifier keys for open actions.
+   --  @return Controller result with command or operation details.
+   function Activate_Palette_Command
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result;
 
    --  Make settings that replaced Before -- another window's, or another
    --  process's taken in by a save -- in force in this window: the open

@@ -11,7 +11,6 @@ with Files.Jobs.Storage;
 with Files.IO.Fs_Primitives;
 with Files.IO.Durable_Writes;
 with Files.IO.Private_Directories;
-with Files.Jobs.Process;
 with Files.IO.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
@@ -90,6 +89,15 @@ package body Files.Jobs.Context is
          Next_Check := Ada.Real_Time.Time_First;
       end Forget;
    end Cancellation;
+
+   procedure Clean_Session_Stages (Job : Files.Jobs.Process.Session) is
+      procedure Clean (Directory : String; Owner : Files.Jobs.Transports.Lease) is
+      begin
+         Clean_Stages (Directory, Owner);
+      end Clean;
+   begin
+      Files.Jobs.Process.With_Transport (Job, Clean'Access);
+   end Clean_Session_Stages;
 
    Foreground_Job : Files.Jobs.Process.Session;
    Foreground_Paths : Files.Types.String_Vectors.Vector;

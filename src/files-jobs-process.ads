@@ -52,9 +52,15 @@ package Files.Jobs.Process is
    --  @return True when a transport directory is reserved.
    function Active (Job : Session) return Boolean;
 
-   --  Clean this reserved session's stage records while it still owns the lease.
-   --  @param Job Reserved session holding the matching transport lease.
-   procedure Clean_Stages (Job : Session);
+   --  Run Action on this reserved session's transport directory and the
+   --  lease the session holds on it (stage records are cleaned only while
+   --  it is held: Files.Jobs.Context); nothing for a session not reserved.
+   --  @param Job Session whose transport Action is given.
+   --  @param Action What to do with the transport directory and its lease.
+   --  @param Owner (Action's) The lease Job holds on Directory.
+   procedure With_Transport
+     (Job    : Session;
+      Action : not null access procedure (Directory : String; Owner : Files.Jobs.Transports.Lease));
 
    --  Release a reference. The last one stops the helper without waiting and
    --  hands the transport to the orphan reaper, which removes it: releasing a

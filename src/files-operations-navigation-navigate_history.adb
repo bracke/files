@@ -30,24 +30,21 @@ begin
    end if;
 
    declare
-      Target : constant String :=
-        (if Direction = History_Back
-         then Files.Model.Back_Target (Model)
-         else Files.Model.Forward_Target (Model));
-      Load   : constant Files.File_System.Directory_Load_Result := Support.Load_Folder (Settings, Target);
+      procedure Install
+        (Model : in out Files.Model.Window_Model;
+         Load  : Files.File_System.Directory_Load_Result) is
+      begin
+         if Direction = History_Back then
+            Files.Model.Go_Back (Model);
+         else
+            Files.Model.Go_Forward (Model);
+         end if;
+         Files.Model.Replace_Items (Model, Load.Items);
+      end Install;
    begin
-      if not Load.Success then
-         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Target);
-      end if;
-
-      if Direction = History_Back then
-         Files.Model.Go_Back (Model);
-      else
-         Files.Model.Go_Forward (Model);
-      end if;
-      Files.Model.Replace_Items (Model, Load.Items);
-      Support.Show_Loaded_Folder (Model, Load);
-      return Make_Result (Operation_Navigated, Path => Target);
+      return Support.Load_And_Show
+        (Model, Settings,
+         (if Direction = History_Back then Files.Model.Back_Target (Model) else Files.Model.Forward_Target (Model)),
+         Install'Access);
    end;
 end Navigate_History;

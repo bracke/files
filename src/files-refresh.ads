@@ -2,6 +2,8 @@ with Files.Operation_Results;
 with Files.Model;
 with Files.Settings;
 with Files.Items;
+with Files.File_System_Types;
+with Files.UI_Types;
 
 --  Nonmodal directory reads execute outside the UI process; the folder
 --  watch that asks for them is the child Files.Refresh.Watch.
@@ -24,6 +26,44 @@ package Files.Refresh is
       Select_Name : String := "";
       Select_Path : String := "";
       Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result;
+
+   --  Put a fresh listing of the view in place of the items shown -- the
+   --  one way a folder (or the Recent view, or search results) read again
+   --  is installed, whether read here after an operation, by the background
+   --  refresh or by an operation's helper -- keeping where the user was:
+   --  the selection (or the item asked for), the scroll, the info pane on
+   --  the same item and a Quick Look whose item is still there; and noting
+   --  the signature the watch compares with, and the images still lacking a
+   --  thumbnail as a forced background listing owed
+   --  (Files.Model.Note_Owed_Refresh) when the listing deferred them.
+   --
+   --  @param Model Window whose view is read again.
+   --  @param Items The fresh listing.
+   --  @param Signature The listed folder's signature.
+   --  @param Recent The items are the Recent view's.
+   --  @param Searched Filter_Here for a folder listing; else the scope the
+   --    items answer the window's query in, as search results.
+   --  @param New_Results The items answer a new search: noted as results
+   --    afresh, with no place in them to keep.
+   --  @param Select_Path Full path to select, winning over the rest.
+   --  @param Select_Name Leaf name to select, winning over Keep_Selection.
+   --  @param Keep_Selection Select again what was selected.
+   --  @param Fresh_Details The info pane reads the item's details again (a
+   --    forced reload: a settings change, an explicit refresh).
+   --  @param Owe_Thumbnails The listing deferred thumbnails: missing ones
+   --    are owed to a background listing.
+   procedure Reinstall_Listing
+     (Model          : in out Files.Model.Window_Model;
+      Items          : Files.Items.Item_Vectors.Vector;
+      Signature      : Files.File_System_Types.Directory_Signature;
+      Recent         : Boolean := False;
+      Searched       : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      New_Results    : Boolean := False;
+      Select_Path    : String := "";
+      Select_Name    : String := "";
+      Keep_Selection : Boolean := True;
+      Fresh_Details  : Boolean := False;
+      Owe_Thumbnails : Boolean := False);
 
    --  @param Model Window owning a pending read.
    --  @param Settings Current settings used to reject stale results.

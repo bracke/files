@@ -1,5 +1,5 @@
+with Files.Commands.Testing;
 with Files.Settings.Drafts;
-with Files.Commands.Keymap_Settings;
 with Files.Controller;
 with Files.Controller.Testing;
 with Files.Overlays.Settings_Form;
@@ -63,7 +63,7 @@ separate (Files_Suite.Settings)
       Draft.Filetype_Index := 1;
       --  The pane opens on these rows as saved, with the keymap they hold
       --  (no overrides another test may have left).
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Files.Settings.Drafts.Normalize_Draft (Draft);
       Live := Files.Settings.Drafts.Apply_Draft (Base, Draft).Settings;
       Files.Overlays.Settings_Form.Begin_Edit (Model, Live);
@@ -173,14 +173,13 @@ separate (Files_Suite.Settings)
 
       --  A shortcut rebound but not saved (its save refused, say) is part of
       --  what a later change weighs: the next re-check saves it.
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
       Save_Now;
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Changed_Value
            ("shortcut.view.small",
             Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut ("control+shift+5"))));
       Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (Saved, "a change after an unsaved rebind saves the rebind");
-      Files.Commands.Reset_Shortcut_Overrides;
 
       --  Reset with nothing to reset does not save, however the pane was left
       --  (an entry paged to, an error shown); with a saved shortcut override
@@ -200,13 +199,14 @@ separate (Files_Suite.Settings)
          Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Reset_Button);
          Assert (not Saved, "a reset that changes nothing does not save");
 
-         Files.Commands.Set_Shortcut_Override
-           (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
-         Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (With_Override);
+         With_Override.Shortcut_Overrides.Append
+           (Files.Settings.Shortcut_Override'
+              (Command => To_Unbounded_String ("view.small"),
+               Combo   => To_Unbounded_String
+                 (Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut ("control+shift+5")))));
          Files.Overlays.Settings_Form.Begin_Edit (Model, With_Override);
          Files.Overlays.Settings_Form.Set_Draft (Model, Defaults);
          Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Reset_Button);
          Assert (Saved, "a reset saves to drop a saved shortcut override");
-         Files.Commands.Reset_Shortcut_Overrides;
       end;
    end Test_Settings_Form_Mapping_Navigation;

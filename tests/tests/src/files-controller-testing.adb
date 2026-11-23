@@ -63,4 +63,10 @@ package body Files.Controller.Testing is
    function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean
      renames Files.Controller.Accepts_Drop_Import;
 
+   function Activate_Palette_Command
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result renames Files.Controller.Activate_Palette_Command;
+
 end Files.Controller.Testing;

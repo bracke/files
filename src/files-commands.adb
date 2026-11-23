@@ -243,58 +243,77 @@ package body Files.Commands is
 
    --  ----- shortcut overrides (user-editable keymap) ---------------------------
 
-   Overrides    : array (Command_Id) of Shortcut := [others => (others => <>)];
-   Override_Set : array (Command_Id) of Boolean := [others => False];
+   Live : Keymap := Default_Keymap;
 
-   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut) is
+   function Live_Keymap return Keymap is (Live);
+
+   procedure Set_Live_Keymap (Map : Keymap) is
    begin
-      Overrides (Id)    := Value;
-      Override_Set (Id) := True;
+      Live := Map;
+   end Set_Live_Keymap;
+
+   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut) is
+   begin
+      Map.Overrides (Id)    := Value;
+      Map.Override_Set (Id) := True;
    end Set_Shortcut_Override;
 
-   procedure Clear_Shortcut_Override (Id : Command_Id) is
+   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id) is
       Secondary : constant Shortcut := Traits (Id).Secondary;
    begin
-      Override_Set (Id) := False;
+      Map.Override_Set (Id) := False;
       if Secondary.Present then
          for Other in Registered_Command_Id loop
             if Other /= Id
-              and then (Shortcut_For (Other) = Secondary or else Secondary_Shortcut_For (Other) = Secondary)
+              and then (Shortcut_For (Map, Other) = Secondary or else Secondary_Shortcut_For (Map, Other) = Secondary)
             then
-               Set_Shortcut_Override (Id, Traits (Id).Primary);
+               Set_Shortcut_Override (Map, Id, Traits (Id).Primary);
                return;
             end if;
          end loop;
       end if;
    end Clear_Shortcut_Override;
 
-   procedure Reset_Shortcut_Overrides is
+   function Shortcut_Override (Map : Keymap; Id : Command_Id; Is_Set : out Boolean) return Shortcut is
    begin
-      Override_Set := [others => False];
-   end Reset_Shortcut_Overrides;
-
-   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut is
-   begin
-      Is_Set := Override_Set (Id);
-      return Overrides (Id);
+      Is_Set := Map.Override_Set (Id);
+      return Map.Overrides (Id);
    end Shortcut_Override;
 
    --  The effective primary shortcut: the override when set, else the default.
-   function Shortcut_For
-     (Id : Command_Id)
-      return Shortcut is
-   begin
-      if Override_Set (Id) then
-         return Overrides (Id);
-      end if;
-      return Default_Shortcut_For (Id);
-   end Shortcut_For;
+   function Shortcut_For (Map : Keymap; Id : Command_Id) return Shortcut is
+     (if Map.Override_Set (Id) then Map.Overrides (Id) else Default_Shortcut_For (Id));
 
    --  The built-in secondary is part of the default binding: overriding the
    --  command (rebinding or unbinding it) replaces it along with the primary.
+   function Secondary_Shortcut_For (Map : Keymap; Id : Command_Id) return Shortcut is
+     (if Map.Override_Set (Id) then (others => <>) else Traits (Id).Secondary);
+
+   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut) is
+   begin
+      Set_Shortcut_Override (Live, Id, Value);
+   end Set_Shortcut_Override;
+
+   procedure Clear_Shortcut_Override (Id : Command_Id) is
+   begin
+      Clear_Shortcut_Override (Live, Id);
+   end Clear_Shortcut_Override;
+
+   procedure Reset_Shortcut_Overrides is
+   begin
+      Live := Default_Keymap;
+   end Reset_Shortcut_Overrides;
+
+   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut is
+     (Shortcut_Override (Live, Id, Is_Set));
+
+   function Shortcut_For
+     (Id : Command_Id)
+      return Shortcut is (Shortcut_For (Live, Id));
+
    function Secondary_Shortcut_For
      (Id : Command_Id)
-      return Shortcut is (if Override_Set (Id) then (others => <>) else Traits (Id).Secondary);
+      return Shortcut is (Secondary_Shortcut_For (Live, Id));
 
    function Key_Text
      (Key : Guikit.Input.Key_Code)
@@ -385,12 +404,18 @@ package body Files.Commands is
    function Find_By_Shortcut
      (Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set)
+      return Command_Id is (Find_By_Shortcut (Live, Key, Modifiers));
+
+   function Find_By_Shortcut
+     (Map       : Keymap;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set)
       return Command_Id is
    begin
       for Id in Registered_Command_Id loop
          declare
-            Candidate : constant Shortcut := Shortcut_For (Id);
-            Secondary : constant Shortcut := Secondary_Shortcut_For (Id);
+            Candidate : constant Shortcut := Shortcut_For (Map, Id);
+            Secondary : constant Shortcut := Secondary_Shortcut_For (Map, Id);
          begin
             if (Candidate.Present
                 and then Candidate.Key = Key

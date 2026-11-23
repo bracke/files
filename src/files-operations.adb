@@ -67,21 +67,23 @@ package body Files.Operations is
       Home_Path      : String)
       return Operation_Result
    is
-      Load : constant Files.File_System.Directory_Load_Result := Load_Folder (Settings, Directory_Path);
-   begin
-      if not Load.Success then
-         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Directory_Path);
-      end if;
-      Files.Model.Initialize
-        (Model             => Model,
-         Directory_Path    => To_String (Load.Path),
-         Items             => Load.Items,
-         Home_Path         => Home_Path,
-         Default_View_Mode => Settings.Default_View);
       --  The signature Initialize derives from the items never matches the
-      --  watch's: every startup folder was read again for nothing.
-      Show_Loaded_Folder (Model, Load);
-      return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+      --  watch's (Show_Loaded_Folder stores that one): every startup folder
+      --  was read again for nothing.
+      procedure Install
+        (Model : in out Files.Model.Window_Model;
+         Load  : Files.File_System.Directory_Load_Result) is
+      begin
+         Files.Model.Initialize
+           (Model             => Model,
+            Directory_Path    => To_String (Load.Path),
+            Items             => Load.Items,
+            Home_Path         => Home_Path,
+            Default_View_Mode => Settings.Default_View);
+      end Install;
+   begin
+      --  A window not started yet has no error line to say a failure in.
+      return Load_And_Show (Model, Settings, Directory_Path, Install'Access, Say_Failure => False);
    end Start_At_Folder;
 
    procedure Settle_Current_Is_Trash

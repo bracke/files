@@ -29,7 +29,7 @@ package Files_Suite.Support.Guards is
    --  scope, whether the test passed or an assertion raised, so a failing
    --  shortcut test cannot leave its bindings in force for the rest of the
    --  suite. Declaring one does not clear anything; a test that needs a clean
-   --  start still calls Files.Commands.Reset_Shortcut_Overrides first.
+   --  start still calls Files.Commands.Testing.Reset_Shortcut_Overrides first.
    type Shortcut_Guard is new Ada.Finalization.Limited_Controlled with null record;
 
    --  Clear every shortcut override.

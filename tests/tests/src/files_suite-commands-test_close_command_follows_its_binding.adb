@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Commands)
@@ -13,7 +14,7 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
 
       --  By its default key and as a command, closing answers the same.
       Files.Model.Command_Palette.Open (Model);
@@ -32,7 +33,7 @@ separate (Files_Suite.Commands)
       end;
 
       --  Rebound to F9: F9 closes, Escape leaves the palette open.
-      Files.Commands.Set_Shortcut_Override
+      Files.Commands.Testing.Set_Shortcut_Override
         (Files.Commands.Close_Overlay_Command, (Present => True, Key => Guikit.Input.Key_F9, others => <>));
       Files.Model.Command_Palette.Open (Model);
       Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape));
@@ -48,5 +49,5 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Rename.Is_Active (Model), "F2 starts a rename");
       Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F9));
       Assert (not Files.Model.Rename.Is_Active (Model), "the rebound close key cancels the rename");
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
    end Test_Close_Command_Follows_Its_Binding;

@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Controller;
 with Files.Overlays;
 with Files.Model.Command_Palette;
@@ -38,13 +39,13 @@ separate (Files_Suite.Interaction)
       Assert (not Shows_Rebound, "the palette shows the hidden-files toggle's own keys first");
 
       --  Another window rebinds it: nothing in this window's model moved.
-      Files.Commands.Set_Shortcut_Override
+      Files.Commands.Testing.Set_Shortcut_Override
         (Files.Commands.Toggle_Hidden_Files_Command, Files.Commands.Parse_Shortcut ("control+shift+9"));
       Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared => Settings);
       Assert (Shows_Rebound, "after adopting the shared settings the palette shows the new keys");
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
    exception
       when others =>
-         Files.Commands.Reset_Shortcut_Overrides;
+         Files.Commands.Testing.Reset_Shortcut_Overrides;
          raise;
    end Test_Adopted_Shortcut_Relists_Palette;

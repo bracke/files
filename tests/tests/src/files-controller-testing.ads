@@ -127,4 +127,17 @@ package Files.Controller.Testing is
    --  @return True when Handle_Drop_Import would import a drop.
    function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean;
 
+   --  Act on the command palette's highlighted command, as Enter and a click
+   --  on its row do.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Modifiers Active modifier keys for open actions.
+   --  @return Controller result with command or operation details.
+   function Activate_Palette_Command
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result;
+
 end Files.Controller.Testing;

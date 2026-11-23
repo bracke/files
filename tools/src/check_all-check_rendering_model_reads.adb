@@ -1,6 +1,7 @@
 separate (Check_All)
    procedure Check_Rendering_Model_Reads is
-      --  A frame reads the model and changes none of it. Every subprogram
+      --  A frame reads the model and changes none of it; nor does a dispatch
+      --  (Files.Interaction), which changes it only through the controller. Every subprogram
       --  in Files.Model or any of its children that takes the Window_Model
       --  "in out" is a mutator; the list is derived from the specs, so a new
       --  child or a new mutator is covered without editing this check. A
@@ -41,9 +42,9 @@ separate (Check_All)
          return To_String (Result);
       end Name_At;
 
-      --  Every dotted name in the rendering file at Path that is a mutator,
-      --  and every use clause or renaming of a model unit.
-      procedure Check (Path : String) is
+      --  Every dotted name in the file at Path that is a mutator, and every
+      --  use clause or renaming of a model unit; Who says whose file it is.
+      procedure Check (Path : String; Who : String) is
          Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
          Index : Positive := Toks.First_Index;
       begin
@@ -64,8 +65,8 @@ separate (Check_All)
                   if First <= Toks.Last_Index and then Toks (First).Kind = Word
                     and then Is_Model (Name_At (Toks, First))
                   then
-                     Report (Path & ": a frame names the model in full, not through ""use " & Name_At (Toks, First)
-                             & """");
+                     Report (Path & ": " & Who & " names the model in full, not through ""use "
+                             & Name_At (Toks, First) & """");
                   end if;
                end;
                Index := Index + 1;
@@ -73,7 +74,7 @@ separate (Check_All)
               and then Toks (Index + 1).Kind = Word
               and then Is_Model (Name_At (Toks, Index + 1))
             then
-               Report (Path & ": a frame names the model in full, not through a renaming of "
+               Report (Path & ": " & Who & " names the model in full, not through a renaming of "
                        & Name_At (Toks, Index + 1));
                Index := Index + 1;
             elsif Is_Word (Toks (Index), "files")
@@ -83,7 +84,7 @@ separate (Check_All)
                   Name : constant String := Name_At (Toks, Index);
                begin
                   if Mutators.Contains (Name) then
-                     Report (Path & ": a frame must not change the model (" & Name & ")");
+                     Report (Path & ": " & Who & " must not change the model (" & Name & ")");
                   end if;
                   Index := Past_Name_Prefix (Toks, Index) + 1;
                end;
@@ -105,6 +106,9 @@ separate (Check_All)
                  & " model mutators; the spec scan is broken");
       end if;
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-rendering*.ad?", Generated_Directories) loop
-         Check (To_String (Item));
+         Check (To_String (Item), "a frame");
+      end loop;
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-interaction*.ad?", Generated_Directories) loop
+         Check (To_String (Item), "a dispatch (it goes through Files.Controller)");
       end loop;
    end Check_Rendering_Model_Reads;

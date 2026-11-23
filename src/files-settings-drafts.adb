@@ -20,8 +20,12 @@ package body Files.Settings.Drafts is
       After  : Settings_Model)
       return Settings_Draft
    is
+      use type Shortcut_Override_Vectors.Vector;
       Result : Settings_Draft := Draft;
    begin
+      if Before.Shortcut_Overrides /= After.Shortcut_Overrides then
+         Result.Shortcut_Overrides := After.Shortcut_Overrides;
+      end if;
       for Setting in Scalar_Setting loop
          if Is_Pane_Setting (Setting) then
             declare

@@ -158,35 +158,30 @@ private package Files.Operations.Support is
       Error_Key : String;
       Path : String := "");
 
-   --  Load the folder at Path to show it: listed with Settings'
-   --  classification and listing options, its new images' thumbnails left
-   --  to a background listing (Load_Directory_Deferring_Thumbnails). The
-   --  one load every view change and in-place reload makes.
+   --  The one way a view moves to a folder: Path read (Load_Folder); a read
+   --  that fails says why in the error line (unless Say_Failure is False:
+   --  a window not yet started has none) and leaves the window as it was;
+   --  one that works is installed by Install -- navigated to, the typed
+   --  path committed, a step back or forward, a window started -- and
+   --  shown (Show_Loaded_Folder).
    --
-   --  @param Settings Directory settings.
-   --  @param Path Absolute folder path.
-   --  @return The listing, or why it failed.
-   function Load_Folder
-     (Settings : Files.Settings.Settings_Model;
-      Path     : String)
-      return Files.File_System.Directory_Load_Result;
-
-   --  What every folder loaded to show (Load_Folder) ends with, once the
-   --  caller has installed Load's items (navigated, committed the typed
-   --  path, started a window, or replaced them in place): the trash flag
-   --  settled when the view moved to another folder, the signature the
-   --  watch compares with stored, the error line cleared, and the images
-   --  still lacking a thumbnail owed to a background listing
-   --  (Files.Model.Note_Owed_Refresh, which the window's poll pays through
-   --  Files.Refresh.Resume_Owed), so nothing waits on decoding.
-   --
-   --  @param Model Window that now shows Load's items.
-   --  @param Load The listing installed.
-   --  @param Moved The view moved to another folder (False for a reload).
-   procedure Show_Loaded_Folder
-     (Model : in out Files.Model.Window_Model;
-      Load  : Files.File_System.Directory_Load_Result;
-      Moved : Boolean := True);
+   --  @param Model Window that moves.
+   --  @param Settings Settings to list with.
+   --  @param Path The folder to read.
+   --  @param Install Puts Load's items in the window as the move does.
+   --  @param Load (Install's) The listing read, to install.
+   --  @param Say_Failure Set the error line when the read fails.
+   --  @return Navigated, with the folder read; or Failed, with the read's
+   --    error key and Path.
+   function Load_And_Show
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : Files.Settings.Settings_Model;
+      Path        : String;
+      Install     : not null access procedure
+        (Model : in out Files.Model.Window_Model;
+         Load  : Files.File_System.Directory_Load_Result);
+      Say_Failure : Boolean := True)
+      return Operation_Result;
 
    --  Put a staged file or folder at Target, as Files.File_System.Transfer.Publish_Staged
    --  does: never over an entry already there, flushed before and named

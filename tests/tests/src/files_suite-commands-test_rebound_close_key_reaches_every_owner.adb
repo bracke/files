@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Model.Jobs;
 with Files_Suite.Listings;
 with Files.Folder_Tree;
@@ -35,8 +36,8 @@ separate (Files_Suite.Commands)
          null;
       end Press;
    begin
-      Files.Commands.Reset_Shortcut_Overrides;
-      Files.Commands.Set_Shortcut_Override
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Set_Shortcut_Override
         (Files.Commands.Close_Overlay_Command, (Present => True, Key => Guikit.Input.Key_W, Modifiers => Control));
 
       --  The folder tree with the keyboard.
@@ -101,5 +102,5 @@ separate (Files_Suite.Commands)
            (Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Dest_Dir, "a.txt")),
             "the destination is left where it was");
       end;
-      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Commands.Testing.Reset_Shortcut_Overrides;
    end Test_Rebound_Close_Key_Reaches_Every_Owner;

@@ -28,7 +28,7 @@ function Discard_Stage (Path : String) return Boolean is
          end if;
       end loop;
       if Foreground_Paths.Is_Empty and then Files.Jobs.Process.Active (Foreground_Job) then
-         Files.Jobs.Process.Clean_Stages (Foreground_Job);
+         Clean_Session_Stages (Foreground_Job);
          --  Failed records remain in the transport directory. Releasing the
          --  session launches the normal cleanup helper and retains it for
          --  retry instead of abandoning a foreground stage.

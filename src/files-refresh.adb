@@ -1,6 +1,5 @@
 with Files.Types;
 with Files.Jobs.Process;
-with Files.File_System_Types;
 with Files.Model.Recent;
 with Files.Model.Info_Pane;
 with Files.Model.Filtering;
@@ -16,7 +15,6 @@ with Ada.Strings.Unbounded;
 with Files.IO.Record_Fields;
 with Files.File_System;
 with Files.File_System.Search;
-with Files.UI_Types;
 with Files.File_Types;
 with Files.Settings.Path_References;
 with Files.Job_Payloads;
@@ -261,13 +259,18 @@ package body Files.Refresh is
          Files.Model.Note_Owed_Refresh (Model, False, "");
    end Owe_Reload;
 
-   --  The re-read items replace the shown ones, keeping where the user was:
-   --  the selection (or the name the read was asked to select), the scroll,
-   --  the info pane and a Quick Look whose item is still there.
-   procedure Apply_Reloaded_Items
-     (Model : in out Files.Model.Window_Model;
-      Work  : Request;
-      Items : Files.Items.Item_Vectors.Vector) is separate;
+   procedure Reinstall_Listing
+     (Model          : in out Files.Model.Window_Model;
+      Items          : Files.Items.Item_Vectors.Vector;
+      Signature      : Files.File_System_Types.Directory_Signature;
+      Recent         : Boolean := False;
+      Searched       : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      New_Results    : Boolean := False;
+      Select_Path    : String := "";
+      Select_Name    : String := "";
+      Keep_Selection : Boolean := True;
+      Fresh_Details  : Boolean := False;
+      Owe_Thumbnails : Boolean := False) is separate;
 
    function Advance
      (Model : in out Files.Model.Window_Model;
