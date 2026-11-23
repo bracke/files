@@ -1,10 +1,15 @@
 separate (Check_All)
    procedure Check_Rendering_Model_Reads is
       --  A frame reads the model and changes none of it; nor does a dispatch
-      --  (Files.Interaction), which changes it only through the controller. Every subprogram
-      --  in Files.Model or any of its children that takes the Window_Model
-      --  "in out" is a mutator; the list is derived from the specs, so a new
-      --  child or a new mutator is covered without editing this check. A
+      --  (Files.Interaction), which changes it only through the controller.
+      --  Every subprogram in Files.Model or any of its children that takes
+      --  the Window_Model "in out" is a mutator; the list is derived from the
+      --  specs, so a new child or a new mutator is covered without editing
+      --  this check. A dispatch is refused more: any subprogram outside
+      --  Files.Controller (and Interaction's own family) that takes the
+      --  model "in out" -- an operation, a refresh, an overlay's edit --
+      --  changes it past the controller. A leading "Model." is read as
+      --  "Files.Model." (a unit of Files may name it so). A
       --  rendering unit names the model in full: a use clause ("use
       --  Files.Model.Selection", "use all type") or a renaming of a model
       --  unit would let a mutator be called by a name this check cannot see,
@@ -12,16 +17,19 @@ separate (Check_All)
       use Tokens;
 
       Mutators : Key_Sets.Set;
+      --  Every subprogram outside the controller and Interaction that takes
+      --  the model "in out", the model's mutators among them.
+      Past_Controller : Key_Sets.Set;
 
-      --  Adds Unit.Name for every subprogram in the spec at Path whose
-      --  parameter list has a Window_Model "in out".
-      procedure Collect (Path : String) is
+      --  Adds Unit.Name to Into for every subprogram in the spec at Path
+      --  whose parameter list has a Window_Model "in out".
+      procedure Collect (Path : String; Into : in out Key_Sets.Set) is
          Unit : constant String := Unit_Of_File (Path);
       begin
          for Name of Subprograms_With_Parameter
            (Project_Tools.Files.Read_Raw_File (Path), Mode => "in out", Type_Name => "window_model")
          loop
-            Mutators.Include (Unit & "." & To_String (Name));
+            Into.Include (Unit & "." & To_String (Name));
          end loop;
       end Collect;
 
@@ -44,7 +52,7 @@ separate (Check_All)
 
       --  Every dotted name in the file at Path that is a mutator, and every
       --  use clause or renaming of a model unit; Who says whose file it is.
-      procedure Check (Path : String; Who : String) is
+      procedure Check (Path : String; Who : String; Refused : Key_Sets.Set) is
          Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
          Index : Positive := Toks.First_Index;
       begin
@@ -77,13 +85,14 @@ separate (Check_All)
                Report (Path & ": " & Who & " names the model in full, not through a renaming of "
                        & Name_At (Toks, Index + 1));
                Index := Index + 1;
-            elsif Is_Word (Toks (Index), "files")
+            elsif (Is_Word (Toks (Index), "files") or else Is_Word (Toks (Index), "model"))
               and then (Index = Toks.First_Index or else not Is_Symbol (Toks (Index - 1), "."))
             then
                declare
-                  Name : constant String := Name_At (Toks, Index);
+                  Name : constant String :=
+                    (if Is_Word (Toks (Index), "model") then "files." else "") & Name_At (Toks, Index);
                begin
-                  if Mutators.Contains (Name) then
+                  if Refused.Contains (Name) then
                      Report (Path & ": " & Who & " must not change the model (" & Name & ")");
                   end if;
                   Index := Past_Name_Prefix (Toks, Index) + 1;
@@ -97,8 +106,19 @@ separate (Check_All)
       for Pattern of String_List'[To_Unbounded_String ("files-model.ads"), To_Unbounded_String ("files-model-*.ads")]
       loop
          for Item of Project_Tools.Files.List_Tree (Root & "/src", To_String (Pattern), Generated_Directories) loop
-            Collect (To_String (Item));
+            Collect (To_String (Item), Mutators);
          end loop;
+      end loop;
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.ads", Generated_Directories) loop
+         declare
+            Unit : constant String := Unit_Of_File (To_String (Item));
+         begin
+            if not (Unit = "files.controller" or else Starts (Unit, "files.controller.")
+                    or else Unit = "files.interaction" or else Starts (Unit, "files.interaction."))
+            then
+               Collect (To_String (Item), Past_Controller);
+            end if;
+         end;
       end loop;
       --  An empty list would make the guard pass vacuously.
       if Natural (Mutators.Length) < 20 then
@@ -106,9 +126,9 @@ separate (Check_All)
                  & " model mutators; the spec scan is broken");
       end if;
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-rendering*.ad?", Generated_Directories) loop
-         Check (To_String (Item), "a frame");
+         Check (To_String (Item), "a frame", Mutators);
       end loop;
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-interaction*.ad?", Generated_Directories) loop
-         Check (To_String (Item), "a dispatch (it goes through Files.Controller)");
+         Check (To_String (Item), "a dispatch (it goes through Files.Controller)", Past_Controller);
       end loop;
    end Check_Rendering_Model_Reads;

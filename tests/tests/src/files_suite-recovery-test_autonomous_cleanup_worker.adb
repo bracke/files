@@ -73,6 +73,7 @@ separate (Files_Suite.Recovery)
       if Hostkit.Host.Current = Hostkit.Host.Linux and then Ada.Directories.Exists ("/proc/self/stat") then
          declare
             Launcher_Id : Integer;
+            Launcher_Started : Unbounded_String;
             Resumed : Boolean;
             Id_File : Ada.Text_IO.File_Type;
          begin
@@ -91,14 +92,18 @@ separate (Files_Suite.Recovery)
               (Id_File, Ada.Text_IO.In_File, Item ("cleanup-worker-started"));
             Launcher_Id := Integer'Value (Ada.Text_IO.Get_Line (Id_File));
             Ada.Text_IO.Close (Id_File);
+            --  The worker waits to be continued, so it is there to be told
+            --  from a later process its id may be given to once reaped.
+            Launcher_Started := To_Unbounded_String (Files_Suite.Support.Processes.Start_Time (Launcher_Id));
+            Assert (Length (Launcher_Started) > 0, "the cleanup worker's start time is read from /proc");
             --  The worker stops itself straight after publishing; wait until
             --  the kernel reports it stopped, so the reaper is seen to handle a
             --  stopped worker rather than racing one that is still running.
             for Attempt in Files_Suite.Support.Timing.Polling loop
-               exit when Files_Suite.Support.Processes.Process_State (Launcher_Id) = 'T';
+               exit when Files_Suite.Support.Processes.Process_State (Launcher_Id, To_String (Launcher_Started)) = 'T';
             end loop;
             Assert_Equal
-              (Files_Suite.Support.Processes.Process_State (Launcher_Id) & "", "T",
+              (Files_Suite.Support.Processes.Process_State (Launcher_Id, To_String (Launcher_Started)) & "", "T",
                "the cleanup worker is stopped before it is continued (state in /proc/<pid>/stat)");
             Resumed := Hostkit.Signals.Send_To_Process
               (Launcher_Id, Hostkit.Signals.Signal_Continue);
@@ -107,13 +112,13 @@ separate (Files_Suite.Recovery)
             --  stays in /proc as a zombie until it is collected.
             for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport))
-                 and then Files_Suite.Support.Processes.Process_State (Launcher_Id) = ' ';
+                 and then Files_Suite.Support.Processes.Process_State (Launcher_Id, To_String (Launcher_Started)) = ' ';
             end loop;
             Assert
               (not Ada.Directories.Exists (To_String (Transport)),
                "stopped and continued cleanup workers finish the cleanup");
             Assert_Equal
-              (Files_Suite.Support.Processes.Process_State (Launcher_Id) & "", " ",
+              (Files_Suite.Support.Processes.Process_State (Launcher_Id, To_String (Launcher_Started)) & "", " ",
                "stopped and continued cleanup workers stay owned until reaped (no process left in /proc)");
          end;
       else

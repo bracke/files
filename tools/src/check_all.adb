@@ -675,6 +675,14 @@ procedure Check_All is
    --  @return The "alias=unit" lines Unit sees.
    function Aliases_Seen_By (Aliases, Unit : String) return String is separate;
 
+   --  The use clauses the source at Path sees but does not write, as tokens:
+   --  its own spec's (for a body) and its ancestors' specs' (their scope
+   --  reaches it), and, for a subunit, its parent bodies' (a subunit
+   --  inherits their context).
+   --  @param Path A source in src/.
+   --  @return The tokens of those use clauses, each ending in its ';'.
+   function Uses_Seen_By (Path : String) return Tokens.Token_List is separate;
+
    --  Every package in src/ that renames or instantiates one of Units (one a
    --  line, lower case), a "scope:alias=unit" line each, scope the unit
    --  declaring it: a renaming of a renaming counts too.

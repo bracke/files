@@ -177,7 +177,7 @@ separate (Files_Suite.Search)
 
       --  A helper's permanent delete of a result searches again after it
       --  acts: its results are shown as they are, not searched for a
-      --  second time, with the rest of the selection kept.
+      --  second time (trash and restore: Test_Search_Results_Through_Helpers).
       Write_File (Join (Deep, "spare.txt"), "spare");
       Search ("notes.txt.old");
       Files.Model.Filtering.Set_Filter (Model, ".txt");

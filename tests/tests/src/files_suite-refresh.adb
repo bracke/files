@@ -65,6 +65,7 @@ package body Files_Suite.Refresh is
    procedure Test_Refresh_Applies_With_Refused_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Keeps_Info_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Operation_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Named_Selection_Revealed (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -106,7 +107,8 @@ package body Files_Suite.Refresh is
         (T, Test_Controller_Home_Loading'Access, "controller home loads items, and a failed home keeps the view");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_Loading'Access,
-         "controller refresh loads items, and a failed refresh keeps the view");
+         "controller refresh in process loads items and drops edits; in a window it waits for them and keeps "
+         & "the place; a failed refresh keeps the view");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_History_Loading'Access,
          "controller back, forward and path input load items and roll back on failure");
@@ -125,6 +127,10 @@ package body Files_Suite.Refresh is
         (T, Test_Refresh_Keeps_Info_Pane'Access,
          "a watch refresh keeps the info pane's scroll and the details read for an unchanged item");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Operation_Keeps_Place'Access,
+         "in a window an operation's reload keeps the scroll, the info pane and Quick Look, "
+         & "and new search results start afresh");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Named_Selection_Revealed'Access,
          "a selection set by name, by a reload or a command, is marked to be scrolled into view");
    end Register_Tests;
@@ -136,6 +142,8 @@ package body Files_Suite.Refresh is
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Refresh_Keeps_Info_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Operation_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Named_Selection_Revealed (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

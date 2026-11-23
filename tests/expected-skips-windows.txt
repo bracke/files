@@ -7,6 +7,7 @@ Test_An_Unwritable_Thumbnail_Fails_Cleanly: this host has no file-size limit
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
 Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash separates directories
 Test_Cancelled_Drop_Keeps_Cause: recovery records a folder's mode only where mode bits are native
+Test_Cleanup_Retry_Bound: the dangling-transport-link half needs a POSIX symbolic link
 Test_Clearing_A_Label_Clears_Every_Spelling: this host folds names, so it stores one spelling per path
 Test_Copy_Access_Bits: needs native POSIX mode bits
 Test_Cross_Device_Move_Keeps_Setgid: needs native POSIX mode bits
@@ -17,6 +18,7 @@ Test_Recovery_Mode_Failure: recovery records a folder's mode only where mode bit
 Test_Recursive_Folder_Size: this host reads a folder whose permissions were removed
 Test_Scavenger_Shutdown: the reaped-coordinator half needs Linux and its /proc
 Test_Stage_Record_Cleanup: the leftover-child half needs Linux's /proc children lists
+Test_Startup_Path_Normalization: Windows has no /dev/null special file
 Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
 Test_Transport_Lease_Claims: a held lease file cannot be replaced here
 Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash

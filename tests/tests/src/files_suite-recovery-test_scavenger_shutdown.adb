@@ -1,3 +1,4 @@
+with Files_Suite.Support.Processes;
 with Files.Jobs.Scavenger.Testing;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -46,19 +47,23 @@ separate (Files_Suite.Recovery)
       declare
          File : Ada.Text_IO.File_Type;
          Child_Id : Integer;
+         Child_Started : Unbounded_String;
          Reaped : Boolean;
       begin
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Shutdown_Control & ".started");
          Child_Id := Integer'Value (Ada.Text_IO.Get_Line (File));
          Ada.Text_IO.Close (File);
+         --  The coordinator waits for release, so it is there to be told
+         --  from a later process its id may be given to once reaped.
+         Child_Started := To_Unbounded_String (Files_Suite.Support.Processes.Start_Time (Child_Id));
          Files.Jobs.Scavenger.Shutdown (Reaped);
          Assert (Reaped, "shutdown reports a reaped coordinator");
          if Hostkit.Host.Current = Hostkit.Host.Linux
            and then Ada.Directories.Exists ("/proc/self")
          then
+            Assert (Length (Child_Started) > 0, "the coordinator's start time was read from /proc");
             Assert
-              (not Ada.Directories.Exists
-                 ("/proc/" & Ada.Strings.Fixed.Trim (Integer'Image (Child_Id), Ada.Strings.Both)),
+              (Files_Suite.Support.Processes.Start_Time (Child_Id) /= To_String (Child_Started),
                "shutdown reaps the coordinator before returning");
          else
             Files_Suite.Support.Skip

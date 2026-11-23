@@ -94,7 +94,14 @@ separate (Files_Suite.Recovery)
       end;
       Clean_Up;
 
-      if Hostkit.Host.Current = Hostkit.Host.Linux then
+      --  A transport replaced by a dangling link: kept, for the guarded
+      --  retry. A POSIX link, as Linux and macOS make one: Windows makes a
+      --  link as a file or a directory link, each removed its own way, which
+      --  this half does not cover.
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip
+           ("Test_Cleanup_Retry_Bound", "the dangling-transport-link half needs a POSIX symbolic link");
+      else
          Reset_Root;
          declare
             --  Restores the variable before the cleanup, on failure too.

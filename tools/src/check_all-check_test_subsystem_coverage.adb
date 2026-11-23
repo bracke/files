@@ -129,12 +129,12 @@ separate (Check_All)
          Expect ("recovery", 64),
          Expect ("history", 42),
          Expect ("trash", 35),
-         Expect ("search", 12),
+         Expect ("search", 13),
          Expect ("thumbnails", 23),
          Expect ("archives", 7),
          Expect ("info", 33),
          Expect ("names", 19),
-         Expect ("refresh", 16),
+         Expect ("refresh", 17),
          Expect ("open_actions", 18)];
 
       --  The suites files_suite.adb runs: Result.Add_Test (Files_Suite.<Name>.Suite).

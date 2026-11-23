@@ -52,12 +52,17 @@ separate (Files_Suite.Startup)
         (To_String (Empty.Error_Key),
          "error.path.missing",
          "empty path reports missing-path error");
+      --  A special file (a device) is no folder to open: POSIX hosts have
+      --  /dev/null; Windows has no such file to name.
       declare
          Special_Path : constant String := "/dev/null";
       begin
-         if Ada.Directories.Exists (Special_Path)
-           and then Ada.Directories.Kind (Special_Path) = Ada.Directories.Special_File
-         then
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Files_Suite.Support.Skip ("Test_Startup_Path_Normalization", "Windows has no /dev/null special file");
+         else
+            Assert (Ada.Directories.Exists (Special_Path)
+                    and then Ada.Directories.Kind (Special_Path) = Ada.Directories.Special_File,
+                    "a POSIX host has /dev/null as a special file");
             declare
                Special : constant Files.File_System_Types.Path_Result :=
                  Files.File_System.Normalize_Path (Special_Path);
@@ -86,9 +91,6 @@ separate (Files_Suite.Startup)
                   "special startup diagnostic records inaccessible error key");
             end;
          end if;
-      exception
-         when others =>
-            null;
       end;
 
       Args.Clear;

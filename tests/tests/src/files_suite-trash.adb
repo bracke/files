@@ -182,7 +182,8 @@ package body Files_Suite.Trash is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Empty_Trash_Partial_Failure'Access, "empty trash removes what it can and reports partial failures");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Empty_Trash_Undo_Safe'Access, "undoing a restore whose emptied source is gone fails safely");
+        (T, Test_Empty_Trash_Undo_Safe'Access,
+         "undoing a restore whose emptied source is gone fails safely, in process and in a window");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Labels_Travel_Through_Trash'Access,
          "a trashed file's label goes into the trash with it, comes back on restore, and goes with Empty Trash");

@@ -40,6 +40,9 @@ separate (Check_All)
 
       procedure Check_File (Path : String) is
          Toks    : constant Tokens.Token_List := Tokens.Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         --  The use clauses its spec, ancestors and parent bodies make
+         --  direct here ("use Ada;" in a parent body), then the source.
+         Seen    : constant Tokens.Token_List := Tokens.Token_Vectors."&" (Uses_Seen_By (Path), Toks);
          Aliases : constant String := Aliases_Seen_By (All_Aliases, Unit_Of_File (Path));
          Refused : Unbounded_String;
 
@@ -66,7 +69,8 @@ separate (Check_All)
             Refuse (Unit, "uses");
          end Check_Use;
       begin
-         For_Each_Resolved_Name (Toks, Aliases, File_System_Units, Check_Name'Access);
+         For_Each_Resolved_Name (Seen, Aliases, File_System_Units, Check_Name'Access);
+         --  Each use clause is refused where it is written.
          For_Each_Line (Used_Units (Toks, Aliases, File_System_Units), Check_Use'Access);
       end Check_File;
    begin

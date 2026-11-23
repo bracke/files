@@ -2,7 +2,12 @@ with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
+with Files.Model.Jobs;
 separate (Files_Suite.Trash)
+   --  Undoing a trash whose item was emptied from the trash since fails
+   --  safely: in process, and in a window (background transfers on, as the
+   --  GUI always runs), where the trash, the emptying and the undo each run
+   --  in a helper and the helper's history is merged back.
    procedure Test_Empty_Trash_Undo_Safe (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -13,6 +18,7 @@ separate (Files_Suite.Trash)
       Load         : Files.File_System.Directory_Load_Result;
       Model        : Files.Model.Window_Model;
       Result       : Files.Controller.Controller_Result;
+      Step         : Files.Operation_Results.Operation_Result;
    begin
       Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Guards.Save (Environment, "HOME");
@@ -62,6 +68,39 @@ separate (Files_Suite.Trash)
         (Result.Operation.Status /= Files.Operation_Results.Operation_Success,
          "undoing a restore whose trashed source was emptied fails safely");
       Assert (not Ada.Directories.Exists (Source_Path), "the failed undo does not resurrect the emptied item");
+
+      --  In a window, each step through its helper.
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Reset_Root;
+      Write_File (Source_Path, "payload");
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
+      Select_Name (Model, "empty-undo.txt");
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Step := Complete_Operation (Model, Settings, Result.Operation);
+      Await_View (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operation_Results.Operation_Success, "a window's helper trashes the item");
+      Assert (not Ada.Directories.Exists (Source_Path), "the item is in the trash");
+      Assert (Files.Model.History.Undo_Available (Model), "the helper's trash is in the window's history");
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Trash_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status, Files.Operation_Results.Operation_Navigated, "the window opens the trash view");
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+      Step := Complete_Operation (Model, Settings, Result.Operation);
+      Await_View (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operation_Results.Operation_Success, "a window's helper empties the trash");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "the trash view is empty");
+      Assert (Files.Model.History.Undo_Available (Model), "the dangling undo stays in the window's history");
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
+      Step := Complete_Operation (Model, Settings, Result.Operation);
+      Await_View (Model, Settings);
+      Assert (Step.Status /= Files.Operation_Results.Operation_Success,
+              "a window's undo of a trash whose item was emptied fails safely");
+      Assert (not Ada.Directories.Exists (Source_Path), "and does not bring the emptied item back");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Empty_Trash_Undo_Safe;

@@ -57,6 +57,36 @@ separate (Check_All)
       --  under the deriving unit's name.
       Derived_In : File_Maps.Map;
 
+      --  Whether Toks (Index) starts a subprogram declaration (not a formal
+      --  subprogram, nor an access-to-subprogram type).
+      function Declares (Toks : Token_List; Index : Positive) return Boolean is
+        ((Is_Word (Toks (Index), "procedure") or else Is_Word (Toks (Index), "function"))
+         and then Index < Toks.Last_Index
+         and then Toks (Index + 1).Kind = Word
+         and then (Index = Toks.First_Index
+                   or else not (Is_Word (Toks (Index - 1), "access") or else Is_Word (Toks (Index - 1), "with"))));
+
+      --  Whether the declaration at Index overrides an inherited operation:
+      --  it is called by dispatching, under its parent type's name.
+      function Overrides (Toks : Token_List; Index : Positive) return Boolean is
+        (Index > Toks.First_Index
+         and then Is_Word (Toks (Index - 1), "overriding")
+         and then not (Index - 1 > Toks.First_Index and then Is_Word (Toks (Index - 2), "not")));
+
+      --  Whether the word at Spot names something else than a use of the
+      --  subprogram: its own declaration, a parameter, component or object
+      --  of that name (followed by ':'), a formal in a named association
+      --  (followed by "=>"), a selected component (after '.'), or a pragma's
+      --  argument.
+      function Is_No_Use (Toks : Token_List; Spot : Positive) return Boolean is
+        ((Spot > Toks.First_Index and then Declares (Toks, Spot - 1))
+         or else (Spot < Toks.Last_Index
+                  and then (Is_Symbol (Toks (Spot + 1), ":") or else Is_Symbol (Toks (Spot + 1), "=>")))
+         or else (Spot > Toks.First_Index and then Is_Symbol (Toks (Spot - 1), "."))
+         or else (Spot >= Toks.First_Index + 3
+                  and then Is_Symbol (Toks (Spot - 1), "(")
+                  and then Is_Word (Toks (Spot - 3), "pragma")));
+
       procedure Index_Names (Path : String) is
          File      : constant String := Ada.Directories.Simple_Name (Path);
          Own_Unit  : constant String := Unit_Of_File (Path);
@@ -92,9 +122,27 @@ separate (Check_All)
             end loop;
          end Note_With_Prefixes;
 
+         --  The use clauses this source sees but does not write, then the
+         --  source itself.
+         Seen_Uses : Token_List := Uses_Seen_By (Path);
+
+         --  The words this source declares as an object, a parameter, a
+         --  component or a loop or block name ("X, Y : T"): a bare one
+         --  written here names that, not an ancestor's subprogram.
+         Locals : Name_Sets.Set;
+
          procedure Visit (Name : String; Next : Positive) is
-            pragma Unreferenced (Next);
+            Last : constant Positive := Next - 1;
          begin
+            --  A word written bare that is no use of a subprogram -- its own
+            --  declaration, a parameter, component or object, a formal in a
+            --  named association, a pragma's argument -- or that names this
+            --  source's own declaration of that name.
+            if not (Last > Seen_Uses.First_Index and then Is_Symbol (Seen_Uses (Last - 1), "."))
+              and then (Is_No_Use (Seen_Uses, Last) or else Locals.Contains (To_String (Seen_Uses (Last).Text)))
+            then
+               return;
+            end if;
             Note_With_Prefixes (Name);
             --  A child or subunit sees its ancestors' names directly.
             for Index in Own_Unit'Range loop
@@ -104,53 +152,23 @@ separate (Check_All)
             end loop;
             Note_With_Prefixes (Own_Unit & "." & Name);
          end Visit;
-         --  The use clauses this source sees but does not write: its own
-         --  spec's and its ancestors' specs' (their scope reaches here), and,
-         --  for a subunit, its parent bodies' (a subunit inherits their
-         --  context).
-         Seen_Uses : Token_List;
-
-         procedure Take_Uses (Source : String) is
-            Source_Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Source));
-            Index       : Natural := Source_Toks.First_Index;
-         begin
-            while Index <= Source_Toks.Last_Index loop
-               if Is_Word (Source_Toks (Index), "use") then
-                  while Index <= Source_Toks.Last_Index loop
-                     Seen_Uses.Append (Source_Toks (Index));
-                     exit when Is_Symbol (Source_Toks (Index), ";");
-                     Index := Index + 1;
-                  end loop;
-               end if;
-               Index := Index + 1;
-            end loop;
-         end Take_Uses;
-
-         Directory : constant String := Ada.Directories.Containing_Directory (Path);
-         Stem      : constant String := Ada.Directories.Base_Name (Path);
-         Is_Body   : constant Boolean := Ada.Strings.Fixed.Tail (Path, 4) = ".adb";
       begin
-         for Index in Stem'Range loop
-            if Stem (Index) = '-' or else Index = Stem'Last then
+         Seen_Uses.Append (Toks);
+         for Index in Toks.First_Index + 1 .. Toks.Last_Index loop
+            if Is_Symbol (Toks (Index), ":") and then Toks (Index - 1).Kind = Word then
                declare
-                  Ancestor : constant String := Stem (Stem'First .. (if Stem (Index) = '-' then Index - 1 else Index));
-                  Spec     : constant String := Directory & "/" & Ancestor & ".ads";
-                  Body_Of  : constant String := Directory & "/" & Ancestor & ".adb";
+                  Spot : Natural := Index - 1;
                begin
-                  if Ada.Directories.Exists (Spec) and then (Is_Body or else Ancestor /= Stem) then
-                     Take_Uses (Spec);
-                  end if;
-                  if Is_Body
-                    and then Ancestor /= Stem
-                    and then Ada.Directories.Exists (Body_Of)
-                    and then Is_Subunit_Of (Path, Unit_Of_File (Body_Of))
-                  then
-                     Take_Uses (Body_Of);
-                  end if;
+                  loop
+                     Locals.Include (To_String (Toks (Spot).Text));
+                     exit when Spot < Toks.First_Index + 2
+                       or else not Is_Symbol (Toks (Spot - 1), ",")
+                       or else Toks (Spot - 2).Kind /= Word;
+                     Spot := Spot - 2;
+                  end loop;
                end;
             end if;
          end loop;
-         Seen_Uses.Append (Toks);
          --  type T is new Unit.Parent ...: Unit's operations are inherited here.
          for Index in Toks.First_Index .. Toks.Last_Index - 1 loop
             if Is_Word (Toks (Index), "new") and then Toks (Index + 1).Kind = Word then
@@ -190,36 +208,6 @@ separate (Check_All)
          end loop;
          For_Each_Resolved_Name (Seen_Uses, Aliases_Seen_By (All_Aliases, Own_Unit), Units, Visit'Access);
       end Index_Names;
-
-      --  Whether Toks (Index) starts a subprogram declaration (not a formal
-      --  subprogram, nor an access-to-subprogram type).
-      function Declares (Toks : Token_List; Index : Positive) return Boolean is
-        ((Is_Word (Toks (Index), "procedure") or else Is_Word (Toks (Index), "function"))
-         and then Index < Toks.Last_Index
-         and then Toks (Index + 1).Kind = Word
-         and then (Index = Toks.First_Index
-                   or else not (Is_Word (Toks (Index - 1), "access") or else Is_Word (Toks (Index - 1), "with"))));
-
-      --  Whether the declaration at Index overrides an inherited operation:
-      --  it is called by dispatching, under its parent type's name.
-      function Overrides (Toks : Token_List; Index : Positive) return Boolean is
-        (Index > Toks.First_Index
-         and then Is_Word (Toks (Index - 1), "overriding")
-         and then not (Index - 1 > Toks.First_Index and then Is_Word (Toks (Index - 2), "not")));
-
-      --  Whether the word at Spot names something else than a use of the
-      --  subprogram: its own declaration, a parameter, component or object
-      --  of that name (followed by ':'), a formal in a named association
-      --  (followed by "=>"), a selected component (after '.'), or a pragma's
-      --  argument.
-      function Is_No_Use (Toks : Token_List; Spot : Positive) return Boolean is
-        ((Spot > Toks.First_Index and then Declares (Toks, Spot - 1))
-         or else (Spot < Toks.Last_Index
-                  and then (Is_Symbol (Toks (Spot + 1), ":") or else Is_Symbol (Toks (Spot + 1), "=>")))
-         or else (Spot > Toks.First_Index and then Is_Symbol (Toks (Spot - 1), "."))
-         or else (Spot >= Toks.First_Index + 3
-                  and then Is_Symbol (Toks (Spot - 1), "(")
-                  and then Is_Word (Toks (Spot - 3), "pragma")));
 
       procedure Check_Spec (Path : String) is
          Text  : constant String := Project_Tools.Files.Read_Raw_File (Path);

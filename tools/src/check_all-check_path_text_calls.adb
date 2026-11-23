@@ -4,7 +4,10 @@ separate (Check_All)
       All_Aliases : constant String := Package_Aliases (File_System_Units);
 
       procedure Check_File (Path : String) is
-         Toks    : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         --  The use clauses its spec, ancestors and parent bodies make
+         --  direct here, then the source itself.
+         Toks    : constant Token_List :=
+           Token_Vectors."&" (Uses_Seen_By (Path), Tokens_Of (Project_Tools.Files.Read_Raw_File (Path)));
          Aliases : constant String := Aliases_Seen_By (All_Aliases, Unit_Of_File (Path));
          Bad  : Boolean := False;
 
