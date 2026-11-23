@@ -1,4 +1,5 @@
-with Files.Folder_Size.Testing;
+with Files.Folder_Size.Measuring;
+with Files.Folder_Size.Measuring.Testing;
 with Files.File_System_Types;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -27,7 +28,7 @@ separate (Files_Suite.Info)
          Available : out Boolean) is
       begin
          if Pending.Is_Empty then
-            Files.Folder_Size.Take_All (Scan, Pending);
+            Files.Folder_Size.Measuring.Take_All (Scan, Pending);
          end if;
          Available := not Pending.Is_Empty;
          if Available then
@@ -39,7 +40,7 @@ separate (Files_Suite.Info)
 
       procedure Cancel_Sizes is
       begin
-         Files.Folder_Size.Cancel (Scan);
+         Files.Folder_Size.Measuring.Cancel (Scan);
       end Cancel_Sizes;
 
       procedure Await_Helper is
@@ -67,25 +68,25 @@ separate (Files_Suite.Info)
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
       Reset_Root;
-      Files.Folder_Size.Cancel (Scan);
+      Files.Folder_Size.Measuring.Cancel (Scan);
       loop
          Take (Scan, Path, Result, Available);
          exit when not Available;
       end loop;
-      Files.Folder_Size.Testing.Request (Scan, "relative-folder-size-target");
+      Files.Folder_Size.Measuring.Testing.Request (Scan, "relative-folder-size-target");
       Assert
-        (not Files.Folder_Size.Testing.Is_Active (Scan)
-         and then Files.Folder_Size.Testing.Target (Scan) = "",
+        (not Files.Folder_Size.Measuring.Testing.Is_Active (Scan)
+         and then Files.Folder_Size.Measuring.Testing.Target (Scan) = "",
          "folder-size requests reject relative targets before launching a helper");
-      Files.Folder_Size.Testing.Request
+      Files.Folder_Size.Measuring.Testing.Request
         (Scan, Root & Character'Val (0) & "ignored");
       Assert
-        (not Files.Folder_Size.Testing.Is_Active (Scan)
-         and then Files.Folder_Size.Testing.Target (Scan) = "",
+        (not Files.Folder_Size.Measuring.Testing.Is_Active (Scan)
+         and then Files.Folder_Size.Measuring.Testing.Target (Scan) = "",
          "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Before := Now;
-      Files.Folder_Size.Testing.Request (Scan, Join (Root, "unreadable-or-missing"));
+      Files.Folder_Size.Measuring.Testing.Request (Scan, Join (Root, "unreadable-or-missing"));
       --  Posting starts a helper process, so it gets a launch's headroom;
       --  inspecting the stalled target in the caller would block far longer.
       Assert_Within (Before, Launch_Limit, "posting a size request does not inspect its target");
@@ -94,18 +95,19 @@ separate (Files_Suite.Info)
       Targets.Append (To_Unbounded_String (Join (Root, "another-window")));
       Before := Now;
       for Frame in 1 .. 50 loop
-         Files.Folder_Size.Testing.Set_Targets (Scan, Targets);
-         Files.Folder_Size.Step (Scan);
+         Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Targets);
+         Files.Folder_Size.Measuring.Step (Scan);
          Take (Scan, Path, Result, Available);
          Assert (not Available, "a stalled scan does not publish a partial total");
       end loop;
       Assert_Within (Before, Prompt_Limit, "repeated frame polling never waits for the helper's filesystem work");
-      Assert (Files.Folder_Size.Testing.Is_Active (Scan) and then Ada.Directories.Exists (To_String (Started)),
+      Assert (Files.Folder_Size.Measuring.Testing.Is_Active (Scan)
+              and then Ada.Directories.Exists (To_String (Started)),
               "repeated frame polling preserves the active helper");
       Previous := Started;
       Ada.Directories.Delete_File (Marker);
       Before := Now;
-      Files.Folder_Size.Testing.Request (Scan, Join (Root, "another-window"));
+      Files.Folder_Size.Measuring.Testing.Request (Scan, Join (Root, "another-window"));
       --  Retargeting starts a replacement helper: the same headroom as posting.
       Assert_Within (Before, Launch_Limit, "retargeting does not join the abandoned scan");
       Await_Helper;
@@ -113,19 +115,19 @@ separate (Files_Suite.Info)
       Await_Reaped (Previous);
       Assert (Ada.Directories.Exists (To_String (Started)), "retargeting leaves the replacement helper active");
       Before := Now;
-      Files.Folder_Size.Cancel (Scan);
-      Files.Folder_Size.Cancel (Scan);
+      Files.Folder_Size.Measuring.Cancel (Scan);
+      Files.Folder_Size.Measuring.Cancel (Scan);
       Assert_Within (Before, Prompt_Limit, "repeated cancellation is prompt even while a size read is stalled");
-      Assert (not Files.Folder_Size.Testing.Is_Active (Scan), "cancellation leaves no size request active");
+      Assert (not Files.Folder_Size.Measuring.Testing.Is_Active (Scan), "cancellation leaves no size request active");
       Await_Reaped (Started);
       Take (Scan, Path, Result, Available);
       Assert (not Available, "cancelled requests never publish stale measurements");
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
       Ada.Directories.Create_Path (Join (Root, "ready"));
       Write_Binary_File (Join (Join (Root, "ready"), "data"), "12345678");
-      Files.Folder_Size.Testing.Request (Scan, Join (Root, "ready"));
+      Files.Folder_Size.Measuring.Testing.Request (Scan, Join (Root, "ready"));
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Folder_Size.Step (Scan);
+         Files.Folder_Size.Measuring.Step (Scan);
          Take (Scan, Path, Result, Available);
          exit when Available;
       end loop;
@@ -142,10 +144,11 @@ separate (Files_Suite.Info)
             Target : constant String :=
               (if Invalid_Target = 1 then Join (Root, "missing") else Join (Join (Root, "ready"), "data"));
          begin
-            Files.Folder_Size.Testing.Request (Scan, Target);
-            Assert (Files.Folder_Size.Testing.Is_Active (Scan), "a request leaves collection for a later frame");
+            Files.Folder_Size.Measuring.Testing.Request (Scan, Target);
+            Assert (Files.Folder_Size.Measuring.Testing.Is_Active (Scan),
+                    "a request leaves collection for a later frame");
             for Attempt in Files_Suite.Support.Timing.Polling loop
-               Files.Folder_Size.Step (Scan);
+               Files.Folder_Size.Measuring.Step (Scan);
                Take (Scan, Path, Result, Available);
                exit when Available;
             end loop;
@@ -172,12 +175,12 @@ separate (Files_Suite.Info)
             Targets.Append (To_Unbounded_String (Join (Root, Name)));
          end;
       end loop;
-      Files.Folder_Size.Testing.Set_Targets (Scan, Targets);
+      Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Targets);
       Files_Suite.Support.Assert_Equal
-        (Files.Folder_Size.Testing.Batch_Length (Scan), 3, "three folders go to one helper");
+        (Files.Folder_Size.Measuring.Testing.Batch_Length (Scan), 3, "three folders go to one helper");
       for Expected of Targets loop
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            Files.Folder_Size.Step (Scan);
+            Files.Folder_Size.Measuring.Step (Scan);
             Take (Scan, Path, Result, Available);
             exit when Available;
          end loop;

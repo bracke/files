@@ -33,7 +33,7 @@ separate (Check_All)
          Pair ("file_system", "refuse_creation_matches", "refuse_creation_matches", Off => "false"),
          Pair ("file_system", "refuse_hard_links", "refuse_hard_links", Off => "false"),
          Pair ("file_system", "pause_sweep_work", "resume_sweep_work"),
-         Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),
+         Pair ("measuring", "fail_result_reads", "fail_result_reads", Off => "0"),
          Pair ("fs_primitives", "refuse_lookups", "stop_refusing_lookups"),
          Pair ("journal", "refuse_reads", "refuse_reads", Off => "0"),
          Pair ("operation", "fail_after_merge", "stop_failing_after_merge"),
@@ -616,7 +616,7 @@ separate (Check_All)
                & "end Test;",
                Flagged => False),
          Make ("procedure Test is" & LF & "begin" & LF
-               & "   Files.Folder_Size.Testing.Fail_Result_Reads (3);" & LF & "   Check;" & LF
+               & "   Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (3);" & LF & "   Check;" & LF
                & "exception" & LF & "   when others =>" & LF
                & "      Files.Jobs.Process.Testing.Clear_Refusal;" & LF & "      raise;" & LF & "end Test;",
                Flagged => True),

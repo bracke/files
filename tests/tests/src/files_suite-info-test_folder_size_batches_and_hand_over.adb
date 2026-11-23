@@ -1,4 +1,5 @@
-with Files.Folder_Size.Testing;
+with Files.Folder_Size.Measuring;
+with Files.Folder_Size.Measuring.Testing;
 with Ada.Containers.Ordered_Maps;
 with Ada.Real_Time;
 separate (Files_Suite.Info)
@@ -63,25 +64,26 @@ separate (Files_Suite.Info)
          Taken    : Files.Folder_Size.Measurement_Vectors.Vector;
          Reversed : Files.Folder_Size.Path_Vectors.Vector;
       begin
-         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Paths);
          Files_Suite.Support.Assert_Equal
-           (Files.Folder_Size.Testing.Batch_Length (Scan), 256, "one helper takes at most 256 folders");
+           (Files.Folder_Size.Measuring.Testing.Batch_Length (Scan), 256, "one helper takes at most 256 folders");
          declare
-            First : constant String := Files.Folder_Size.Testing.Target (Scan);
+            First : constant String := Files.Folder_Size.Measuring.Testing.Target (Scan);
          begin
             for Path of reverse Paths loop
                Reversed.Append (Path);
             end loop;
-            Files.Folder_Size.Testing.Set_Targets (Scan, Reversed);
+            Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Reversed);
             Files_Suite.Support.Assert_Equal
-              (Files.Folder_Size.Testing.Target (Scan), First,
+              (Files.Folder_Size.Measuring.Testing.Target (Scan), First,
                "a re-target that still wants the running helper's folders keeps it");
          end;
          for Attempt in Polling loop
-            Files.Folder_Size.Step (Scan);
-            Files.Folder_Size.Take_All (Scan, Taken);
+            Files.Folder_Size.Measuring.Step (Scan);
+            Files.Folder_Size.Measuring.Take_All (Scan, Taken);
             Note (Taken, Seen, "over several helpers");
-            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Testing.Is_Active (Scan);
+            exit when Natural (Seen.Length) >= Folders
+              and then not Files.Folder_Size.Measuring.Testing.Is_Active (Scan);
          end loop;
          Expect_All_Once (Seen, "over several helpers");
       end;
@@ -90,14 +92,15 @@ separate (Files_Suite.Info)
       declare
          Last_Ten : Files.Folder_Size.Path_Vectors.Vector;
       begin
-         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Paths);
          for Index in Folders - 9 .. Folders loop
             Last_Ten.Append (Paths (Index));
          end loop;
-         Files.Folder_Size.Testing.Set_Targets (Scan, Last_Ten);
+         Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Last_Ten);
          Files_Suite.Support.Assert_Equal
-           (Files.Folder_Size.Testing.Batch_Length (Scan), 10, "a re-target that drops its folders starts afresh");
-         Files.Folder_Size.Cancel (Scan);
+           (Files.Folder_Size.Measuring.Testing.Batch_Length (Scan), 10,
+            "a re-target that drops its folders starts afresh");
+         Files.Folder_Size.Measuring.Cancel (Scan);
       end;
 
       --  The hand-over pace, on a clock of the test's own: an hour ahead, so
@@ -107,22 +110,23 @@ separate (Files_Suite.Info)
          Taken : Files.Folder_Size.Measurement_Vectors.Vector;
          Now   : Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (3_600);
       begin
-         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Paths);
          for Attempt in Polling loop
-            Files.Folder_Size.Step (Scan);
-            Files.Folder_Size.Take_Due (Scan, Now, Taken);
+            Files.Folder_Size.Measuring.Step (Scan);
+            Files.Folder_Size.Measuring.Take_Due (Scan, Now, Taken);
             Note (Taken, Seen, "handed over at the interval");
             declare
-               Working : constant Boolean := Files.Folder_Size.Testing.Is_Active (Scan);
+               Working : constant Boolean := Files.Folder_Size.Measuring.Testing.Is_Active (Scan);
             begin
                --  Just after a hand-over, nothing more while the helper works
                --  (Step alone queues more; nothing has run in between).
-               Files.Folder_Size.Take_Due (Scan, Now + Ada.Real_Time.Milliseconds (100), Taken);
+               Files.Folder_Size.Measuring.Take_Due (Scan, Now + Ada.Real_Time.Milliseconds (100), Taken);
                Assert (not Working or else Taken.Is_Empty, "nothing is handed over within the interval while working");
                Note (Taken, Seen, "handed over at the interval");
             end;
-            Now := Now + Files.Folder_Size.Hand_Over_Interval;
-            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Testing.Is_Active (Scan);
+            Now := Now + Files.Folder_Size.Measuring.Hand_Over_Interval;
+            exit when Natural (Seen.Length) >= Folders
+              and then not Files.Folder_Size.Measuring.Testing.Is_Active (Scan);
          end loop;
          Expect_All_Once (Seen, "handed over at the interval");
       end;

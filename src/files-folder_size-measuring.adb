@@ -15,7 +15,7 @@ with Hostkit.Fs;
 with Files.Path_Checks;
 with Files.Text_Basics;
 
-package body Files.Folder_Size is
+package body Files.Folder_Size.Measuring is
    use Ada.Strings.Unbounded;
 
    Max_Request_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
@@ -397,4 +397,4 @@ package body Files.Folder_Size is
          end;
       end loop;
    end Run_Helper;
-end Files.Folder_Size;
+end Files.Folder_Size.Measuring;

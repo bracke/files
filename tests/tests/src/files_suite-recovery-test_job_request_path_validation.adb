@@ -1,3 +1,4 @@
+with Files.Refresh.Watch.Testing;
 separate (Files_Suite.Recovery)
    procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,14 +41,14 @@ separate (Files_Suite.Recovery)
            (Root, Recent => True),
          "operation requests distinguish real roots from the synthetic Recent view: Recent view with a root");
       Assert
-        (Files.Refresh.Testing.Watch_Request_Path_Is_Valid (Root),
+        (Files.Refresh.Watch.Testing.Watch_Request_Path_Is_Valid (Root),
          "watch requests require absolute NUL-free paths: absolute path");
       Assert
-        (not Files.Refresh.Testing.Watch_Request_Path_Is_Valid
+        (not Files.Refresh.Watch.Testing.Watch_Request_Path_Is_Valid
            ("relative-watch"),
          "watch requests require absolute NUL-free paths: relative path");
       Assert
-        (not Files.Refresh.Testing.Watch_Request_Path_Is_Valid
+        (not Files.Refresh.Watch.Testing.Watch_Request_Path_Is_Valid
            (Root & Character'Val (0) & "ignored"),
          "watch requests require absolute NUL-free paths: NUL in path");
    end Test_Job_Request_Path_Validation;

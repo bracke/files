@@ -1,3 +1,4 @@
+with Files.Refresh.Watch;
 with Files.Application.Windows.Testing;
 with Files.Operations.History.Testing;
 with Files.Operations.Paste.Testing;
@@ -23,7 +24,7 @@ separate (Files_Suite.Recovery)
       Model       : aliased Files.Model.Window_Model;
       Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Watch       : Files.Refresh.Watch_Session;
+      Watch       : Files.Refresh.Watch.Watch_Session;
       Load        : Files.File_System.Directory_Load_Result;
       Step        : Files.Operation_Results.Operation_Result;
       Seen        : constant String := Join (Root, "cancel-seen");

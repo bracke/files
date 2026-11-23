@@ -1,5 +1,7 @@
 with Files.Jobs.Copy_Context;
 with Ada.Containers.Vectors;
+with Files.Paste;
+with Hostkit.Fs;
 
 --  Copying, moving and publishing entries: drop and paste plans, the
 --  import that preserves what it replaces and puts it back on failure,
@@ -24,6 +26,17 @@ package Files.File_System.Transfer is
       Plans     : Drop_Import_Plan_Vectors.Vector;
       Error_Key : UString;
    end record;
+
+   --  The naming rules of Directory, both asked of its filesystem, so every
+   --  resolution into it applies the same pair (Files.Paste stays pure).
+   --
+   --  @param Directory Destination directory; empty for none.
+   --  @return Its rules; neither for an empty Directory.
+   function Name_Rules_Of (Directory : String) return Files.Paste.Name_Rules is
+     (if Directory = ""
+      then (others => <>)
+      else (Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory),
+            Name_Limit => Hostkit.Fs.Leaf_Name_Limit_At (Directory)));
 
    --  Recursively copy a file or directory tree to a new destination path.
    --

@@ -117,7 +117,7 @@ begin
       Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
       return Result;
    end if;
-   Rules := Files.Paste.Name_Rules_Of (Destination_Directory);
+   Rules := Files.File_System.Transfer.Name_Rules_Of (Destination_Directory);
 
    for Source of Source_Paths loop
       declare

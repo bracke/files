@@ -6,6 +6,13 @@ package body Files.Controller.Testing is
       Text  : String)
      renames Files.Controller.Replace_Focused_Text;
 
+   procedure Note_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean)
+     renames Files.Controller.Note_Recent_Opens;
+
    function Commit_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;

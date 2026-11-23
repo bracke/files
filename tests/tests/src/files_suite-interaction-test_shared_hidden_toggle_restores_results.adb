@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Model.Info_Pane;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -41,7 +42,7 @@ separate (Files_Suite.Interaction)
       --  Another window hides hidden files.
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the window still shows its search results");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the hidden match leaves the view");
       Assert_Equal (Files.Model.Item_Count (Model), 3, "but stays among the results");
@@ -52,7 +53,7 @@ separate (Files_Suite.Interaction)
       --  And shows them again: the hidden match comes back without a search.
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the results stay when hidden files show again");
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the hidden match is back in view");
       Assert (Files.Model.Visible_Index_Of (Model, Join (Root, ".hidden_two")) > 0, "as a row of its own");
@@ -63,7 +64,7 @@ separate (Files_Suite.Interaction)
       Select_Name (Model, ".hidden_two");
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Selection.Selected_Count (Model) = 0, "a hidden selection is dropped once out of view");
       Reset_Root;
    end Test_Shared_Hidden_Toggle_Restores_Results;

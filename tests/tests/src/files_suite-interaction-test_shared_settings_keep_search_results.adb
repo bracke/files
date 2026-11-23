@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -46,7 +47,7 @@ separate (Files_Suite.Interaction)
       --  Another window hides hidden files.
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the window still shows its search results");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the hidden result goes, and nothing is read again");
       Assert (Name_At (1) = "Alpha.txt" and then Name_At (2) = "Beta.txt", "the results keep their order");
@@ -56,7 +57,7 @@ separate (Files_Suite.Interaction)
       --  And then sorts the other way.
       Shared := Settings;
       Shared.Sort_Ascending := not Settings.Sort_Ascending;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the results stay through a new order");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "with the same items");
       Assert (Name_At (1) = "Beta.txt" and then Name_At (2) = "Alpha.txt", "the new order applies to them");
@@ -81,7 +82,7 @@ separate (Files_Suite.Interaction)
       Assert (Files.Model.Folder_Sizes.Cached_For (Model, Folder), "the folder's size is measured");
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the listing is read again with hidden files");
       Assert (Files.Model.Folder_Sizes.Cached_For (Model, Folder), "and the size measured is kept");
       Reset_Root;

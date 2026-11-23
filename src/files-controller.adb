@@ -35,6 +35,7 @@ with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
 with Files.Model.Recent;
 with Files.Settings.Storage;
+with Files.Refresh;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -467,6 +468,27 @@ package body Files.Controller is
          Commit_Settings (Model, Settings, Moved, Settings_Path, Accepted => Accepted);
       end if;
    end Note_Recent_Opens;
+
+   procedure Finish_Dispatch
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean) is
+   begin
+      Note_Recent_Opens (Model, Settings, Settings_Path, Accepted);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+   end Finish_Dispatch;
+
+   procedure Adopt_Shared_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Shared   : Files.Settings.Settings_Model)
+   is
+      Before : constant Files.Settings.Settings_Model := Settings;
+   begin
+      Settings := Shared;
+      Take_In_Settings (Model, Before, Settings);
+   end Adopt_Shared_Settings;
 
    procedure Remember_Window_Size
      (Model         : in out Files.Model.Window_Model;
@@ -904,6 +926,30 @@ package body Files.Controller is
       Files.Model.Pasting.Toggle_Conflict_Apply_All (Model);
       return Make_Result (Controller_Command_Executed);
    end Handle_Conflict_Apply_All_Toggle;
+
+   function Handle_Conflict_Button
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Button   : Files.Input_Actions.Conflict_Button_Kind)
+      return Controller_Result
+   is
+      use Files.Input_Actions;
+   begin
+      case Button is
+         when Conflict_Button_Replace =>
+            return Handle_Conflict_Choice (Model, Settings, Files.Operations.Paste.Choice_Replace);
+         when Conflict_Button_Skip =>
+            return Handle_Conflict_Choice (Model, Settings, Files.Operations.Paste.Choice_Skip);
+         when Conflict_Button_Rename =>
+            return Handle_Conflict_Choice (Model, Settings, Files.Operations.Paste.Choice_Rename);
+         when Conflict_Button_Cancel =>
+            return Handle_Conflict_Choice (Model, Settings, Files.Operations.Paste.Choice_Cancel);
+         when Conflict_Button_Apply_All =>
+            return Handle_Conflict_Apply_All_Toggle (Model);
+         when No_Conflict_Button =>
+            return Make_Result (Controller_Ignored);
+      end case;
+   end Handle_Conflict_Button;
 
    function Handle_Foreground_Job_Cancel
      (Model    : in out Files.Model.Window_Model;

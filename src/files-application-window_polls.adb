@@ -16,6 +16,7 @@ with Guikit.Shared_Bytes;
 with Files.Extra_Info;
 with Files.File_System;
 with Files.Folder_Size;
+with Files.Folder_Size.Measuring;
 with Files.Images;
 with Files.Items;
 with Files.Model.Folder_Sizes;
@@ -101,11 +102,11 @@ package body Files.Application.Window_Polls is
 
       procedure Poll (Scan : in out Files.Folder_Size.Session) is
       begin
-         Files.Folder_Size.Step (Scan);
+         Files.Folder_Size.Measuring.Step (Scan);
          --  Handed over a few times a second, not one by one: each hand-over
          --  gives the window a snapshot to patch.
          if not Paused then
-            Files.Folder_Size.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
+            Files.Folder_Size.Measuring.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
          end if;
       end Poll;
    begin
@@ -116,7 +117,7 @@ package body Files.Application.Window_Polls is
          procedure Measure_Again (Scan : in out Files.Folder_Size.Session) is
          begin
             for Folder of Stale loop
-               Files.Folder_Size.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
+               Files.Folder_Size.Measuring.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
             end loop;
          end Measure_Again;
       begin
@@ -162,8 +163,8 @@ package body Files.Application.Window_Polls is
       procedure Cancel (Scan : in out Files.Folder_Size.Session) is
          Discarded : Files.Folder_Size.Measurement_Vectors.Vector;
       begin
-         Files.Folder_Size.Cancel (Scan);
-         Files.Folder_Size.Take_All (Scan, Discarded);
+         Files.Folder_Size.Measuring.Cancel (Scan);
+         Files.Folder_Size.Measuring.Take_All (Scan, Discarded);
       end Cancel;
    begin
       Files.Model.Folder_Sizes.Update_Scan (Model, Cancel'Access);
@@ -184,7 +185,7 @@ package body Files.Application.Window_Polls is
 
          procedure Check (Scan : in out Files.Folder_Size.Session) is
          begin
-            Current := Files.Folder_Size.Targets_Set_For (Scan, Rows, Selection);
+            Current := Files.Folder_Size.Measuring.Targets_Set_For (Scan, Rows, Selection);
          end Check;
       begin
          Files.Model.Folder_Sizes.Update_Scan (Model, Check'Access);
@@ -223,8 +224,8 @@ package body Files.Application.Window_Polls is
 
                procedure Retarget (Scan : in out Files.Folder_Size.Session) is
                begin
-                  Files.Folder_Size.Set_Targets (Scan, Targets);
-                  Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
+                  Files.Folder_Size.Measuring.Set_Targets (Scan, Targets);
+                  Files.Folder_Size.Measuring.Note_Targets_Set_For (Scan, Rows, Selection);
                end Retarget;
             begin
                Files.Model.Folder_Sizes.Update_Scan (Model, Retarget'Access);
@@ -241,7 +242,7 @@ package body Files.Application.Window_Polls is
 
             procedure Note (Scan : in out Files.Folder_Size.Session) is
             begin
-               Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
+               Files.Folder_Size.Measuring.Note_Targets_Set_For (Scan, Rows, Selection);
             end Note;
          begin
             Files.Model.Folder_Sizes.Update_Scan (Model, Note'Access);

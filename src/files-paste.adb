@@ -254,12 +254,6 @@ package body Files.Paste is
       return Actions;
    end Resolve;
 
-   function Name_Rules_Of (Directory : String) return Name_Rules is
-     (if Directory = ""
-      then (others => <>)
-      else (Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory),
-            Name_Limit => Hostkit.Fs.Leaf_Name_Limit_At (Directory)));
-
    function Next_Unresolved_Conflict
      (Items     : Work_Item_Vectors.Vector;
       Policy    : Conflict_Policy;

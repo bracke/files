@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
 
-package body Files.Folder_Size.Testing is
+package body Files.Folder_Size.Measuring.Testing is
 
    function Target (Scan : Session) return String is
      (if Scan.Next_Result <= Natural (Scan.Batch.Length)
@@ -16,10 +16,11 @@ package body Files.Folder_Size.Testing is
 
    function Helper_Starts return Natural is (Test_Helper_Starts);
 
-   function Is_Active (Scan : Session) return Boolean renames Files.Folder_Size.Is_Active;
+   function Is_Active (Scan : Session) return Boolean renames Files.Folder_Size.Measuring.Is_Active;
 
-   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector) renames Files.Folder_Size.Set_Targets;
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector)
+     renames Files.Folder_Size.Measuring.Set_Targets;
 
-   procedure Request (Scan : in out Session; Path : String) renames Files.Folder_Size.Request;
+   procedure Request (Scan : in out Session; Path : String) renames Files.Folder_Size.Measuring.Request;
 
-end Files.Folder_Size.Testing;
+end Files.Folder_Size.Measuring.Testing;

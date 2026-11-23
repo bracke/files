@@ -1,4 +1,3 @@
-with Files.Operations.Paste;
 with Files.Input_Actions;
 separate (Files.Interaction)
    procedure Apply_Input_Action
@@ -9,21 +8,13 @@ separate (Files.Interaction)
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
+      use type Files.Input_Actions.Conflict_Button_Kind;
+
       Before    : constant Files.Settings.Settings_Model := Settings;
       Before_UI : constant UI_State := UI_State_Of (Model);
       --  What a controller entry answered, when one was asked (Asked).
       Outcome : Files.Controller.Controller_Result;
       Asked   : Boolean := False;
-
-      --  The paste-conflict dialog's answer buttons, and the choice each one
-      --  gives (Apply_All toggles instead of answering).
-      subtype Conflict_Answer_Button is Files.Input_Actions.Conflict_Button_Kind
-        range Files.Input_Actions.Conflict_Button_Replace .. Files.Input_Actions.Conflict_Button_Cancel;
-      Conflict_Choices : constant array (Conflict_Answer_Button) of Files.Operations.Paste.Conflict_Choice :=
-        [Files.Input_Actions.Conflict_Button_Replace => Files.Operations.Paste.Choice_Replace,
-         Files.Input_Actions.Conflict_Button_Skip    => Files.Operations.Paste.Choice_Skip,
-         Files.Input_Actions.Conflict_Button_Rename  => Files.Operations.Paste.Choice_Rename,
-         Files.Input_Actions.Conflict_Button_Cancel  => Files.Operations.Paste.Choice_Cancel];
 
       --  The path bar's star: the current folder, whatever is selected.
       procedure Toggle_Current_Favorite is
@@ -167,18 +158,8 @@ separate (Files.Interaction)
                Outcome := Files.Controller.Activate_Palette_Command (Model, Settings, Modifiers);
             end if;
          when Files.Input_Actions.Conflict_Click_Input_Action =>
-            case Action.Conflict_Button is
-               when Conflict_Answer_Button =>
-                  Asked := True;
-                  Outcome :=
-                    Files.Controller.Handle_Conflict_Choice
-                      (Model, Settings, Conflict_Choices (Action.Conflict_Button));
-               when Files.Input_Actions.Conflict_Button_Apply_All =>
-                  Asked := True;
-                  Outcome := Files.Controller.Handle_Conflict_Apply_All_Toggle (Model);
-               when Files.Input_Actions.No_Conflict_Button =>
-                  Outcome := (others => <>);
-            end case;
+            Asked := Action.Conflict_Button /= Files.Input_Actions.No_Conflict_Button;
+            Outcome := Files.Controller.Handle_Conflict_Button (Model, Settings, Action.Conflict_Button);
          when Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action
             | Files.Input_Actions.Column_Resize_Begin_Input_Action
             | Files.Input_Actions.Column_Reorder_Begin_Input_Action

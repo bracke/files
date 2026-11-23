@@ -9,6 +9,19 @@ package Files.Controller.Testing is
      (Model : in out Files.Model.Window_Model;
       Text  : String);
 
+   --  Fold the queued opened items and path moves into the settings as one
+   --  edit (Files.Controller.Note_Recent_Opens).
+   --
+   --  @param Model Model whose queues are drained.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when a change took.
+   procedure Note_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
    --  The one policy for a settings change (Files.Controller.Commit_Settings):
    --  Updated replaces Settings and is saved, unless the file could not hold
    --  it -- then it is refused whole and the error line says so.

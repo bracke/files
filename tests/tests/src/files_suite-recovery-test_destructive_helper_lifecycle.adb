@@ -1,3 +1,4 @@
+with Files.Refresh.Watch;
 with Files.Application.Windows.Testing;
 with Files.Operations.History.Testing;
 with Files.Operations.History;
@@ -12,7 +13,7 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
-      Watch : Files.Refresh.Watch_Session;
+      Watch : Files.Refresh.Watch.Watch_Session;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operation_Results.Operation_Result;
       Before : Instant;

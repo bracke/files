@@ -1,5 +1,5 @@
 with Files.Commands;
-with Files.Desktop_Applications;
+with Files.Desktop_Application_Types;
 with Guikit.Command_Palette;
 --  The command palette overlay: opening and closing it, its query and selection, the
 --  Open With listing it can show instead of the commands, the command list
@@ -72,7 +72,7 @@ package Files.Model.Command_Palette is
    procedure Open_With
      (Model        : in out Window_Model;
       Targets      : Files.Types.String_Vectors.Vector;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector);
+      Applications : Files.Desktop_Application_Types.Application_Vectors.Vector);
 
    --  Close the command palette.
    --
@@ -169,7 +169,7 @@ package Files.Model.Command_Palette is
    --    picker Id is a one-based index into it.
    function Open_With_Applications
      (Model : Window_Model)
-      return Files.Desktop_Applications.Application_Vectors.Vector;
+      return Files.Desktop_Application_Types.Application_Vectors.Vector;
 
    --  Focus the command-palette input without changing its existing query.
    --

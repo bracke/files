@@ -25,9 +25,7 @@ begin
 
    declare
       Load : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory_Deferring_Thumbnails
-          (To_String (Path_Result.Directory_Path), Files.Settings.Classification_Of (Settings),
-           Files.Settings.Listing_Options_Of (Settings));
+        Support.Load_Folder (Settings, To_String (Path_Result.Directory_Path));
    begin
       if not Load.Success then
          Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -35,11 +33,7 @@ begin
       end if;
 
       Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
-      Settle_Current_Is_Trash (Model);
-      Files.Model.Set_Directory_Signature (Model, Load.Signature);
-      Files.Model.Set_Error (Model, "");
-      --  Last, once the listing it refreshes is the current one.
-      Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
+      Support.Show_Loaded_Folder (Model, Load);
       return Make_Result (Operation_Navigated, Path => To_String (Path_Result.Directory_Path));
    end;
 end Commit_Path_Input;

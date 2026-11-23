@@ -7,7 +7,6 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;
 
 with Hostkit.Metadata;
-with Hostkit.Fs;
 with Files.File_System.Copying;
 with Files.File_System.Recovery;
 with Files.File_Identities;

@@ -1,4 +1,5 @@
-with Files.Folder_Size.Testing;
+with Files.Folder_Size.Measuring;
+with Files.Folder_Size.Measuring.Testing;
 with Files.File_System_Types;
 separate (Files_Suite.Info)
    procedure Test_Background_Folder_Size_Matches_Reference
@@ -26,17 +27,17 @@ separate (Files_Suite.Info)
 
       Reference := Files.File_System.Directory_Size (Tree);
 
-      Files.Folder_Size.Cancel (Scan);
-      Files.Folder_Size.Testing.Request (Scan, Tree);
+      Files.Folder_Size.Measuring.Cancel (Scan);
+      Files.Folder_Size.Measuring.Testing.Request (Scan, Tree);
       for Attempt in Polling loop
-         Files.Folder_Size.Step (Scan);
-         Files.Folder_Size.Take_All (Scan, Taken);
+         Files.Folder_Size.Measuring.Step (Scan);
+         Files.Folder_Size.Measuring.Take_All (Scan, Taken);
          Available := not Taken.Is_Empty;
          if Available then
             Path := Taken.First_Element.Path;
             Result := Taken.First_Element.Result;
          end if;
-         exit when Available or else not Files.Folder_Size.Testing.Is_Active (Scan);
+         exit when Available or else not Files.Folder_Size.Measuring.Testing.Is_Active (Scan);
       end loop;
 
       Assert (Available, "background scan produced a finished result");

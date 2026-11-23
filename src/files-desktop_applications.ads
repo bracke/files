@@ -1,5 +1,6 @@
 with Ada.Containers.Vectors;
 
+with Files.Desktop_Application_Types;
 with Files.Settings;
 with Files.Types;
 
@@ -7,23 +8,8 @@ with Files.Types;
 package Files.Desktop_Applications is
    subtype UString is Files.Types.UString;
 
-   type Application is record
-      Name         : UString;
-      Exec         : UString;
-      Icon         : UString;
-      Desktop_File : UString;
-      --  Terminal=true: the program runs inside a terminal emulator
-      --  (Launch_Actions wraps it in one).
-      Terminal     : Boolean := False;
-      --  Path=: the folder the entry asks to run in, decoded; empty when it
-      --  names none. Launch_Actions hands it to the launch as its working
-      --  directory.
-      Working_Directory : UString;
-   end record;
-
-   package Application_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Application);
+   subtype Application is Files.Desktop_Application_Types.Application;
+   package Application_Vectors renames Files.Desktop_Application_Types.Application_Vectors;
 
    package Open_Action_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,

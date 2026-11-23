@@ -1,4 +1,5 @@
-with Files.Folder_Size.Testing;
+with Files.Folder_Size.Measuring;
+with Files.Folder_Size.Measuring.Testing;
 with Files.Jobs.Process.Testing;
 separate (Files_Suite.Info)
    --  Folder sizes get an answer through faults: a helper that will not
@@ -32,8 +33,8 @@ separate (Files_Suite.Info)
          Measured := 0;
          Unmeasured := 0;
          for Attempt in Polling loop
-            Files.Folder_Size.Step (Scan);
-            Files.Folder_Size.Take_All (Scan, Taken);
+            Files.Folder_Size.Measuring.Step (Scan);
+            Files.Folder_Size.Measuring.Take_All (Scan, Taken);
             for Done of Taken loop
                if Done.Result.Available then
                   Assert (Done.Result.File_Count = 1 and then Done.Result.Total_Bytes = 3,
@@ -43,7 +44,7 @@ separate (Files_Suite.Info)
                   Unmeasured := Unmeasured + 1;
                end if;
             end loop;
-            exit when Measured + Unmeasured >= Count and then not Files.Folder_Size.Testing.Is_Active (Scan);
+            exit when Measured + Unmeasured >= Count and then not Files.Folder_Size.Measuring.Testing.Is_Active (Scan);
          end loop;
          Files_Suite.Support.Assert_Equal (Measured + Unmeasured, Count, What & ": every folder is answered once");
       end Measure_All;
@@ -53,30 +54,30 @@ separate (Files_Suite.Info)
       --  The first helper (256 folders) will not start; the other 44 must
       --  still be measured rather than wait for a change of selection.
       Files.Jobs.Process.Testing.Refuse_Next_Launch;
-      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (300));
+      Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Folders (300));
       Measure_All (300, Measured, Unmeasured, "after a refused launch");
       Files.Jobs.Process.Testing.Clear_Refusal;
       Files_Suite.Support.Assert_Equal (Unmeasured, 256, "the refused helper's batch is answered unmeasured");
       Files_Suite.Support.Assert_Equal (Measured, 44, "the folders after it are measured");
 
       --  Results that will not open at first are read again.
-      Files.Folder_Size.Testing.Fail_Result_Reads (3);
-      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (4));
+      Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (3);
+      Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Folders (4));
       Measure_All (4, Measured, Unmeasured, "with results slow to open");
-      Files.Folder_Size.Testing.Fail_Result_Reads (0);
+      Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (0);
       Files_Suite.Support.Assert_Equal (Measured, 4, "a result that opens late is still measured");
 
       --  Results that never open are answered unmeasured once the helper ends.
-      Files.Folder_Size.Testing.Fail_Result_Reads (Natural'Last);
-      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (2));
+      Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (Natural'Last);
+      Files.Folder_Size.Measuring.Testing.Set_Targets (Scan, Folders (2));
       Measure_All (2, Measured, Unmeasured, "with results that never open");
-      Files.Folder_Size.Testing.Fail_Result_Reads (0);
+      Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (0);
       Files_Suite.Support.Assert_Equal (Unmeasured, 2, "a result that never opens is answered unmeasured");
-      Files.Folder_Size.Cancel (Scan);
+      Files.Folder_Size.Measuring.Cancel (Scan);
    exception
       when others =>
          Files.Jobs.Process.Testing.Clear_Refusal;
-         Files.Folder_Size.Testing.Fail_Result_Reads (0);
-         Files.Folder_Size.Cancel (Scan);
+         Files.Folder_Size.Measuring.Testing.Fail_Result_Reads (0);
+         Files.Folder_Size.Measuring.Cancel (Scan);
          raise;
    end Test_Folder_Size_Survives_Faults;

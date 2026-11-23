@@ -4,7 +4,6 @@ with Files.Commands.Context_Menus;
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Refresh;
 with Files.Items;
 with Ada.Strings.Unbounded;
 
@@ -12,7 +11,6 @@ with Guikit.Layout;
 with Guikit.Mirroring;
 with Guikit.Settings_Panel;
 
-with Files.Operations;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
@@ -97,34 +95,8 @@ package body Files.Interaction is
       Files.Controller.Label_Selection (Model, Settings, Settings_Path, Label, Accepted => Result.Settings_Changed);
    end Apply_Label;
 
-   --  Fold the paths the model queued (opened items, moves) into the
-   --  settings: Controller.Note_Recent_Opens. A no-op when nothing was
-   --  queued, so it is safe to call after every dispatch seam.
-   procedure Persist_Recent_Opens
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Result        : in out Interaction_Result)
-   is
-      Accepted : Boolean;
-   begin
-      Files.Controller.Note_Recent_Opens (Model, Settings, Settings_Path, Accepted);
-      Result.Settings_Changed := Result.Settings_Changed or else Accepted;
-   end Persist_Recent_Opens;
-
    subtype UI_State is Files.Controller.UI_State;
    function UI_State_Of (Model : Files.Model.Window_Model) return UI_State renames Files.Controller.UI_State_Of;
-
-   procedure Adopt_Shared_Settings
-     (Model    : in out Files.Model.Window_Model;
-      Settings : in out Files.Settings.Settings_Model;
-      Shared   : Files.Settings.Settings_Model)
-   is
-      Before : constant Files.Settings.Settings_Model := Settings;
-   begin
-      Settings := Shared;
-      Files.Controller.Take_In_Settings (Model, Before, Settings);
-   end Adopt_Shared_Settings;
 
    --  Whether a settings command ran, judged by what it did, not by whether
    --  it is enabled now: Clear Recent, say, disables itself by running. A
@@ -215,19 +187,20 @@ package body Files.Interaction is
       Result.Command := Command;
    end Execute_Command;
 
-   --  What every key and action dispatch ends with: any item opened folded
-   --  into the recent list, and the selected item's lazily computed extra
-   --  info. The folder-size targets follow on the window's poll
+   --  What every key, action and drop dispatch ends with
+   --  (Controller.Finish_Dispatch). The folder-size targets follow on the window's poll
    --  (Poll_Window_Workers), which retargets once the items or the selection
    --  have moved.
    procedure Finish_Dispatch
      (Model                 : in out Files.Model.Window_Model;
       Settings              : in out Files.Settings.Settings_Model;
       Settings_Path         : String;
-      Result                : in out Interaction_Result) is
+      Result                : in out Interaction_Result)
+   is
+      Accepted : Boolean;
    begin
-      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-      Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+      Files.Controller.Finish_Dispatch (Model, Settings, Settings_Path, Accepted);
+      Result.Settings_Changed := Result.Settings_Changed or else Accepted;
    end Finish_Dispatch;
 
    procedure Handle_Key
@@ -264,7 +237,7 @@ package body Files.Interaction is
          return;
       end if;
       Files.Controller.Import_Pending_Drops (Model, Settings, Source);
-      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
+      Finish_Dispatch (Model, Settings, Settings_Path, Result);
    end Import_Drops;
 
    procedure Apply_Input_Action

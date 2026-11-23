@@ -6,7 +6,7 @@ package body Files.Application.Windows.Testing is
 
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh.Watch_Session)
+      Watch : in out Files.Refresh.Watch.Watch_Session)
      renames Files.Application.Windows.Release_Window_Jobs;
 
    function Runtime_Capabilities return Desktop_Capabilities

@@ -29,9 +29,9 @@ package body Files.Jobs.Records is
    procedure Publish_Result
      (Directory : String;
       Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
-      Name      : String := Files.Jobs.Process.Result_File)
+      Name      : String := Files.Protocol_Names.Result_File)
    is
-      Staged   : constant String := Hostkit.Fs.Join (Directory, Files.Jobs.Process.Staged_Name (Name));
+      Staged   : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Name (Name));
       Result   : constant String := Hostkit.Fs.Join (Directory, Name);
       Identity : Files.Types.UString;
    begin

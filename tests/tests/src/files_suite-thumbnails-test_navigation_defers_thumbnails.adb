@@ -1,3 +1,4 @@
+with Files.Refresh;
 with Files_Suite.Support.Models;
 with Files.Operations.Opening;
 with Files_Suite.Listings;
@@ -44,8 +45,11 @@ separate (Files_Suite.Thumbnails)
         (Step.Status, Files.Operation_Results.Operation_Navigated, "opening the folder navigates into it");
       Assert (Files.Model.Current_Path (Model) = Photos and then not Photo_Has_Thumbnail,
               "opening the folder shows it at once, before its thumbnail exists");
+      Assert (Files.Model.Refresh_Is_Owed (Model) and then Files.Model.Owed_Refresh_Force (Model),
+              "and owes the background listing that makes it");
+      Files.Refresh.Resume_Owed (Model, Settings);
       Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
-              "and starts the background listing that makes it");
+              "which the window's poll starts");
       Await_View (Model, Settings);
       Assert (Photo_Has_Thumbnail, "the background listing brings the thumbnail");
    end Test_Navigation_Defers_Thumbnails;

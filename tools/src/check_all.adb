@@ -385,7 +385,7 @@ procedure Check_All is
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
-   --  Package_Name but Allowed: qualified (Files.Folder_Size.Cancel) or not
+   --  Package_Name but Allowed: qualified (Files.Folder_Size.Measuring.Cancel) or not
    --  (Folder_Size.Cancel, legal in a child of Files), comments ignored, and
    --  never through a use clause or a renaming of the package, which would
    --  let a name go unqualified. An allow-list: a new name is caught without

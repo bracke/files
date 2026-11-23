@@ -3,7 +3,7 @@ with Files.Operations.Paste;
 separate (Files.Application.Windows)
 procedure Release_Window_Jobs
   (Model : in out Files.Model.Window_Model;
-   Watch : in out Files.Refresh.Watch_Session)
+   Watch : in out Files.Refresh.Watch.Watch_Session)
 is
    use type Files.Model.Foreground_Job_Kind;
 begin
@@ -27,5 +27,5 @@ begin
    end if;
    Files.Model.Jobs.End_Foreground_Job (Model);
    Files.Refresh.Cancel (Model);
-   Files.Refresh.Release_Watch (Watch);
+   Files.Refresh.Watch.Release_Watch (Watch);
 end Release_Window_Jobs;

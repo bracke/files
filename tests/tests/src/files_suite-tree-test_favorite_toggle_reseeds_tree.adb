@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Model.Recent;
 with Files.Input_Actions;
 with Files.Model.Tree_Panel;
@@ -79,7 +80,7 @@ separate (Files_Suite.Tree)
          Shared : Files.Settings.Settings_Model := Settings;
       begin
          Files.Settings.Path_References.Toggle_Favorite_Path (Shared, Item);
-         Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+         Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
          Assert (Tree_Has_Root (Item), "a favorite another window added is a root of the shown tree");
       end;
    end Test_Favorite_Toggle_Reseeds_Tree;

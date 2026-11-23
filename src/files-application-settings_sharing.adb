@@ -1,4 +1,4 @@
-with Files.Interaction;
+with Files.Controller;
 
 package body Files.Application.Settings_Sharing is
 
@@ -26,7 +26,7 @@ package body Files.Application.Settings_Sharing is
       Shared            : Files.Settings.Settings_Model;
       Frame_Cache_Valid : out Boolean) is
    begin
-      Files.Interaction.Adopt_Shared_Settings (Model => Model, Settings => Settings, Shared => Shared);
+      Files.Controller.Adopt_Shared_Settings (Model => Model, Settings => Settings, Shared => Shared);
       Frame_Cache_Valid := False;
    end Adopt_Window;
 

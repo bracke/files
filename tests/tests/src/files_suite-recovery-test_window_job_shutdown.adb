@@ -1,3 +1,4 @@
+with Files.Refresh.Watch;
 with Files.Application.Windows.Testing;
 with Files.Jobs.Process.Testing;
 with Files.Operations.Paste.Testing;
@@ -15,7 +16,7 @@ separate (Files_Suite.Recovery)
       Closing_Paste : Files_Suite.Support.Guards.Paste_Guard (Closing'Access);
       Remaining_Paste : Files_Suite.Support.Guards.Paste_Guard (Remaining'Access);
       pragma Unreferenced (Closing_Paste, Remaining_Paste);
-      Closing_Watch, Remaining_Watch : Files.Refresh.Watch_Session;
+      Closing_Watch, Remaining_Watch : Files.Refresh.Watch.Watch_Session;
       Empty : Files.Jobs.Process.Session;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Started, Other_Started : Unbounded_String;
@@ -93,7 +94,7 @@ separate (Files_Suite.Recovery)
                   Await_Started (To_String (Started));
                end;
          end case;
-         Files.Refresh.Watch_Path (Closing_Watch, Root);
+         Files.Refresh.Watch.Watch_Path (Closing_Watch, Root);
          Before := Now;
          Files.Application.Windows.Testing.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Testing.Release_Window_Jobs (Closing, Closing_Watch);

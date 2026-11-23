@@ -6,7 +6,6 @@ with Files.Jobs.Context;
 with Ada.Directories;
 with Files.Diagnostics;
 
-with Files.File_System;
 with Files.File_System.Transfer;
 with Files.Refresh;
 with Files.IO.Fs_Primitives;
@@ -159,9 +158,7 @@ package body Files.Operations.Support is
 
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory_Deferring_Thumbnails
-                (Files.Model.Current_Path (Model), Files.Settings.Classification_Of (Settings),
-                 Files.Settings.Listing_Options_Of (Settings));
+              Load_Folder (Settings, Files.Model.Current_Path (Model));
          begin
             if not Load.Success then
                Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -170,7 +167,6 @@ package body Files.Operations.Support is
             end if;
 
             Files.Model.Replace_Items (Model, Load.Items);
-            Files.Model.Set_Directory_Signature (Model, Load.Signature);
             if Select_Path /= "" then
                Files.Model.Selection.Restore
                  (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1), Select_Path);
@@ -185,15 +181,10 @@ package body Files.Operations.Support is
                Files.Model.Selection.Restore
                  (Model, Previous_Selection, Previous_Primary);
             end if;
-            Files.Model.Set_Error (Model, "");
+            --  A reload runs after every operation: it must not decode each
+            --  new image while the UI waits, as no folder shown does.
+            Show_Loaded_Folder (Model, Load, Moved => False);
             Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
-            --  A reload runs after every operation, so it must not decode each
-            --  new image in the folder while the UI waits: as on navigation, the
-            --  missing thumbnails are left to a background listing, which the
-            --  window's next poll launches.
-            if Files.File_System.Thumbnails_Missing (Load.Items) then
-               Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
-            end if;
             return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
          end;
       end Reload_In_Place;
@@ -272,20 +263,29 @@ package body Files.Operations.Support is
       end if;
    end Reload_With_Error;
 
-   procedure Generate_Missing_Thumbnails
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Items    : Files.Items.Item_Vectors.Vector) is
+   function Load_Folder
+     (Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Files.File_System.Directory_Load_Result is
+     (Files.File_System.Load_Directory_Deferring_Thumbnails
+        (Path, Files.Settings.Classification_Of (Settings), Files.Settings.Listing_Options_Of (Settings)));
+
+   procedure Show_Loaded_Folder
+     (Model : in out Files.Model.Window_Model;
+      Load  : Files.File_System.Directory_Load_Result;
+      Moved : Boolean := True) is
    begin
-      if Files.File_System.Thumbnails_Missing (Items) then
-         declare
-            Started : constant Operation_Result := Files.Refresh.Start (Model, Settings, Force => True);
-            pragma Unreferenced (Started);
-         begin
-            null;
-         end;
+      if Moved then
+         Settle_Current_Is_Trash (Model);
       end if;
-   end Generate_Missing_Thumbnails;
+      Files.Model.Set_Directory_Signature (Model, Load.Signature);
+      Files.Model.Set_Error (Model, "");
+      --  Last, once the listing it refreshes is the current one: a debt
+      --  noted before the view moved would be moot.
+      if Files.File_System.Thumbnails_Missing (Load.Items) then
+         Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
+      end if;
+   end Show_Loaded_Folder;
 
    function Publish_Staged
      (Staged   : String;

@@ -1,4 +1,3 @@
-with Files.Protocol_Names;
 with Files.Diagnostics;
 with Files.Timing;
 with Ada.Directories;

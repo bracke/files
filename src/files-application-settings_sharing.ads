@@ -37,7 +37,7 @@ package Files.Application.Settings_Sharing is
       Source  : Positive);
 
    --  What adopting another window's settings does to one window: the
-   --  window takes them (Files.Interaction.Adopt_Shared_Settings) and its
+   --  window takes them (Files.Controller.Adopt_Shared_Settings) and its
    --  cached frame is dropped. The view snapshot needs no invalidating:
    --  it is rebuilt when the settings it reads differ, but the cached frame
    --  does not compare them. Files.Application.Windows.Share_Settings_From

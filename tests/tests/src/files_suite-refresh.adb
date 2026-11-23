@@ -8,7 +8,6 @@ with Files.Items;
 with Files.Model.Testing;
 with Files.Jobs.Process;
 with Files.Refresh;
-with Files.Refresh.Testing;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;

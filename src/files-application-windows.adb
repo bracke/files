@@ -295,7 +295,7 @@ package body Files.Application.Windows is
    --  catches up its mark. For_Each_Window shares after every window's step,
    --  so two windows can never both have unshared changes (which would leave
    --  only one of them to win).
-   --  Each other window adopts them (Interaction.Adopt_Shared_Settings): an
+   --  Each other window adopts them (Controller.Adopt_Shared_Settings): an
    --  open settings pane there is refreshed, a listing whose options or type
    --  mappings changed is reloaded. Files.Application.Settings_Sharing.Share_From makes
    --  the decisions. Only windows from From on take them (a window being
@@ -386,7 +386,7 @@ package body Files.Application.Windows is
 
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh.Watch_Session) is separate;
+      Watch : in out Files.Refresh.Watch.Watch_Session) is separate;
 
    --  Poll every window's watched directory for changes.
    procedure Handle_All_File_Watch_Poll

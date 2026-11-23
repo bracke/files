@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Ada.Directories;
 with Files.Model.Recent;
 with Files.Preference_Types;
@@ -37,7 +38,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
          Files.Model.Recent.Note_Path_Move (Model, "/d", "/e");
          Files.Model.Recent.Note_Recent_Open (Model, "/opened");
-         Files.Controller.Note_Recent_Opens (Model, Settings, Path, Accepted);
+         Files.Controller.Testing.Note_Recent_Opens (Model, Settings, Path, Accepted);
          Assert (Accepted, "the opens and the moves are taken");
          Assert (Files.Settings.Path_References.Label_Of (Settings, "/e/f") = Gray, "the label followed the move");
          Assert (Recent_Has (Settings, "/opened"), "the open is recorded");
@@ -76,7 +77,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
          Files.Model.Recent.Note_Path_Move (Model, "/d", "/e");
          Files.Model.Recent.Note_Recent_Open (Model, "/opened");
-         Files.Controller.Note_Recent_Opens (Model, Settings, "", Accepted);
+         Files.Controller.Testing.Note_Recent_Opens (Model, Settings, "", Accepted);
          Assert (Accepted, "the moves go in on their own");
          Assert
            (Files.Settings.Path_References.Label_Of (Settings, "/e/f 1") = Gray,

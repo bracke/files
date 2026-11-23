@@ -2,7 +2,6 @@ with Files.IO.Record_Fields;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
-with Ada.Strings.Unbounded;
 
 package body Files.Refresh.Testing is
    use type Ada.Streams.Stream_Element_Offset;
@@ -12,9 +11,6 @@ package body Files.Refresh.Testing is
      (Root, Previous_Path : String;
       Recent              : Boolean) return Boolean is
      (Request_Paths_Are_Consistent (Root, Previous_Path, Recent));
-
-   function Watch_Request_Path_Is_Valid (Path : String) return Boolean is
-     (Watch_Path_Is_Consistent (Path));
 
    procedure Close (File : in out Ada.Streams.Stream_IO.File_Type) is
    begin
@@ -108,26 +104,5 @@ package body Files.Refresh.Testing is
          end;
          raise;
    end Replace_Result_Flags;
-
-   function Claim_Notification (Directory : String) return Boolean is
-     (Claim_Watch_Notification (Directory));
-
-   function Post_Notification (Directory : String) return Boolean is
-     (Post_Watch_Notification (Directory));
-
-   function Watch_Target (Job : Watch_Session) return String is
-     (Ada.Strings.Unbounded.To_String (Job.Path));
-
-   function Watch_Refresh_Due
-     (Pacer   : in out Watch_Pacer;
-      Now     : Ada.Real_Time.Time;
-      Changed : Boolean) return Boolean renames Files.Refresh.Watch_Refresh_Due;
-
-   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean) renames Files.Refresh.Owe_Watch_Refresh;
-
-   function Retry_Due
-     (Pacer       : in out Watch_Pacer;
-      Now         : Ada.Real_Time.Time;
-      Load_Failed : Boolean) return Boolean renames Files.Refresh.Retry_Due;
 
 end Files.Refresh.Testing;

@@ -1,7 +1,8 @@
 with Ada.Strings.Unbounded;
 
 with Files.Folder_Size;
-with Files.Folder_Size.Testing;
+with Files.Folder_Size.Measuring;
+with Files.Folder_Size.Measuring.Testing;
 with Files.Model.History;
 with Files.Model.Support;
 
@@ -11,10 +12,10 @@ package body Files.Model.Testing is
    use Ada.Strings.Unbounded;
 
    function Folder_Scan_Is_Active (Model : Window_Model) return Boolean is
-     (Files.Folder_Size.Testing.Is_Active (Model.Folder_Scan));
+     (Files.Folder_Size.Measuring.Testing.Is_Active (Model.Folder_Scan));
 
    function Folder_Scan_Target (Model : Window_Model) return String is
-     (Files.Folder_Size.Testing.Target (Model.Folder_Scan));
+     (Files.Folder_Size.Measuring.Testing.Target (Model.Folder_Scan));
 
    function Rename_Field_Count
      (Model : Window_Model)

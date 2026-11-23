@@ -53,7 +53,8 @@ begin
       Mode     : constant Files.File_System_Types.Drop_Import_Mode :=
         Conflict.Mode;
       Rules    : constant Files.Paste.Name_Rules :=
-        Files.Paste.Name_Rules_Of (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir));
+        Files.File_System.Transfer.Name_Rules_Of
+          (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir));
       Next     : constant Natural :=
         Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing, Rules);
    begin

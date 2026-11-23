@@ -1,4 +1,3 @@
-with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Preference_Types;
 with Files.Operation_Results;
@@ -11,6 +10,7 @@ with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Files.UI_Types;
+private with Files.Operations.Paste;
 
 --  Focus-aware input controller for command, text, palette, and filesystem operations.
 package Files.Controller is
@@ -99,22 +99,6 @@ package Files.Controller is
    --  @param Before The settings before the change.
    --  @param Settings The settings now live.
    procedure Refresh_Open_Pane
-     (Model    : in out Files.Model.Window_Model;
-      Before   : Files.Settings.Settings_Model;
-      Settings : Files.Settings.Settings_Model);
-
-   --  Make settings that replaced Before -- another window's, or another
-   --  process's taken in by a save -- in force in this window: the open
-   --  pane follows (Refresh_Open_Pane), an open palette lists its commands
-   --  again (a shortcut rebound elsewhere), the folder tree follows the
-   --  favorites, the sort is applied, and the listing is read again (or
-   --  search results reclassified in place) when what it lists or how it
-   --  names types changed (hidden files, filetype or icon mappings).
-   --
-   --  @param Model This window's model.
-   --  @param Before The settings before.
-   --  @param Settings The settings now live.
-   procedure Take_In_Settings
      (Model    : in out Files.Model.Window_Model;
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model);
@@ -278,21 +262,6 @@ package Files.Controller is
       Settings_Path : String)
       return Boolean;
 
-   --  Fold the paths the model queued while opening items into the recent
-   --  list, with the queued path moves, as one settings edit and one write.
-   --  A no-op when both queues are empty, so it is safe after every dispatch.
-   --  Should the recent list make the file too big, the moves alone go in.
-   --
-   --  @param Model Model whose queues are drained.
-   --  @param Settings Live settings model.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Accepted True when a change took.
-   procedure Note_Recent_Opens
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Accepted      : out Boolean);
-
    --  Keep a closing window's size for the next window, under
    --  Commit_Settings' policy; nothing when it is the stored size.
    --
@@ -346,24 +315,49 @@ package Files.Controller is
       Group : Boolean)
       return Controller_Result;
 
-   --  Answer the open paste conflict.
+   --  Take settings another window changed (Shared) as this window's own,
+   --  put in force as Take_In_Settings does: an open settings pane is
+   --  refreshed (Files.Settings.Drafts.Refresh_Draft), so its next save
+   --  cannot write the old values back; the listing is reloaded when what it
+   --  lists or how it names entries' types changed; an open command palette
+   --  lists its commands again (a shortcut the other window rebound).
+   --
+   --  @param Model This window's model.
+   --  @param Settings This window's live settings, replaced by Shared.
+   --  @param Shared The settings another window committed.
+   procedure Adopt_Shared_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Shared   : Files.Settings.Settings_Model);
+
+   --  What every key and action dispatch ends with: any item opened folded
+   --  into the recent list with the queued path moves (Note_Recent_Opens),
+   --  and the selected item's lazily computed extra info
+   --  (Files.Refresh.Ensure_Selected_Item_Extra).
+   --
+   --  @param Model Model whose queues are drained.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when a settings change took.
+   procedure Finish_Dispatch
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
+   --  Answer a button of the open paste-conflict dialog: Replace, Skip,
+   --  Rename or Cancel answer it, Apply All flips whether the answer applies
+   --  to the rest.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by the paste.
-   --  @param Choice What to do with the conflicting item.
-   --  @return Controller result with the paste's outcome.
-   function Handle_Conflict_Choice
+   --  @param Button The button clicked.
+   --  @return Controller result with the paste's outcome; ignored with no
+   --    conflict open or no button.
+   function Handle_Conflict_Button
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Choice   : Files.Operations.Paste.Conflict_Choice)
-      return Controller_Result;
-
-   --  Flip whether the open paste conflict's answer applies to the rest.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result.
-   function Handle_Conflict_Apply_All_Toggle
-     (Model : in out Files.Model.Window_Model)
+      Button   : Files.Input_Actions.Conflict_Button_Kind)
       return Controller_Result;
 
    --  Cancel the running foreground job (a paste or an operation,
@@ -583,6 +577,57 @@ package Files.Controller is
       return Controller_Result;
 
 private
+
+   --  Make settings that replaced Before -- another window's, or another
+   --  process's taken in by a save -- in force in this window: the open
+   --  pane follows (Refresh_Open_Pane), an open palette lists its commands
+   --  again (a shortcut rebound elsewhere), the folder tree follows the
+   --  favorites, the sort is applied, and the listing is read again (or
+   --  search results reclassified in place) when what it lists or how it
+   --  names types changed (hidden files, filetype or icon mappings).
+   --
+   --  @param Model This window's model.
+   --  @param Before The settings before.
+   --  @param Settings The settings now live.
+   procedure Take_In_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   --  Fold the paths the model queued while opening items into the recent
+   --  list, with the queued path moves, as one settings edit and one write.
+   --  A no-op when both queues are empty, so it is safe after every dispatch.
+   --  Should the recent list make the file too big, the moves alone go in.
+   --
+   --  @param Model Model whose queues are drained.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when a change took.
+   procedure Note_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
+   --  Answer the open paste conflict.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by the paste.
+   --  @param Choice What to do with the conflicting item.
+   --  @return Controller result with the paste's outcome.
+   function Handle_Conflict_Choice
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Choice   : Files.Operations.Paste.Conflict_Choice)
+      return Controller_Result;
+
+   --  Flip whether the open paste conflict's answer applies to the rest.
+   --
+   --  @param Model Window model to update.
+   --  @return Controller result.
+   function Handle_Conflict_Apply_All_Toggle
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result;
 
    --  The one policy for a settings change, wherever it comes from: Updated
    --  replaces Settings and is saved -- a write that fails or is not durable

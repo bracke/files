@@ -1,3 +1,4 @@
+with Files.Folder_Size.Measuring;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files_Suite.Support.Guards;
@@ -45,21 +46,23 @@ separate (Files_Suite.Info)
       --  A helper measuring the folder as listed then is kept while the
       --  same listing is asked for, and restarted for a newer one.
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
-      Files.Folder_Size.Set_Targets (Scan, Listed (Earlier));
+      Files.Folder_Size.Measuring.Set_Targets (Scan, Listed (Earlier));
       Await_Marker ("the measurement is under way");
       declare
-         Started : constant Natural := Files.Folder_Size.Testing.Helper_Starts;
+         Started : constant Natural := Files.Folder_Size.Measuring.Testing.Helper_Starts;
       begin
-         Files.Folder_Size.Set_Targets (Scan, Listed (Earlier));
+         Files.Folder_Size.Measuring.Set_Targets (Scan, Listed (Earlier));
          Files_Suite.Support.Assert_Equal
-           (Files.Folder_Size.Testing.Helper_Starts, Started, "the same listing keeps the running measurement");
-         Files.Folder_Size.Set_Targets (Scan, Listed (Later));
+           (Files.Folder_Size.Measuring.Testing.Helper_Starts, Started,
+            "the same listing keeps the running measurement");
+         Files.Folder_Size.Measuring.Set_Targets (Scan, Listed (Later));
          Files_Suite.Support.Assert_Equal
-           (Files.Folder_Size.Testing.Helper_Starts, Started + 1, "a newer listing of the folder restarts it");
+           (Files.Folder_Size.Measuring.Testing.Helper_Starts, Started + 1,
+            "a newer listing of the folder restarts it");
       end;
       Await_Marker ("and the restarted helper runs");
-      Assert (Files.Folder_Size.Testing.Target (Scan) = Folder, "for the same folder");
-      Files.Folder_Size.Cancel (Scan);
+      Assert (Files.Folder_Size.Measuring.Testing.Target (Scan) = Folder, "for the same folder");
+      Files.Folder_Size.Measuring.Cancel (Scan);
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
 
       --  A finished result for an older listing is not cached: the folder is
@@ -76,7 +79,7 @@ separate (Files_Suite.Info)
          procedure Measure_Again (Scan : in out Files.Folder_Size.Session) is
          begin
             for Folder of Again loop
-               Files.Folder_Size.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
+               Files.Folder_Size.Measuring.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
             end loop;
          end Measure_Again;
       begin
@@ -107,7 +110,7 @@ separate (Files_Suite.Info)
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
    exception
       when others =>
-         Files.Folder_Size.Cancel (Scan);
+         Files.Folder_Size.Measuring.Cancel (Scan);
          Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
          raise;
    end Test_Stale_Folder_Size_Dropped;

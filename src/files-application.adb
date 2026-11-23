@@ -21,6 +21,7 @@ with Files_Config;
 with Files.Application.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
+with Files.Operation_Results;
 with Files.Rendering;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
@@ -32,6 +33,7 @@ package body Files.Application is
 
    use Ada.Strings.Unbounded;
    use type Files.File_System_Types.Path_Status;
+   use type Files.Operation_Results.Operation_Status;
 
    function Parse_Run_Configuration
      (Arguments : String_Vectors.Vector)
@@ -309,39 +311,22 @@ package body Files.Application is
                            Error_Key  => To_Unbounded_String ("error.startup.too_many_windows")));
                   elsif not Already_Has_Window (Directory_Path) then
                      declare
-                        Load   : constant Files.File_System.Directory_Load_Result :=
-                          Files.File_System.Load_Directory_Deferring_Thumbnails
-                            (Directory_Path, Files.Settings.Classification_Of (Settings),
-                             Files.Settings.Listing_Options_Of (Settings));
-                        Window : Startup_Window;
+                        Window  : Startup_Window;
+                        Started : constant Files.Operation_Results.Operation_Result :=
+                          Files.Operations.Start_At_Folder (Window.Model, Settings, Directory_Path, Home);
                      begin
-                        if Load.Success then
-                           Files.Model.Initialize
-                             (Model             => Window.Model,
-                              Directory_Path    => To_String (Load.Path),
-                              Items             => Load.Items,
-                              Home_Path         => Home,
-                              Default_View_Mode => Settings.Default_View);
-                           --  The signature the watch compares with, as navigation stores
-                           --  it: the one Initialize derives from the items never matches,
-                           --  and every startup folder was read again for nothing.
-                           Files.Model.Set_Directory_Signature (Window.Model, Load.Signature);
-                           Files.Operations.Settle_Current_Is_Trash (Window.Model);
+                        if Started.Status = Files.Operation_Results.Operation_Navigated then
                            --  What the host can do, before the first frame shows a
                            --  command or an editor that depends on it.
                            Files.Application.Window_Polls.Sample_Host (Window.Model);
                            Apply_Persisted_UI_State (Window.Model, Settings);
-                           --  As on navigation, missing thumbnails are made by a
-                           --  background listing, which the window's first poll launches.
-                           if Files.File_System.Thumbnails_Missing (Load.Items) then
-                              Files.Model.Note_Owed_Refresh (Window.Model, Force => True, Select_Name => "");
-                           end if;
-                           Window.Path := Load.Path;
-                           Window.Title := Load.Path;
+                           Window.Path := Started.Path;
+                           Window.Title := Started.Path;
                            Result.Windows.Append (Window);
                         else
                            Result.Errors.Append
-                             (Startup_Error'(Input_Path => To_Unbounded_String (Input), Error_Key => Load.Error_Key));
+                             (Startup_Error'
+                                (Input_Path => To_Unbounded_String (Input), Error_Key => Started.Error_Key));
                         end if;
                      end;
                   end if;

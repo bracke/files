@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Interaction.Testing;
 with Files.Quick_Look.Preparation;
 with Files.Model.Filtering;
@@ -50,7 +51,7 @@ separate (Files_Suite.Interaction)
       Files.Controller.Testing.Replace_Focused_Text (Model, "Beta-2.txt");
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Rename.Is_Active (Model), "the rename survives a shared hidden-files change");
       Assert (Files.Model.Rename.Text (Model) = "Beta-2.txt", "with the name typed so far");
       Assert_Equal (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "and keeps the keyboard");
@@ -62,7 +63,7 @@ separate (Files_Suite.Interaction)
         (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Quick_Look.Is_Open (Model), "Quick Look on a still-selected result stays open");
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "and the hidden result is back");
       Files.Model.Quick_Look.Close (Model);
@@ -81,7 +82,7 @@ separate (Files_Suite.Interaction)
            (Other, Other_Settings, "", Files.Commands.Select_Details_Command, Result => Result);
          Assert (Other_Settings.Sort_Field_Value = Files.Types.Sort_Size, "the first window sorts by size");
          Assert (Other_Settings.Default_View = Files.Preference_Types.Details, "and remembers details");
-         Files.Interaction.Adopt_Shared_Settings (Model, Settings, Other_Settings);
+         Files.Controller.Adopt_Shared_Settings (Model, Settings, Other_Settings);
       end;
       Assert (Files.Model.Sort_Field_Of (Model) = Files.Types.Sort_Size,
               "the second window, showing a folder, takes the shared sort");

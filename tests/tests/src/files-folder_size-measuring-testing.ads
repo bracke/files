@@ -1,5 +1,5 @@
---  Test-only queries of Files.Folder_Size, kept out of the program.
-package Files.Folder_Size.Testing is
+--  Test-only queries of Files.Folder_Size.Measuring, kept out of the program.
+package Files.Folder_Size.Measuring.Testing is
 
    --  @param Scan A measurement session.
    --  @return The folder it measures, or "" when idle.
@@ -34,4 +34,4 @@ package Files.Folder_Size.Testing is
    --  @param Path Absolute path of the directory to measure.
    procedure Request (Scan : in out Session; Path : String);
 
-end Files.Folder_Size.Testing;
+end Files.Folder_Size.Measuring.Testing;

@@ -81,6 +81,25 @@ package Files.Operations is
      (Model       : in out Files.Model.Window_Model;
       Failure_Key : String) return Operation_Result;
 
+   --  Start a new window's model on the folder at Directory_Path
+   --  (Files.Model.Initialize, in Settings' default view), shown as every
+   --  folder the window is given is: the trash flag settled, the signature
+   --  the watch compares with stored, and the images still lacking a
+   --  thumbnail owed to a background listing the window's first poll starts.
+   --
+   --  @param Model The new window's model.
+   --  @param Settings Directory settings.
+   --  @param Directory_Path Normalized absolute folder path.
+   --  @param Home_Path The home folder.
+   --  @return Navigated with the folder's path, or Failed with why it did
+   --    not load.
+   function Start_At_Folder
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Directory_Path : String;
+      Home_Path      : String)
+      return Operation_Result;
+
    --  Settle whether the model's current directory is the trash's files
    --  directory, a disk check (the trash may be reached through another path
    --  to the same directory). Every navigation here calls it after it changes

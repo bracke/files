@@ -59,10 +59,17 @@ package Files.Protocol_Names is
    --  way to the trash.
    Recovery_Release : constant String := "release";
 
-   --  The files of a helper job's private directory, besides its request and
-   --  result (Files.Jobs.Process.Request_File, Result_File). A ".tmp" name is
-   --  the staged copy (Files.Jobs.Process.Staged_Name), published whole by
-   --  renaming it to the plain one.
+   --  The files of a helper job's private directory: the window's request,
+   --  and the helper's result, written under its staged name (Staged_Name)
+   --  and published whole by renaming it to the plain one.
+   Request_File : constant String := "request";
+   Result_File  : constant String := "result";
+
+   --  @param Name A result's published name.
+   --  @return The name it is written under before it is published.
+   function Staged_Name (Name : String) return String is (Name & ".tmp");
+
+   --  The other files of a helper job's private directory.
 
    --  The window's request that the helper stop.
    Cancel_File : constant String := "cancel";

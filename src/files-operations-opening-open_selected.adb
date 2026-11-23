@@ -48,9 +48,7 @@ begin
       elsif To_String (Prepared.Action.Executable) = "" then
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory_Deferring_Thumbnails
-                (To_String (Prepared.Path), Files.Settings.Classification_Of (Settings),
-                 Files.Settings.Listing_Options_Of (Settings));
+              Support.Load_Folder (Settings, To_String (Prepared.Path));
          begin
             if not Load.Success then
                Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -58,13 +56,9 @@ begin
             end if;
 
             Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
-            Settle_Current_Is_Trash (Model);
-            Files.Model.Set_Directory_Signature (Model, Load.Signature);
             --  Opening a folder records it too: recent folders are useful.
             Files.Model.Recent.Note_Recent_Open (Model, To_String (Load.Path));
-            Files.Model.Set_Error (Model, "");
-            --  Last, once the listing it refreshes is the current one.
-            Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
+            Support.Show_Loaded_Folder (Model, Load);
             return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
          end;
       end if;

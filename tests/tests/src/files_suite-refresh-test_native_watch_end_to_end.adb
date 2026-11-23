@@ -1,3 +1,4 @@
+with Files.Refresh.Watch;
 with Ada.Real_Time;
 with Hostkit.Watch;
 with Files_Suite.Support.Timing;
@@ -10,16 +11,16 @@ separate (Files_Suite.Refresh)
    procedure Test_Native_Watch_End_To_End (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Folder  : constant String := Join (Root, "watched");
-      Watch   : Files.Refresh.Watch_Session;
+      Watch   : Files.Refresh.Watch.Watch_Session;
       Noticed : Boolean := False;
       Native  : Boolean := False;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
-      Files.Refresh.Watch_Path (Watch, Folder);
+      Files.Refresh.Watch.Watch_Path (Watch, Folder);
       --  The helper registers its watch once it is running.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Native := Files.Refresh.Watch_Is_Native (Watch);
+         Native := Files.Refresh.Watch.Watch_Is_Native (Watch);
          exit when Native;
       end loop;
       Assert (Native, "the helper says it reports changes, on every host");
@@ -32,7 +33,7 @@ separate (Files_Suite.Refresh)
       --  Waits for an event take the ordinary limit, not the launch one: a
       --  host whose helper re-reads the folder hears it a second or more late.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Noticed := Files.Refresh.Poll_Watch (Watch);
+         Noticed := Files.Refresh.Watch.Poll_Watch (Watch);
          exit when Noticed;
       end loop;
       Assert (Noticed, "a file made in the watched folder reaches the window");
@@ -47,7 +48,7 @@ separate (Files_Suite.Refresh)
          Quiet_Since : Files_Suite.Support.Timing.Instant := Files_Suite.Support.Timing.Now;
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            if Files.Refresh.Poll_Watch (Watch) then
+            if Files.Refresh.Watch.Poll_Watch (Watch) then
                Quiet_Since := Files_Suite.Support.Timing.Now;
             end if;
             exit when Files_Suite.Support.Timing.Elapsed (Quiet_Since) >= Files_Suite.Support.Timing.Scaled (1.0);
@@ -58,16 +59,16 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Folder, "new.txt"), "new, and grown");
       Noticed := False;
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Noticed := Files.Refresh.Poll_Watch (Watch);
+         Noticed := Files.Refresh.Watch.Poll_Watch (Watch);
          exit when Noticed;
       end loop;
-      Files.Refresh.Release_Watch (Watch);
+      Files.Refresh.Watch.Release_Watch (Watch);
       Assert
         (Noticed,
          "a write into a file already there reaches the window too"
          & (if Hostkit.Watch.Sees_File_Writes then " (from the watch)" else " (from the helper's re-read)"));
    exception
       when others =>
-         Files.Refresh.Release_Watch (Watch);
+         Files.Refresh.Watch.Release_Watch (Watch);
          raise;
    end Test_Native_Watch_End_To_End;

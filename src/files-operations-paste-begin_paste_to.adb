@@ -82,7 +82,7 @@ begin
         (if Listed then Listing else Probed_Destinations (Work));
       --  Where the directory folds case, Report.txt conflicts with an
       --  existing report.txt (Files.Paste folds both lookups by these rules).
-      Rules    : constant Files.Paste.Name_Rules := Files.Paste.Name_Rules_Of (Directory);
+      Rules    : constant Files.Paste.Name_Rules := Files.File_System.Transfer.Name_Rules_Of (Directory);
       Conflict : constant Natural :=
         Files.Paste.Next_Unresolved_Conflict
           (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing, Rules);

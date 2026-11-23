@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Overlays;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Models;
@@ -39,7 +40,7 @@ separate (Files_Suite.Interaction)
       --  Another window rebinds it: nothing in this window's model moved.
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Toggle_Hidden_Files_Command, Files.Commands.Parse_Shortcut ("control+shift+9"));
-      Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared => Settings);
+      Files.Controller.Adopt_Shared_Settings (Model, Settings, Shared => Settings);
       Assert (Shows_Rebound, "after adopting the shared settings the palette shows the new keys");
       Files.Commands.Reset_Shortcut_Overrides;
    exception

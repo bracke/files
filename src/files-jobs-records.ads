@@ -2,7 +2,7 @@ with Ada.Streams;
 with Files.IO.Record_Fields;
 
 with Files.File_System_Types;
-with Files.Jobs.Process;
+with Files.Protocol_Names;
 with Files.Types;
 
 --  Bounded wire primitives shared by private background-job transports.
@@ -28,7 +28,7 @@ package Files.Jobs.Records is
    procedure Publish_Result
      (Directory : String;
       Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
-      Name      : String := Files.Jobs.Process.Result_File);
+      Name      : String := Files.Protocol_Names.Result_File);
 
    --  Reject an oversized transport before decoding any heap-owning fields.
    --  @param Size Encoded transport size to validate.

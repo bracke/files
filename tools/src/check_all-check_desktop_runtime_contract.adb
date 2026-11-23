@@ -227,7 +227,8 @@ separate (Check_All)
       Require_Contains_In_Unit
         (Windows_Body, "Guikit.Vulkan.Wait_For_Events", "the event loop must wait for events, not spin");
       Require_Contains_In_Unit (Windows_Body, "Watch.Poll", "the event loop must poll the folder watch");
-      Require_Contains_In_Unit (Watch_Body, "Files.Refresh.Poll_Watch", "the watch poll must ask the folder watch");
+      Require_Contains_In_Unit
+        (Watch_Body, "Files.Refresh.Watch.Poll_Watch", "the watch poll must ask the folder watch");
       --  The event loop's wait and the cross-window settings sync are decided
       --  by the folds the suite tests (Files.Application.Event_Wait.Fold, and
       --  Files.Application.Settings_Sharing.Share_From with Adopt_Window as its Adopt):

@@ -18,7 +18,7 @@ private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Input_Actions;
 private with Files.Overlays;
-private with Files.Refresh;
+private with Files.Refresh.Watch;
 private with Files.Rendering;
 private with Files.Rendering.Text;
 private with Files.Application.Snapshot_Slots;
@@ -56,7 +56,7 @@ private
    --  @param Watch Closing window's native notification session to release.
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh.Watch_Session);
+      Watch : in out Files.Refresh.Watch.Watch_Session);
 
    --  Return desktop runtime capabilities observable without opening a window.
    --
@@ -416,9 +416,9 @@ private
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Real_Time.Time := Never;
-      Watch : Files.Refresh.Watch_Session;
+      Watch : Files.Refresh.Watch.Watch_Session;
       --  How often the watch and the timed re-read may reload the folder.
-      Watch_Pacing : Files.Refresh.Watch_Pacer;
+      Watch_Pacing : Files.Refresh.Watch.Watch_Pacer;
    end record;
 
    --  The setting's text size in this window's framebuffer pixels.

@@ -3,7 +3,7 @@ with Files.Preference_Types;
 with Files.Items;
 with Ada.Calendar;
 private with Ada.Real_Time;
-private with Files.Desktop_Applications;
+private with Files.Desktop_Application_Types;
 private with Files.Jobs.Process;
 private with Files.Paste_States;
 with Ada.Containers.Hashed_Maps;
@@ -1034,7 +1034,7 @@ private
       Mode                   : Palette_Mode := Palette_Commands;
       View                   : Guikit.Command_Palette.Palette;
       Open_With_Targets      : Files.Types.String_Vectors.Vector;
-      Open_With_Applications : Files.Desktop_Applications.Application_Vectors.Vector;
+      Open_With_Applications : Files.Desktop_Application_Types.Application_Vectors.Vector;
       Listed_Revision        : Natural := Natural'Last;
    end record;
 

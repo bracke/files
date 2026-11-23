@@ -60,6 +60,30 @@ package body Files.Operations is
       return (Status => Operation_Success, others => <>);
    end Creation_Refusal;
 
+   function Start_At_Folder
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Directory_Path : String;
+      Home_Path      : String)
+      return Operation_Result
+   is
+      Load : constant Files.File_System.Directory_Load_Result := Load_Folder (Settings, Directory_Path);
+   begin
+      if not Load.Success then
+         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Directory_Path);
+      end if;
+      Files.Model.Initialize
+        (Model             => Model,
+         Directory_Path    => To_String (Load.Path),
+         Items             => Load.Items,
+         Home_Path         => Home_Path,
+         Default_View_Mode => Settings.Default_View);
+      --  The signature Initialize derives from the items never matches the
+      --  watch's: every startup folder was read again for nothing.
+      Show_Loaded_Folder (Model, Load);
+      return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+   end Start_At_Folder;
+
    procedure Settle_Current_Is_Trash
      (Model : in out Files.Model.Window_Model) is
    begin

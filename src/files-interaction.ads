@@ -46,23 +46,6 @@ package Files.Interaction is
       --  does a wheel zoom.
    end record;
 
-   --  Take settings another window changed (Shared) as this window's own.
-   --  An open settings pane is refreshed as after a command run here
-   --  (Files.Settings.Drafts.Refresh_Draft), so its draft shows the change and its
-   --  next save cannot write the old values back; the listing is reloaded
-   --  when what it lists or how it names entries' types changed (the listing
-   --  options, the filetype or icon mappings). An open command palette lists
-   --  its commands again: a shortcut the other window rebound shows its new
-   --  keys.
-   --
-   --  @param Model This window's model.
-   --  @param Settings This window's live settings, replaced by Shared.
-   --  @param Shared The settings the other window changed.
-   procedure Adopt_Shared_Settings
-     (Model    : in out Files.Model.Window_Model;
-      Settings : in out Files.Settings.Settings_Model;
-      Shared   : Files.Settings.Settings_Model);
-
    --  Dispatch one keyboard press through the focus-aware controller. A key
    --  that ran a settings command gets the same follow-ups as Execute_Command
    --  gives one, and Clear_Pending_Text; any other key keeps the controller's

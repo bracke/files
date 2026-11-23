@@ -8,7 +8,9 @@ with Files.Job_Drivers.Operation.Helper;
 with Files.Transfer_Jobs;
 with Files.Localization;
 with Files.Refresh;
+with Files.Refresh.Watch;
 with Files.Folder_Size;
+with Files.Folder_Size.Measuring;
 with Hostkit.Parent_Watch;
 
 package body Files.Job_Drivers.Helpers is
@@ -69,7 +71,7 @@ package body Files.Job_Drivers.Helpers is
                   when Files.Jobs.Helper_Modes.Transfer => Files.Transfer_Jobs.Run_Helper (Directory);
                   when Files.Jobs.Helper_Modes.Operation => Files.Job_Drivers.Operation.Helper.Run (Directory);
                   when Files.Jobs.Helper_Modes.Refresh => Files.Refresh.Run_Helper (Directory);
-                  when Files.Jobs.Helper_Modes.Folder_Size => Files.Folder_Size.Run_Helper (Directory);
+                  when Files.Jobs.Helper_Modes.Folder_Size => Files.Folder_Size.Measuring.Run_Helper (Directory);
                   when Watch =>
                      --  The other helpers finish on their own, and a transfer
                      --  must outlive a crashed window for its recovery to
@@ -81,7 +83,7 @@ package body Files.Job_Drivers.Helpers is
                         Ignored : constant Boolean := Hostkit.Parent_Watch.End_With_Parent;
                      begin
                         pragma Unreferenced (Ignored);
-                        Files.Refresh.Run_Watch_Helper (Directory);
+                        Files.Refresh.Watch.Run_Watch_Helper (Directory);
                      end;
                   when Scavenge | Files.Jobs.Helper_Modes.Cleanup => null;
                end case;

@@ -170,7 +170,7 @@ package body Files.Model.Command_Palette is
    procedure Open_With
      (Model        : in out Window_Model;
       Targets      : Files.Types.String_Vectors.Vector;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector) is
+      Applications : Files.Desktop_Application_Types.Application_Vectors.Vector) is
    begin
       --  Open resets the mode and the stored lists: set them after it.
       Open (Model);
@@ -186,7 +186,7 @@ package body Files.Model.Command_Palette is
 
    function Open_With_Applications
      (Model : Window_Model)
-      return Files.Desktop_Applications.Application_Vectors.Vector is
+      return Files.Desktop_Application_Types.Application_Vectors.Vector is
      (Model.Command_Palette.Open_With_Applications);
 
    procedure Focus_Input

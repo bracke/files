@@ -1,5 +1,5 @@
 with Files.Model;
-with Files.Refresh;
+with Files.Refresh.Watch;
 
 --  What the suite reaches of Files.Application.Windows that is not part of its interface.
 package Files.Application.Windows.Testing is
@@ -20,7 +20,7 @@ package Files.Application.Windows.Testing is
    --  @param Watch Closing window's native notification session to release.
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh.Watch_Session);
+      Watch : in out Files.Refresh.Watch.Watch_Session);
 
    --  Return desktop runtime capabilities observable without opening a window.
    --

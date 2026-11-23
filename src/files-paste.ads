@@ -140,14 +140,8 @@ package Files.Paste is
       Name_Limit : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit;
    end record;
 
-   --  The naming rules of Directory, both asked of its filesystem, so every
-   --  resolution into it applies the same pair.
-   --
-   --  @param Directory Destination directory; empty for none.
-   --  @return Its rules; neither for an empty Directory.
-   function Name_Rules_Of (Directory : String) return Name_Rules;
-
-   --  Next_Unresolved_Conflict with a destination's Name_Rules_Of.
+   --  Next_Unresolved_Conflict with a destination's rules
+   --  (Files.File_System.Transfer.Name_Rules_Of asks its filesystem).
    --
    --  @param Items Work-list.
    --  @param Policy Batch-wide policy.

@@ -1,3 +1,4 @@
+with Files.Controller;
 with Files.Interaction.Testing;
 with Files.Settings.Drafts;
 with Files_Suite.Listings;
@@ -57,7 +58,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Testing.Execute_Command
         (First_Window, First_Settings, "", Files.Commands.Toggle_Hidden_Files_Command, Result => Result);
       Assert (First_Settings.Show_Hidden_Files, "the first window turns hidden files on");
-      Files.Interaction.Adopt_Shared_Settings (Second_Window, Second_Settings, First_Settings);
+      Files.Controller.Adopt_Shared_Settings (Second_Window, Second_Settings, First_Settings);
 
       Assert (Second_Settings.Show_Hidden_Files, "the second window takes the shared settings");
       Files_Suite.Support.Assert_Equal
@@ -80,7 +81,7 @@ separate (Files_Suite.Interaction)
       declare
          Unchanged : constant Files.Settings.Settings_Model := Second_Settings;
       begin
-         Files.Interaction.Adopt_Shared_Settings (Second_Window, Second_Settings, Unchanged);
+         Files.Controller.Adopt_Shared_Settings (Second_Window, Second_Settings, Unchanged);
          Files_Suite.Support.Assert_Equal
            (Shown (Files.Settings.Default_View_Mode_Setting), "details",
             "adopting the same settings again keeps the pane's edit");

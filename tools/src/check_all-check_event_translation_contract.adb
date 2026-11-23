@@ -173,8 +173,8 @@ separate (Check_All)
          "the model only reads the stored labels and recent list");
       Require_Only_Names_From
         ("files-model", "Files.Desktop_Applications",
-         [To_Unbounded_String ("Application_Vectors")],
-         "the model reads no disk (applications are listed elsewhere)",
+         [],
+         "the model reads no disk (it holds applications as Files.Desktop_Application_Types values)",
          Short_Too => False);
       Require_Only_Names_From
         ("files-model", "Ada.Directories", [To_Unbounded_String ("Simple_Name")],
@@ -210,7 +210,7 @@ separate (Check_All)
          --  registry's ids, read.
          Allowed : constant String_List :=
            [To_Unbounded_String ("Files.Commands"),
-            To_Unbounded_String ("Files.Desktop_Applications"),
+            To_Unbounded_String ("Files.Desktop_Application_Types"),
             --  A handler's trace of what it carried on past, not model I/O.
             To_Unbounded_String ("Files.Diagnostics"),
             --  The info pane's extra line as data: the model only keeps it.
