@@ -230,6 +230,7 @@ package body Files.Refresh is
            Start (Model, Settings,
                   Force       => Files.Model.Owed_Refresh_Force (Model),
                   Select_Name => Files.Model.Owed_Refresh_Selection (Model),
+                  Select_Path => Files.Model.Owed_Refresh_Path (Model),
                   --  Search results shown now are searched again: a
                   --  listing put in their place would pass for them.
                   Search_Again => True);
@@ -251,7 +252,8 @@ package body Files.Refresh is
       declare
          Stale : constant Request := Read_Request (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Request_File));
       begin
-         Files.Model.Note_Owed_Refresh (Model, Stale.Force, To_String (Stale.Selection));
+         Files.Model.Note_Owed_Refresh
+           (Model, Stale.Force, To_String (Stale.Selection), Select_Path => To_String (Stale.Select_Path));
       end;
    exception
       when Failure : others =>
@@ -265,6 +267,7 @@ package body Files.Refresh is
       Signature      : Files.File_System_Types.Directory_Signature;
       Recent         : Boolean := False;
       Searched       : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      Query          : String := "";
       New_Results    : Boolean := False;
       Select_Path    : String := "";
       Select_Name    : String := "";

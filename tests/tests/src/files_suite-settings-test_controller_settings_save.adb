@@ -187,6 +187,15 @@ separate (Files_Suite.Settings)
               (Files.Model.Settings_Pane.Is_Open (Missing_Model),
                "missing-current save fixture opens settings pane");
             Ada.Directories.Delete_Directory (Missing_Current_Path);
+            --  A save reads the folder again only for what changes the
+            --  listing: here the hidden filter.
+            declare
+               Hiding : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Missing_Model);
+            begin
+               Hiding.Scalars (Files.Settings.Show_Hidden_Files_Setting) :=
+                 To_Unbounded_String (if Missing_Settings.Show_Hidden_Files then "false" else "true");
+               Files.Overlays.Settings_Form.Set_Draft (Missing_Model, Hiding);
+            end;
             Missing_Result := Files.Controller.Testing.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
             Files_Suite.Support.Assert_Equal
               (Missing_Result.Operation.Status,

@@ -115,18 +115,22 @@ private package Files.Operations.Support is
    --  @return True when the next reload runs in the background.
    function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean;
 
-   --  Replace the view with the recursive search results for the filter
-   --  text below the current folder, in Scope (Navigation.Run_Search, which
-   --  refuses first, says what is shown).
+   --  Replace the view with the recursive search results for Query below
+   --  the current folder, in Scope (Navigation.Run_Search, which refuses
+   --  first, says what is shown). A reload owed to the folder's listing is
+   --  settled: the results replace it.
    --
-   --  @param Model Window model containing the current path and filter query.
+   --  @param Model Window model containing the current path.
    --  @param Settings Settings model used for classification.
    --  @param Scope Search by name or by content.
+   --  @param Query What to search for: the filter text for a new search,
+   --  the results' own query (Model.Filtering.Search_Query) to search again.
    --  @return Structured operation result.
    function Search_Current_Folder
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.UI_Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope;
+      Query    : String)
       return Operation_Result;
 
    --  A batch (duplicate, extract, links) stopped by a failure: when some

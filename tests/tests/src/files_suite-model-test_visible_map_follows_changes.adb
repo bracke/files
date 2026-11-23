@@ -84,7 +84,8 @@ separate (Files_Suite.Model)
       --  A search shows its results whatever the filter; ending it filters again.
       Files.Model.Filtering.Set_Filter (Model, "et");
       Check ("filter et");
-      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results
+        (Model, Files.UI_Types.Search_Names, Files.Model.Filtering.Filter_Text (Model));
       Check ("search results under the filter");
       Files.Model.Filtering.Clear_Search_Results (Model);
       Check ("search ended");

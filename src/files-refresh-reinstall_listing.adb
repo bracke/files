@@ -5,6 +5,7 @@ separate (Files.Refresh)
       Signature      : Files.File_System_Types.Directory_Signature;
       Recent         : Boolean := False;
       Searched       : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      Query          : String := "";
       New_Results    : Boolean := False;
       Select_Path    : String := "";
       Select_Name    : String := "";
@@ -27,6 +28,11 @@ separate (Files.Refresh)
       --  A new search's results have no place in them to keep.
       Keep_Place : constant Boolean := not New_Results;
    begin
+      --  New results are the view now: a listing owed to the folder would
+      --  only search them again.
+      if New_Results then
+         Files.Model.Clear_Owed_Refresh (Model);
+      end if;
       if Recent then
          Files.Model.Navigate_Recent (Model, Items);
       else
@@ -37,7 +43,7 @@ separate (Files.Refresh)
            or else not Files.Model.Filtering.Search_Results_Are_Active (Model)
            or else Files.Model.Filtering.Search_Scope_Of (Model) /= Searched
          then
-            Files.Model.Filtering.Note_Search_Results (Model, Searched);
+            Files.Model.Filtering.Note_Search_Results (Model, Searched, Query);
          end if;
          --  Searched again, the items are results still, kept as the window
          --  showed them.

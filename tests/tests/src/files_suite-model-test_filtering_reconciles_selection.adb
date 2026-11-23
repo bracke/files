@@ -22,7 +22,8 @@ separate (Files_Suite.Model)
          Search_Model : Files.Model.Window_Model := Sample_Model;
       begin
          Files.Model.Filtering.Set_Filter (Search_Model, "zzz-not-in-any-name");
-         Files.Model.Filtering.Note_Search_Results (Search_Model, Files.UI_Types.Search_Contents);
+         Files.Model.Filtering.Note_Search_Results
+           (Search_Model, Files.UI_Types.Search_Contents, Files.Model.Filtering.Filter_Text (Search_Model));
          Assert
            (Natural (Files.Model.Visible_Rows (Search_Model).Length) = Files.Model.Visible_Count (Search_Model)
             and then Files.Model.Visible_Count (Search_Model) = Files.Model.Item_Count (Search_Model),

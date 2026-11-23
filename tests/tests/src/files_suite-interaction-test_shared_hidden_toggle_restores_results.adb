@@ -34,7 +34,8 @@ separate (Files_Suite.Interaction)
       begin
          Files.Model.Initialize (Model, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end;
-      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results
+        (Model, Files.UI_Types.Search_Names, Files.Model.Filtering.Filter_Text (Model));
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the results hold the hidden match");
       Select_Name (Model, "Beta.txt");
       Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, 4);

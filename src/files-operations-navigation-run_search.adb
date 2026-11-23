@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 separate (Files.Operations.Navigation)
 function Run_Search
   (Model    : in out Files.Model.Window_Model;
@@ -14,7 +15,7 @@ begin
          return Refusal;
       end if;
    end;
-   return Search_Current_Folder (Model, Settings, Scope);
+   return Search_Current_Folder (Model, Settings, Scope, Files.Model.Filtering.Filter_Text (Model));
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");

@@ -54,6 +54,7 @@ package body Files_Suite.Search is
    procedure Test_Name_Search_No_Matches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Search_Results_Keep_Their_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Utf16_Transcoding (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -70,6 +71,9 @@ package body Files_Suite.Search is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Result_Actions_Stay_Beside_Source'Access,
          "renaming, duplicating or linking a search result keeps it in its own folder");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Search_Results_Keep_Their_Query'Access,
+         "search results are searched again for their own query, and settle a listing owed to the folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Content_Search_Operation'Access,
          "content search matches file contents case-insensitively, skips binary and capped files, "
@@ -101,6 +105,8 @@ package body Files_Suite.Search is
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Search_Results_Keep_Their_Query (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Limit_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -22,9 +22,42 @@ package body Files.Settings.Drafts is
    is
       use type Shortcut_Override_Vectors.Vector;
       Result : Settings_Draft := Draft;
+
+      --  The overrides Overrides holds for Command, in their order.
+      function Entries_Of
+        (Overrides : Shortcut_Override_Vectors.Vector;
+         Command   : UString)
+         return Shortcut_Override_Vectors.Vector
+      is
+         Found : Shortcut_Override_Vectors.Vector;
+      begin
+         for Override of Overrides loop
+            if Override.Command = Command then
+               Found.Append (Override);
+            end if;
+         end loop;
+         return Found;
+      end Entries_Of;
+
+      --  Whether the other change rebound Command.
+      function Rebound (Command : UString) return Boolean is
+        (Entries_Of (Before.Shortcut_Overrides, Command) /= Entries_Of (After.Shortcut_Overrides, Command));
    begin
+      --  Shortcuts merge per command, as the scalars below merge per
+      --  setting: a command the other change rebound takes its binding,
+      --  every other keeps what the pane holds, an edit included.
       if Before.Shortcut_Overrides /= After.Shortcut_Overrides then
-         Result.Shortcut_Overrides := After.Shortcut_Overrides;
+         Result.Shortcut_Overrides.Clear;
+         for Override of Draft.Shortcut_Overrides loop
+            if not Rebound (Override.Command) then
+               Result.Shortcut_Overrides.Append (Override);
+            end if;
+         end loop;
+         for Override of After.Shortcut_Overrides loop
+            if Rebound (Override.Command) then
+               Result.Shortcut_Overrides.Append (Override);
+            end if;
+         end loop;
       end if;
       for Setting in Scalar_Setting loop
          if Is_Pane_Setting (Setting) then

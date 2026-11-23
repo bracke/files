@@ -51,14 +51,25 @@ package Files.Model.Filtering is
      (Model : Window_Model)
       return Boolean;
 
+   --  Return the query the search results shown answer: what they are
+   --  searched again for, whatever the filter field holds since.
+   --
+   --  @param Model Model to inspect.
+   --  @return The results' query, or "" when no search results are shown.
+   function Search_Query
+     (Model : Window_Model)
+      return String;
+
    --  Record that the current view now holds recursive search results for the
-   --  given scope. Used by the name and content search operations.
+   --  given scope and query. Used by the name and content search operations.
    --
    --  @param Model Model to update.
    --  @param Scope Scope that produced the results.
+   --  @param Query Query they answer.
    procedure Note_Search_Results
      (Model : in out Window_Model;
-      Scope : Files.UI_Types.Search_Scope);
+      Scope : Files.UI_Types.Search_Scope;
+      Query : String);
 
    --  Drop any recorded search-results state and reset the scope to Filter_Here,
    --  leaving the loaded items untouched so the caller can restore the directory.

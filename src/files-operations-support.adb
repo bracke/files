@@ -165,7 +165,8 @@ package body Files.Operations.Support is
                Searched : constant Operation_Result :=
                  Search_Current_Folder
                    (Model, Settings,
-                    Files.UI_Types.Tree_Search_Scope (Files.Model.Filtering.Search_Scope_Of (Model)));
+                    Files.UI_Types.Tree_Search_Scope (Files.Model.Filtering.Search_Scope_Of (Model)),
+                    Files.Model.Filtering.Search_Query (Model));
             begin
                if Searched.Status = Operation_Success then
                   if Select_Path /= "" then
@@ -208,11 +209,11 @@ package body Files.Operations.Support is
    function Search_Current_Folder
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.UI_Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope;
+      Query    : String)
       return Operation_Result
    is
       use type Files.UI_Types.Search_Scope;
-      Query   : constant String := Files.Model.Filtering.Filter_Text (Model);
       Root    : constant String := Files.Model.Current_Path (Model);
       Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
       Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
@@ -226,7 +227,10 @@ package body Files.Operations.Support is
          return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
       end if;
       Files.Model.Replace_Items (Model, Found.Items);
-      Files.Model.Filtering.Note_Search_Results (Model, Scope);
+      Files.Model.Filtering.Note_Search_Results (Model, Scope, Query);
+      --  The results are the view now: a listing owed to the folder would
+      --  only search them again.
+      Files.Model.Clear_Owed_Refresh (Model);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
       --  A partial answer is still shown, with a notice that it is one: a
       --  limit cut it short, or something under the root went unsearched.

@@ -90,17 +90,21 @@ package body Files.Model is
    procedure Note_Owed_Refresh
      (Model       : in out Window_Model;
       Force       : Boolean;
-      Select_Name : String)
+      Select_Name : String;
+      Select_Path : String := "")
    is
       --  A debt for an earlier view is moot: this one starts afresh.
       Earlier : constant Owed_Refresh_State :=
         (if Refresh_Is_Owed (Model) then Model.Owed_Refresh else (others => <>));
+      --  The later request's item, by name or path, replaces the earlier's.
+      Asked   : constant Boolean := Select_Name /= "" or else Select_Path /= "";
    begin
       Model.Owed_Refresh :=
         (Owed        => True,
          Incarnation => Model.View_Incarnation_Value,
          Forced      => Earlier.Forced or else Force,
-         Selection   => (if Select_Name /= "" then To_Unbounded_String (Select_Name) else Earlier.Selection));
+         Selection   => (if Asked then To_Unbounded_String (Select_Name) else Earlier.Selection),
+         Path        => (if Asked then To_Unbounded_String (Select_Path) else Earlier.Path));
    end Note_Owed_Refresh;
 
    function Refresh_Is_Owed
@@ -124,6 +128,13 @@ package body Files.Model is
    begin
       return (if Refresh_Is_Owed (Model) then To_String (Model.Owed_Refresh.Selection) else "");
    end Owed_Refresh_Selection;
+
+   function Owed_Refresh_Path
+     (Model : Window_Model)
+      return String is
+   begin
+      return (if Refresh_Is_Owed (Model) then To_String (Model.Owed_Refresh.Path) else "");
+   end Owed_Refresh_Path;
 
    procedure Clear_Owed_Refresh
      (Model : in out Window_Model) is
@@ -311,6 +322,7 @@ package body Files.Model is
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
+      Model.Search_Query := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.UI_Types.Focus_None;
@@ -531,6 +543,7 @@ package body Files.Model is
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
+      Model.Search_Query := Null_Unbounded_String;
       Set_Current_Path (Model, New_Path);
       Model.Path_Input := (Edit => (Text => New_Path, Cursor => Length (New_Path)), others => <>);
       Model.Selected_Item_Index := 0;

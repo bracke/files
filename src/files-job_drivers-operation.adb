@@ -182,7 +182,12 @@ package body Files.Job_Drivers.Operation is
       Work : Request :=
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.Recent.In_Recent_View (Model),
-         Query => To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model)),
+         --  A new search asks for what is typed; anything else run among
+         --  search results searches again for the query they answer.
+         Query =>
+           To_Unbounded_String
+             (if Kind in Search_Names | Search_Contents then Files.Model.Filtering.Filter_Text (Model)
+              else Files.Model.Filtering.Search_Query (Model)),
          Searched =>
            (if Files.Model.Filtering.Search_Results_Are_Active (Model)
             then Files.Model.Filtering.Search_Scope_Of (Model)

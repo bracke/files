@@ -23,8 +23,9 @@ package Files.Settings.Drafts is
    --  Bring the pane-edited scalars and the shortcuts of Draft up to date
    --  with a change made outside the pane (a command run while it is open,
    --  another process's rebind taken in), so the pane shows the change and
-   --  its next save keeps it. A setting that did not change between Before
-   --  and After keeps what the pane holds, an edit included.
+   --  its next save keeps it. A setting, or a command's shortcuts, that did
+   --  not change between Before and After keeps what the pane holds, an
+   --  edit included.
    --
    --  @param Draft The pane's draft.
    --  @param Before Settings before the change.

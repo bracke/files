@@ -33,7 +33,7 @@ separate (Files.Refresh)
          Select_Path => To_Unbounded_String (Select_Path),
          Searched =>
            (if Searching then Files.Model.Filtering.Search_Scope_Of (Model) else Files.UI_Types.Filter_Here),
-         Query => (if Searching then To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model))
+         Query => (if Searching then To_Unbounded_String (Files.Model.Filtering.Search_Query (Model))
                    else Null_Unbounded_String));
    begin
       if not Force and then (Work.Recent or else Files.Model.Filtering.Search_Results_Are_Active (Model)) then
@@ -42,7 +42,7 @@ separate (Files.Refresh)
          --  The modal job's own result may not cover this read (a show-hidden
          --  change shared from another window while it ran): the reload is
          --  owed, and Resume_Owed starts it once the job is done.
-         Files.Model.Note_Owed_Refresh (Model, Force => Force, Select_Name => Select_Name);
+         Files.Model.Note_Owed_Refresh (Model, Force => Force, Select_Name => Select_Name, Select_Path => Select_Path);
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       elsif not Force
         and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Creation.Temporary_Item_Is_Active (Model)
@@ -50,7 +50,8 @@ separate (Files.Refresh)
       then
          --  Replacing the items now would drop the edit or close the palette:
          --  the reload is owed, and Resume_Owed starts it once they are done.
-         Files.Model.Note_Owed_Refresh (Model, Force => False, Select_Name => Select_Name);
+         Files.Model.Note_Owed_Refresh
+           (Model, Force => False, Select_Name => Select_Name, Select_Path => Select_Path);
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
       if not Force and then Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)) then

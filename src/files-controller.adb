@@ -106,13 +106,46 @@ package body Files.Controller is
       end if;
    end Refresh_Open_Pane;
 
+   --  Bring the items shown in line with the hidden filter and the type and
+   --  icon maps of Settings, changed from Before: items carry them from when
+   --  the folder was read. Search results, which have no folder to read
+   --  again (a reload would replace them with the folder), take them in
+   --  place; a folder is read again, keeping the folder sizes (only a
+   --  refresh the user asks for measures them again). Nothing else in the
+   --  settings changes what is listed.
+   --
+   --  @return The reload's result (a failure is in the error line), or an
+   --  empty result when nothing needed reading.
+   function Follow_Listing_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Files.Operation_Results.Operation_Result
+   is
+      use type Files.Settings.String_Maps.Map;
+   begin
+      if Before.Show_Hidden_Files = Settings.Show_Hidden_Files
+        and then Before.Extension_Filetypes = Settings.Extension_Filetypes
+        and then Before.Icon_Mappings = Settings.Icon_Mappings
+      then
+         return Empty_Operation;
+      elsif Files.Model.Filtering.Search_Results_Are_Active (Model) then
+         Files.Model.Reapply_Listing_Settings
+           (Model, Settings,
+            Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
+                          or else Before.Icon_Mappings /= Settings.Icon_Mappings);
+         return Empty_Operation;
+      else
+         return Files.Operations.Refresh (Model, Settings, Measure_Again => False);
+      end if;
+   end Follow_Listing_Settings;
+
    procedure Take_In_Settings
      (Model    : in out Files.Model.Window_Model;
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model)
    is
       use type Files.Types.Sort_Field;
-      use type Files.Settings.String_Maps.Map;
    begin
       Refresh_Open_Pane (Model, Before, Settings);
       --  Shortcuts are the process's, rebound in the other window; this
@@ -130,33 +163,13 @@ package body Files.Controller is
       then
          Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
       end if;
-      --  Items carry the hidden filter and the type and icon they were
-      --  classified with when the folder was read.
-      if Before.Show_Hidden_Files = Settings.Show_Hidden_Files
-        and then Before.Extension_Filetypes = Settings.Extension_Filetypes
-        and then Before.Icon_Mappings = Settings.Icon_Mappings
-      then
+      declare
+         Reloaded : constant Files.Operation_Results.Operation_Result :=
+           Follow_Listing_Settings (Model, Before, Settings);
+         pragma Unreferenced (Reloaded);
+      begin
          null;
-      elsif Files.Model.Filtering.Search_Results_Are_Active (Model) then
-         --  Search results have no folder to read again (a reload would
-         --  replace them with the folder): the new settings apply to them in
-         --  place.
-         Files.Model.Reapply_Listing_Settings
-           (Model, Settings,
-            Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
-                          or else Before.Icon_Mappings /= Settings.Icon_Mappings);
-      else
-         declare
-            --  A reload that fails says so in the window's error line. The
-            --  folder sizes stay: only a refresh the user asks for measures
-            --  them again.
-            Reloaded : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Refresh (Model, Settings, Measure_Again => False);
-            pragma Unreferenced (Reloaded);
-         begin
-            null;
-         end;
-      end if;
+      end;
    end Take_In_Settings;
 
    --  Save already-applied settings (Files.Settings.Storage.Persist) and

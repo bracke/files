@@ -75,7 +75,11 @@ package body Files.Model.Filtering is
 
    begin
       Touch (Model);
-      Support.Touch_Listing (Model);
+      --  Search results answer the query they were found for (Search_Query),
+      --  not the text typed since: a read searching them again stays good.
+      if not Model.Search_Results_Active then
+         Support.Touch_Listing (Model);
+      end if;
       Model.Filter.Text := To_Unbounded_String (Text);
       Model.Folded_Filter := To_Unbounded_String (Files.Text_Case.Fold_Case (Text));
       Invalidate_Visible (Model);
@@ -93,10 +97,13 @@ package body Files.Model.Filtering is
      (Model : in out Window_Model) is
    begin
       Touch (Model);
+      --  Ending search results changes what a background read is for.
+      Support.Touch_Listing (Model);
       Set_Filter (Model, "");
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
+      Model.Search_Query := Null_Unbounded_String;
       Invalidate_Visible (Model);
    end Clear_Filter;
 
@@ -119,15 +126,23 @@ package body Files.Model.Filtering is
       return Boolean is
      (Model.Search_Results_Active);
 
+   function Search_Query
+     (Model : Window_Model)
+      return String is
+     (To_String (Model.Search_Query));
+
    procedure Note_Search_Results
      (Model : in out Window_Model;
-      Scope : Files.UI_Types.Search_Scope) is
+      Scope : Files.UI_Types.Search_Scope;
+      Query : String) is
    begin
       Touch (Model);
       Support.Touch_Listing (Model);
       Model.Search_Scope_Value := Scope;
       Model.Search_Results_Active := Scope /= Files.UI_Types.Filter_Here;
       Model.Results_Hide_Hidden := False;
+      Model.Search_Query :=
+        (if Model.Search_Results_Active then To_Unbounded_String (Query) else Null_Unbounded_String);
       Invalidate_Visible (Model);
    end Note_Search_Results;
 
@@ -139,6 +154,7 @@ package body Files.Model.Filtering is
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
+      Model.Search_Query := Null_Unbounded_String;
       Invalidate_Visible (Model);
    end Clear_Search_Results;
 

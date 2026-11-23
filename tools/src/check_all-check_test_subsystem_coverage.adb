@@ -113,7 +113,7 @@ separate (Check_All)
       --  The exact counts as of the last change to a suite: a lost test, or
       --  one added without its count moving here, fails.
       Counts : constant Suite_Counts :=
-        [Expect ("settings", 47),
+        [Expect ("settings", 49),
          Expect ("startup", 32),
          Expect ("commands", 45),
          Expect ("model", 57),
@@ -129,7 +129,7 @@ separate (Check_All)
          Expect ("recovery", 64),
          Expect ("history", 42),
          Expect ("trash", 35),
-         Expect ("search", 11),
+         Expect ("search", 12),
          Expect ("thumbnails", 23),
          Expect ("archives", 7),
          Expect ("info", 33),

@@ -7,6 +7,8 @@ separate (Files.Controller)
       Settings_Path : String)
       return Controller_Result
    is
+      --  The settings in force before this save, for what it changes.
+      Before  : constant Files.Settings.Settings_Model := Settings;
       Applied : constant Files.Settings.Settings_Parse_Result :=
         Files.Settings.Drafts.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
@@ -86,7 +88,10 @@ separate (Files.Controller)
       --  before the refresh so the reload lists items in the new order.
       Files.Operations.Apply_Ui_State (Model, Settings);
 
-      Operation := Files.Operations.Refresh (Model, Settings);
+      --  The listing follows what the save changed as it follows another
+      --  window's change: read again only for the hidden filter or the maps,
+      --  search results kept (taking them in place), folder sizes kept.
+      Operation := Follow_Listing_Settings (Model, Before, Settings);
       --  The pane shows what was saved -- every mapping row as the file
       --  holds it -- with each mapping editor still on the entry it was on,
       --  and a row just added and not yet filled in kept. Rebuilding the

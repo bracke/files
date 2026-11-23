@@ -56,7 +56,7 @@ separate (Files.Refresh)
           (Work.Searched = Files.UI_Types.Filter_Here
            or else (Files.Model.Filtering.Search_Results_Are_Active (Model)
                     and then Files.Model.Filtering.Search_Scope_Of (Model) = Work.Searched
-                    and then Files.Model.Filtering.Filter_Text (Model) = To_String (Work.Query)));
+                    and then Files.Model.Filtering.Search_Query (Model) = To_String (Work.Query)));
       if not Matching and then not Cancelled
         and then Work.Root = Files.Model.Current_Path (Model)
       then
@@ -77,6 +77,7 @@ separate (Files.Refresh)
            (Model, Done.Items, Done.Signature,
             Recent        => Work.Recent,
             Searched      => Work.Searched,
+            Query         => To_String (Work.Query),
             Select_Path   => To_String (Work.Select_Path),
             Select_Name   => To_String (Work.Selection),
             Fresh_Details => Work.Force);

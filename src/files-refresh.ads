@@ -27,10 +27,12 @@ package Files.Refresh is
       Select_Path : String := "";
       Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result;
 
-   --  Put a fresh listing of the view in place of the items shown -- the
-   --  one way a folder (or the Recent view, or search results) read again
-   --  is installed, whether read here after an operation, by the background
-   --  refresh or by an operation's helper -- keeping where the user was:
+   --  Put a fresh listing of the view in place of the items shown -- how a
+   --  folder read again here after an operation is installed, and anything
+   --  the background refresh or an operation's helper read again (a folder,
+   --  the Recent view, search results; without background transfers,
+   --  Operations.Support rebuilds the last two in place) -- keeping where
+   --  the user was:
    --  the selection (or the item asked for), the scroll, the info pane on
    --  the same item and a Quick Look whose item is still there; and noting
    --  the signature the watch compares with, and the images still lacking a
@@ -42,7 +44,8 @@ package Files.Refresh is
    --  @param Signature The listed folder's signature.
    --  @param Recent The items are the Recent view's.
    --  @param Searched Filter_Here for a folder listing; else the scope the
-   --    items answer the window's query in, as search results.
+   --    items answer Query in, as search results.
+   --  @param Query The query search results answer (noted with them).
    --  @param New_Results The items answer a new search: noted as results
    --    afresh, with no place in them to keep.
    --  @param Select_Path Full path to select, winning over the rest.
@@ -58,6 +61,7 @@ package Files.Refresh is
       Signature      : Files.File_System_Types.Directory_Signature;
       Recent         : Boolean := False;
       Searched       : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      Query          : String := "";
       New_Results    : Boolean := False;
       Select_Path    : String := "";
       Select_Name    : String := "";

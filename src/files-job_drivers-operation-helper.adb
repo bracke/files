@@ -58,7 +58,7 @@ package body Files.Job_Drivers.Operation.Helper is
          --  shows every one it holds whatever the query, and its reload
          --  searches again rather than list the folder in their place.
          if Work.Searched /= Files.UI_Types.Filter_Here then
-            Files.Model.Filtering.Note_Search_Results (Model, Work.Searched);
+            Files.Model.Filtering.Note_Search_Results (Model, Work.Searched, To_String (Work.Query));
             Files.Model.Filtering.Set_Filter (Model, To_String (Work.Query));
          end if;
          Files.Model.Selection.Select_All_Visible (Model);

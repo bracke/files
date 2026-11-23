@@ -182,15 +182,19 @@ package Files.Model is
    --  Remember that a reload of the current view is still owed: a background
    --  read was discarded because the listing context moved while it ran, so
    --  its answer could not be applied. A later owed request merges with an
-   --  earlier one (Force wins; a nonempty selection replaces the old one).
+   --  earlier one (Force wins; a nonempty selection, by name or by path,
+   --  replaces the old one).
    --
    --  @param Model Model to update.
    --  @param Force Whether the discarded read was a forced reload.
    --  @param Select_Name Item name the discarded read was asked to select.
+   --  @param Select_Path Full path the discarded read was asked to select
+   --  (an item a leaf name cannot single out among search results).
    procedure Note_Owed_Refresh
      (Model       : in out Window_Model;
       Force       : Boolean;
-      Select_Name : String);
+      Select_Name : String;
+      Select_Path : String := "");
 
    --  Return whether a reload is owed for the view that is on screen now.
    --  Navigation makes an earlier debt moot, since it loads the new view.
@@ -210,6 +214,12 @@ package Files.Model is
    --  @param Model Model to inspect.
    --  @return Item name the owed reload should select, or "".
    function Owed_Refresh_Selection
+     (Model : Window_Model)
+      return String;
+
+   --  @param Model Model to inspect.
+   --  @return Full path the owed reload should select, or "".
+   function Owed_Refresh_Path
      (Model : Window_Model)
       return String;
 
@@ -994,12 +1004,13 @@ private
 
    --  A discarded background read whose reload is still owed, the view
    --  incarnation it is owed to, whether it must be forced, and the item it
-   --  should select. Every default is the settled state.
+   --  should select (by name, or by full path). Every default is the settled state.
    type Owed_Refresh_State is record
       Owed        : Boolean := False;
       Incarnation : Natural := 0;
       Forced      : Boolean := False;
       Selection   : UString;
+      Path        : UString;
    end record;
 
    --  The info pane's owner or group field, and whether it edits the group
@@ -1161,6 +1172,10 @@ private
       --  results keep the hidden matches the search found, and showing
       --  hidden files again brings them back. Reset with the search state.
       Results_Hide_Hidden   : Boolean := False;
+      --  The query the search results shown answer (Note_Search_Results):
+      --  what they are searched again for, whatever the filter field holds
+      --  since. Reset with the search state.
+      Search_Query          : UString;
       --  Paths opened since the last drain, awaiting fold into the persisted
       --  recent list by the interaction layer (see Note_Recent_Open).
       Recent_Open_Queue    : Files.Types.String_Vectors.Vector;

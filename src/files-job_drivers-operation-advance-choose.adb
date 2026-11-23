@@ -18,7 +18,7 @@ begin
      and then Matches_Current_Context (Work)
      and then Files.Model.Filtering.Search_Results_Are_Active (Model)
      and then Files.Model.Filtering.Search_Scope_Of (Model) = Done.Searched
-     and then Files.Model.Filtering.Filter_Text (Model) = To_String (Work.Query)
+     and then Files.Model.Filtering.Search_Query (Model) = To_String (Work.Query)
    then
       --  Its results are the view after the operation: shown as they are,
       --  not searched for a second time.

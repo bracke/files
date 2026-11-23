@@ -100,6 +100,8 @@ package body Files_Suite.Settings is
    procedure Test_Shortcut_Reset_Keeps_Taken_Secondary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Held_Key_Saves_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Held_Key_Refused_Step (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Pane_Save_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Outside_Rebind_Keeps_Draft_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -244,6 +246,12 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Held_Key_Refused_Step'Access,
          "a held arrow's step the settings file cannot hold is refused and said; letting go writes the steps in force");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Pane_Save_Keeps_The_View'Access,
+         "a settings-pane save reads the view again only for what it changed, keeping results and folder sizes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Outside_Rebind_Keeps_Draft_Shortcuts'Access,
+         "an outside rebind taken in merges with the pane's draft per command, keeping its unsaved capture");
    end Register_Tests;
 
    --  A settings text exercising every section the parsing and open-action
@@ -435,4 +443,8 @@ package body Files_Suite.Settings is
 
    procedure Test_Held_Key_Saves_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Held_Key_Refused_Step (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Pane_Save_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Outside_Rebind_Keeps_Draft_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 end Files_Suite.Settings;

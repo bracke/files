@@ -39,7 +39,8 @@ separate (Files_Suite.Interaction)
       Settings.Show_Hidden_Files := True;
       Load;
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the results hold the hidden item too");
-      Files.Model.Filtering.Note_Search_Results (Model, Files.UI_Types.Search_Names);
+      Files.Model.Filtering.Note_Search_Results
+        (Model, Files.UI_Types.Search_Names, Files.Model.Filtering.Filter_Text (Model));
       Select_Name (Model, "Beta.txt");
       --  On disk only: a reload would list it, the results do not.
       Write_File (Join (Root, "Gamma.txt"));

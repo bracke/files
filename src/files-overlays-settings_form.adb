@@ -354,7 +354,7 @@ package body Files.Overlays.Settings_Form is
             end if;
             if Conflict then
                --  Report the clash in the footer; the row visually reverts on the
-               --  next rebuild because the live binding was left unchanged.
+               --  next rebuild because the draft's binding was left unchanged.
                D.Valid     := False;
                D.Error_Key := U ("settings.shortcut.conflict");
             end if;

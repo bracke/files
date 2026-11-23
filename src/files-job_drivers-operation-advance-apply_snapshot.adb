@@ -10,6 +10,7 @@ begin
          Recent      => Done.Recent,
          Searched    =>
            (if Done.Kind = Search_Names then Files.UI_Types.Search_Names else Files.UI_Types.Search_Contents),
+         Query       => To_String (Work.Query),
          New_Results => True);
    else
       --  The view the operation ran in, read again by the helper: search
@@ -19,6 +20,7 @@ begin
         (Model, Done.Items, Done.Signature,
          Recent         => Done.Recent,
          Searched       => Done.Searched,
+         Query          => To_String (Work.Query),
          Select_Name    => To_String (Done.Selection),
          Keep_Selection => Done.Searched /= Files.UI_Types.Filter_Here,
          Owe_Thumbnails => Done.Searched = Files.UI_Types.Filter_Here and then not Done.Recent);

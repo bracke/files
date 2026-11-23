@@ -3,9 +3,10 @@
 --  change is saved by, below the window layer: what another process wrote
 --  since is taken in first (Merge_From_File), and settings that would not
 --  load again are never written. It writes exactly the settings it is
---  handed: Files.Controller stores the live keymap into them first
---  (Files.Commands.Keymap_Settings), puts a rebind taken in from the file
---  in force, and applies the outcome to a window (its error line, taking
+--  handed, shortcut overrides included (the settings in force carry them:
+--  the pane edits them in its draft, and Files.Controller puts an accepted
+--  change in force through Files.Commands.Keymap_Settings); the controller
+--  puts a rebind taken in from the file in force, and applies the outcome to a window (its error line, taking
 --  merged-in settings into the open pane and listing).
 package Files.Settings.Storage is
 
@@ -115,8 +116,7 @@ private
    --  off (smoke runs, tests): the settings apply in memory and count as
    --  saved. A session whose settings file could not be loaded refuses to
    --  write it: the change applies in memory and the result says it was not
-   --  saved. The shortcut overrides written are Settings' own (the caller
-   --  stores the live keymap into them). What another process wrote to the
+   --  saved. The shortcut overrides written are Settings' own. What another process wrote to the
    --  file since this one saw it is taken into Settings first
    --  (Merge_From_File), its shortcuts included, for the caller to put in
    --  force; a file
