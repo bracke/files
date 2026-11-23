@@ -239,13 +239,6 @@ private package Files.Model.Support is
      (Model      : in out Window_Model;
       Item_Index : Natural);
 
-   --  The single primary selected item index, falling back to the first entry
-   --  of the multi-selection, or zero when nothing is selected.
-   --
-   --  @param Model Model to inspect.
-   --  @return Effective selected item index, or 0.
-   function Effective_Selected_Item_Index (Model : Window_Model) return Natural;
-
    --  Re-anchor the active rename onto the current selection after the item
    --  list or selection changed (dropping it if its target is gone).
    --

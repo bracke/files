@@ -10,12 +10,20 @@ package Files.Refresh is
    --  @param Settings Immutable directory settings snapshot.
    --  @param Force Read the listing even when its directory signature is unchanged.
    --  @param Select_Name Preferred selection, or empty to retain the current selection.
+   --  @param Select_Path Full path to select, winning over Select_Name.
+   --  @param Search_Again While the window shows search results, search
+   --    again for its query in its scope (a forced read) rather than list
+   --    the folder in their place, which ends the search (as the Refresh
+   --    command does). The search's notice shows unless an error set
+   --    before the read is kept.
    --  @return Immediate launch result; Advance later applies a matching snapshot.
    function Start
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Force : Boolean := False;
-      Select_Name : String := "") return Files.Operation_Results.Operation_Result;
+      Select_Name : String := "";
+      Select_Path : String := "";
+      Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result;
 
    --  @param Model Window owning a pending read.
    --  @param Settings Current settings used to reject stale results.

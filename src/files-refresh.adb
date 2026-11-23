@@ -15,6 +15,8 @@ with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Files.IO.Record_Fields;
 with Files.File_System;
+with Files.File_System.Search;
+with Files.UI_Types;
 with Files.File_Types;
 with Files.Settings.Path_References;
 with Files.Job_Payloads;
@@ -32,8 +34,8 @@ package body Files.Refresh is
    use Ada.Strings.Unbounded;
    use type Files.Operation_Results.Operation_Status;
 
-   Request_Header : constant String := "files-refresh-request-1";
-   Result_Header : constant String := "files-refresh-result-1";
+   Request_Header : constant String := "files-refresh-request-2";
+   Result_Header : constant String := "files-refresh-result-2";
 
    type Request is record
       Root : Files.Types.UString;
@@ -44,6 +46,12 @@ package body Files.Refresh is
       Force : Boolean;
       Selection : Files.Types.UString;
       Error_Key : Files.Types.UString;
+      --  The full path to select, winning over Selection.
+      Select_Path : Files.Types.UString;
+      --  The scope whose results the window shows, to search again for
+      --  Query rather than list the folder; Filter_Here lists it.
+      Searched : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      Query : Files.Types.UString;
    end record;
 
    type Outcome is record
@@ -52,6 +60,8 @@ package body Files.Refresh is
       Items : Files.Items.Item_Vectors.Vector;
       Signature : Files.File_System_Types.Directory_Signature;
       Error_Key : Files.Types.UString;
+      --  A search's notice (Files.File_System.Search.Notice_Of), or "".
+      Notice : Files.Types.UString;
    end record;
 
    function Request_Paths_Are_Consistent
@@ -91,6 +101,11 @@ package body Files.Refresh is
         (Stream, To_String (Work.Selection), Files.Jobs.Records.Max_Path_Length);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Error_Key), Files.Jobs.Records.Max_Error_Length);
+      Files.IO.Record_Fields.Output_String
+        (Stream, To_String (Work.Select_Path), Files.Jobs.Records.Max_Path_Length);
+      Files.UI_Types.Search_Scope'Output (Stream, Work.Searched);
+      Files.IO.Record_Fields.Output_String
+        (Stream, To_String (Work.Query), Files.Jobs.Records.Max_Path_Length);
    end Write_Request;
 
    procedure Read_Request_Body
@@ -108,6 +123,11 @@ package body Files.Refresh is
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Work.Error_Key :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
+      Work.Select_Path :=
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+      Work.Searched := Files.UI_Types.Search_Scope'Input (Stream);
+      Work.Query :=
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
    end Read_Request_Body;
 
    function Request_Is_Consistent (Work : Request) return Boolean is
@@ -158,6 +178,8 @@ package body Files.Refresh is
       Files.Jobs.Records.Write_Signature (Stream, Done.Signature);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Error_Key), Files.Jobs.Records.Max_Error_Length);
+      Files.IO.Record_Fields.Output_String
+        (Stream, To_String (Done.Notice), Files.Jobs.Records.Max_Error_Length);
    end Write_Outcome;
 
    procedure Read_Outcome_Body
@@ -169,6 +191,8 @@ package body Files.Refresh is
       Done.Items := Files.Job_Payloads.Read_Items (Stream);
       Done.Signature := Files.Jobs.Records.Read_Signature (Stream);
       Done.Error_Key :=
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
+      Done.Notice :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
    end Read_Outcome_Body;
 
@@ -188,7 +212,9 @@ package body Files.Refresh is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Force : Boolean := False;
-      Select_Name : String := "") return Files.Operation_Results.Operation_Result is separate;
+      Select_Name : String := "";
+      Select_Path : String := "";
+      Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result is separate;
 
    procedure Resume_Owed
      (Model    : in out Files.Model.Window_Model;
@@ -205,7 +231,10 @@ package body Files.Refresh is
          Retry : constant Files.Operation_Results.Operation_Result :=
            Start (Model, Settings,
                   Force       => Files.Model.Owed_Refresh_Force (Model),
-                  Select_Name => Files.Model.Owed_Refresh_Selection (Model));
+                  Select_Name => Files.Model.Owed_Refresh_Selection (Model),
+                  --  Search results shown now are searched again: a
+                  --  listing put in their place would pass for them.
+                  Search_Again => True);
       begin
          --  A launch settles the debt inside Start. A launch failure has
          --  already reported its error; retrying it every poll would not help.

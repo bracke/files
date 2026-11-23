@@ -3,10 +3,20 @@ separate (Files.Refresh)
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Force : Boolean := False;
-      Select_Name : String := "") return Files.Operation_Results.Operation_Result
+      Select_Name : String := "";
+      Select_Path : String := "";
+      Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result
    is
+      use type Files.UI_Types.Search_Scope;
       Job : Files.Jobs.Process.Session;
-      Previous_Error : constant String := Files.Model.Last_Error_Key (Model);
+      Searching : constant Boolean :=
+        Search_Again and then Force and then Files.Model.Filtering.Search_Results_Are_Active (Model)
+        and then Files.Model.Filtering.Search_Scope_Of (Model) /= Files.UI_Types.Filter_Here;
+      --  A search's notice is about the results shown, not an operation's
+      --  diagnostic: the read replaces it (with its own, when it searches).
+      Previous_Error : constant String :=
+        (if Files.File_System.Search.Is_Notice (Files.Model.Last_Error_Key (Model)) then ""
+         else Files.Model.Last_Error_Key (Model));
       Work : constant Request :=
         (Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Context_Revision => Files.Model.Listing_Revision (Model), Settings => Settings,
@@ -19,7 +29,12 @@ separate (Files.Refresh)
          --  the read completes. A nonempty operation-requested name wins.
          Selection => To_Unbounded_String (Select_Name),
          Error_Key => (if Previous_Error = Files.IO.Errors.Directory_Load_Key then Null_Unbounded_String
-                       else To_Unbounded_String (Previous_Error)));
+                       else To_Unbounded_String (Previous_Error)),
+         Select_Path => To_Unbounded_String (Select_Path),
+         Searched =>
+           (if Searching then Files.Model.Filtering.Search_Scope_Of (Model) else Files.UI_Types.Filter_Here),
+         Query => (if Searching then To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model))
+                   else Null_Unbounded_String));
    begin
       if not Force and then (Work.Recent or else Files.Model.Filtering.Search_Results_Are_Active (Model)) then
          return (Status => Files.Operation_Results.Operation_Success, others => <>);

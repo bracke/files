@@ -66,8 +66,14 @@ package body Files.Model.Testing is
    function Selected_Item_Is_Temporary
      (Model : Window_Model)
       return Boolean is
+      --  The primary selection, else the first of a multi-selection.
+      Effective : constant Natural :=
+        (if Model.Selected_Item_Index /= 0 then Model.Selected_Item_Index
+         elsif not Model.Selected_Item_Indexes.Is_Empty
+         then Model.Selected_Item_Indexes.Element (Model.Selected_Item_Indexes.First_Index)
+         else 0);
    begin
-      return Effective_Selected_Item_Index (Model) = Temporary_Item_Index and then Temporary_Is_Visible (Model);
+      return Effective = Temporary_Item_Index and then Temporary_Is_Visible (Model);
    end Selected_Item_Is_Temporary;
 
    function Selection_Grid_Columns

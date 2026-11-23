@@ -1,5 +1,6 @@
 separate (Files.Refresh)
    procedure Run_Helper (Directory : String) is
+      use type Files.UI_Types.Search_Scope;
       Work : Request;
       Done : Outcome;
 
@@ -9,7 +10,30 @@ separate (Files.Refresh)
       end Write;
    begin
       Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Jobs.Process.Request_File));
-      if Work.Recent then
+      if Work.Searched /= Files.UI_Types.Filter_Here then
+         --  The window shows search results: they are found again, as
+         --  Operations' Search_Current_Folder finds them.
+         declare
+            Root    : constant String := To_String (Work.Root);
+            Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Work.Settings);
+            Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Work.Settings);
+            Found   : constant Files.File_System.Search.Recursive_Search_Result :=
+              (if Work.Searched = Files.UI_Types.Search_Contents
+               then Files.File_System.Search.Search_Contents (Root, To_String (Work.Query), Classes, Options)
+               else Files.File_System.Search.Search_Names (Root, To_String (Work.Query), Classes, Options));
+         begin
+            Done.Success := Found.Success;
+            Done.Reloaded := Found.Success;
+            Done.Error_Key := Found.Error_Key;
+            if Found.Success then
+               Done.Items := Found.Items;
+               Done.Notice := To_Unbounded_String (Files.File_System.Search.Notice_Of (Found));
+               Done.Signature := Files.File_System.Directory_State (Root);
+            else
+               Done.Signature := Work.Previous;
+            end if;
+         end;
+      elsif Work.Recent then
          Done.Items := Load_Recent_Items (Work.Settings);
          Done.Signature := Work.Previous;
          Done.Success := True;

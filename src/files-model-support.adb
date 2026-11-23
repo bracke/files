@@ -322,6 +322,8 @@ package body Files.Model.Support is
       end if;
    end Remove_Selected_Index;
 
+   --  The single primary selected item index, falling back to the first entry
+   --  of the multi-selection, or zero when nothing is selected.
    function Effective_Selected_Item_Index (Model : Window_Model) return Natural is
    begin
       if Model.Selected_Item_Index /= 0 then

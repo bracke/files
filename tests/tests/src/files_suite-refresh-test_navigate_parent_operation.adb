@@ -59,7 +59,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "back returns after navigate-parent");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -71,7 +71,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "forward goes where back came from");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model), Full_Parent, "forward returns to the parent");

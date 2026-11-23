@@ -139,12 +139,4 @@ package Files.Model.Rename is
      (Model : Window_Model)
       return Target_Vectors.Vector;
 
-   --  Resume single-item rename mode for the currently selected item.
-   --
-   --  @param Model Model to update.
-   --  @param Text Rename text to restore.
-   procedure Resume
-     (Model : in out Window_Model;
-      Text  : String);
-
 end Files.Model.Rename;

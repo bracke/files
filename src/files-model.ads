@@ -615,26 +615,19 @@ package Files.Model is
    procedure Go_Forward
      (Model : in out Window_Model);
 
-   --  Where a window is in its navigation history: its view, the recent view
-   --  or not, and both navigation stacks.
-   type Navigation_Mark is private;
-
-   --  Mark where Model is, to return there when a move fails.
+   --  The folder Go_Back moves to, so a caller can load it before moving.
    --
-   --  @param Model Model to inspect.
-   --  @return Its view and navigation history.
-   function Mark_Navigation (Model : Window_Model) return Navigation_Mark;
+   --  @param Model Model to inspect; Can_Go_Back must hold.
+   --  @return The last path of the back navigation history.
+   function Back_Target (Model : Window_Model) return String
+     with Pre => Can_Go_Back (Model);
 
-   --  Return Model to Mark: the view, whether it is the recent view, and the
-   --  navigation history as it was -- not a move the other way, which from the recent
-   --  view (never in history) lands somewhere else. The view comes back whole
-   --  -- its search results or filter, selection, scroll, focus and path
-   --  field -- over the items the window still holds: a move that failed
-   --  replaced none of them.
+   --  The folder Go_Forward moves to, so a caller can load it before moving.
    --
-   --  @param Model Model to update.
-   --  @param Mark  Where it was, from Mark_Navigation.
-   procedure Return_To (Model : in out Window_Model; Mark : Navigation_Mark);
+   --  @param Model Model to inspect; Can_Go_Forward must hold.
+   --  @return The last path of the forward navigation history.
+   function Forward_Target (Model : Window_Model) return String
+     with Pre => Can_Go_Forward (Model);
 
    --  Focus the path input field.
    --
@@ -1149,30 +1142,6 @@ private
       Day      : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Next_Day : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Banded   : Boolean := False;
-   end record;
-
-   --  What Leave_View resets of a view and Return_To puts back: the search
-   --  and filter, the selection (indexes into the items, which a failed move
-   --  leaves as they were), the scrolls, the focus and the path field.
-   type View_Mark is record
-      Search_Scope          : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
-      Search_Results_Active : Boolean := False;
-      Results_Hide_Hidden   : Boolean := False;
-      Filter                : Text_Field_State;
-      Folded_Filter         : UString;
-      Selected_Item_Index   : Natural := 0;
-      Selected_Item_Indexes : Natural_Vectors.Vector;
-      Info_Pane_Scroll      : Natural := 0;
-      Main_View_Scroll      : Natural := 0;
-      Focus                 : Files.UI_Types.Focus_Target := Files.UI_Types.Focus_None;
-      Path_Input            : Path_Input_State;
-   end record;
-
-   type Navigation_Mark is record
-      Path            : UString;
-      Recent          : Boolean := False;
-      Back, Forward   : Files.Types.String_Vectors.Vector;
-      View            : View_Mark;
    end record;
 
    type Window_Model is record

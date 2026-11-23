@@ -4,6 +4,9 @@ with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
+with Files.Refresh;
+with Files.Jobs.Process;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Search)
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -41,6 +44,14 @@ separate (Files_Suite.Search)
                  "the search finds the one deep file for " & Query);
          Files.Model.Selection.Select_Visible (Model, 1);
       end Search;
+
+      --  The window's poll brings a background read in.
+      procedure Await_Search_Again is
+      begin
+         for Attempt in Files_Suite.Support.Timing.Polling loop
+            exit when Files.Refresh.Advance (Model, Settings);
+         end loop;
+      end Await_Search_Again;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Deep);
@@ -143,21 +154,46 @@ separate (Files_Suite.Search)
       Assert (Path_Exists (Join (Deep, "notes.txt")) and then not Path_Exists (Join (Root, "notes.txt")),
               "a result still listed after Clear Filter renames in its own folder");
 
-      --  While a transfer runs in the background, an operation's reload
-      --  searches again too: a background listing of the folder would put
-      --  the search root's own items in the results' place.
+      --  In a window, an operation's reload searches again too -- in the
+      --  background, as a search may read every file below the folder --
+      --  and a background listing of the folder would put the search
+      --  root's own items in the results' place.
       Search ("notes.txt");
       Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "notes.txt.old");
       Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Result := Complete_Operation (Model, Settings, Result);
-      Assert (Path_Exists (Join (Deep, "notes.txt.old")), "the result renames while a transfer runs");
+      Assert (Path_Exists (Join (Deep, "notes.txt.old")), "the result renames in a window");
+      Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
+              "and the search runs again in the background, not on the window's thread");
+      Await_Search_Again;
       Assert (Files.Model.Filtering.Search_Results_Are_Active (Model)
               and then Files.Model.Filtering.Filter_Text (Model) = "notes.txt",
               "the results stay shown, with their query");
       Assert (Files.Model.Visible_Index_Of (Model, Join (Deep, "notes.txt.old")) /= 0
               and then Files.Model.Visible_Index_Of (Model, Join (Root, "a")) = 0,
               "the renamed result among them, not the search root's own listing");
+
+      --  A helper's permanent delete of a result searches again after it
+      --  acts: its results are shown as they are, not searched for a
+      --  second time, with the rest of the selection kept.
+      Write_File (Join (Deep, "spare.txt"), "spare");
+      Search ("notes.txt.old");
+      Files.Model.Filtering.Set_Filter (Model, ".txt");
+      Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+      Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt.old"), "the result to delete is listed");
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
+      Result := Operation_Commands.Delete_Selected_Permanently (Model, Settings);
+      Result := Complete_Operation (Model, Settings, Result);
+      Assert (not Path_Exists (Join (Deep, "notes.txt.old")), "a helper deletes the result for good");
+      Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
+              "its own search afterwards is shown, with none run again");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model)
+              and then Files.Model.Filtering.Filter_Text (Model) = ".txt",
+              "the results stay shown, with their query");
+      Assert (Files.Model.Visible_Index_Of (Model, Join (Deep, "notes.txt.old")) = 0
+              and then Files.Model.Visible_Index_Of (Model, Join (Deep, "spare.txt")) /= 0,
+              "without the deleted result, with the others");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));
    end Test_Search_Result_Actions_Stay_Beside_Source;

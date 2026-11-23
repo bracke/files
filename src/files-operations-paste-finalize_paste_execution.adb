@@ -53,10 +53,6 @@ begin
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
       begin
-         if not Reloads_In_Background (Model) then
-            --  Search results were searched again here, which set the error.
-            Report;
-         end if;
          if Reported_Key /= "" then
             return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
          elsif Reload.Status /= Operation_Success then

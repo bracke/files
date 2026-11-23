@@ -232,7 +232,7 @@ package body Files_Suite.Operations is
          "The recent view refreshes in place and a failed Back returns to it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Failed_Back_Keeps_The_View'Access,
-         "A failed Back shows the view it left as it was: its search results, query and selection");
+         "A failed Back leaves the view as it was, rename and owed refresh too; a Back that works lists the folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Stale_Click_Matches_Path'Access,
          "A stale click finds the drawn item by its path");

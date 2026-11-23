@@ -10,7 +10,6 @@ with Hostkit.Fs;
 with Files.Operations.Support;
 with Files.Refresh;
 with Files.Diagnostics;
-with Files.Model.Rename;
 with Files.Model.Selection;
 
 package body Files.Operations.Navigation is

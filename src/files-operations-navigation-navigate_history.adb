@@ -1,31 +1,25 @@
-with Files.Model.Creation;
 with Files.Command_Reasons;
 
 separate (Files.Operations.Navigation)
 --  History navigation shared by Navigate_Back and Navigate_Forward: mirror
 --  images differing only in the availability check, the error key and the move.
+--  The folder is read before the window moves, as Load_And_Navigate does: a
+--  read that fails leaves the window as it was -- its view, its history, an
+--  item being named, a refresh it owes -- with only the error line set, and
+--  one that succeeds moves and shows the folder at once (the error line,
+--  a search notice included, belonged to the view left and goes).
 function Navigate_History
   (Model     : in out Files.Model.Window_Model;
    Settings  : Files.Settings.Settings_Model;
    Direction : History_Direction)
    return Operation_Result
 is
-   Had_Temporary  : constant Boolean := Files.Model.Creation.Temporary_Item_Is_Active (Model);
-   Temporary_Name : constant String := Files.Model.Creation.Temporary_Item_Name (Model);
-   Temporary_Dir  : constant Boolean :=
-     Had_Temporary and then Files.Model.Creation.Temporary_Item_Is_Directory (Model);
-   Had_Rename     : constant Boolean := Files.Model.Rename.Is_Active (Model);
-   Rename_Text    : constant String := Files.Model.Rename.Text (Model);
-   Rename_Source  : constant String := Files.Model.Selection.Selected_Name (Model);
-   --  The caret in the field being named (Begin_Create_* puts it at the end).
-   Rename_Caret   : constant Natural := (if Had_Rename then Files.Model.Text_Cursor_Position (Model) else 0);
-   Origin         : constant Files.Model.Navigation_Mark := Files.Model.Mark_Navigation (Model);
-   Available      : constant Boolean :=
+   Available : constant Boolean :=
      (if Direction = History_Back
       then Files.Model.Can_Go_Back (Model)
       else Files.Model.Can_Go_Forward (Model));
    --  The key the disabled Back/Forward command reports, not a copy of it.
-   Error_Key      : constant String :=
+   Error_Key : constant String :=
      Files.Command_Reasons.Reason_Key
        (if Direction = History_Back
         then Files.Command_Reasons.Back_Unavailable_Reason
@@ -35,47 +29,25 @@ begin
       return Disabled (Model, Error_Key);
    end if;
 
-   if Direction = History_Back then
-      Files.Model.Go_Back (Model);
-   else
-      Files.Model.Go_Forward (Model);
-   end if;
-   Settle_Current_Is_Trash (Model);
-
    declare
-      Reload : constant Operation_Result := Refresh (Model, Settings);
+      Target : constant String :=
+        (if Direction = History_Back
+         then Files.Model.Back_Target (Model)
+         else Files.Model.Forward_Target (Model));
+      Load   : constant Files.File_System.Directory_Load_Result := Support.Load_Folder (Settings, Target);
    begin
-      if Reload.Status /= Operation_Success then
-         --  Return to where the window was, then restore any interrupted
-         --  rename/create.
-         Files.Model.Return_To (Model, Origin);
-         Settle_Current_Is_Trash (Model);
-         if Had_Temporary then
-            --  The temporary's name follows its field as it is typed
-            --  (Rename.Sync_Temporary_From_Field), so this is the typed name.
-            if Temporary_Dir then
-               Files.Model.Creation.Begin_Create_Folder
-                 (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
-            else
-               Files.Model.Creation.Begin_Create_File
-                 (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
-            end if;
-            if Had_Rename then
-               Files.Model.Set_Text_Cursor_Position (Model, Rename_Caret);
-            end if;
-         elsif Had_Rename then
-            declare
-               Selection_Restored : constant Boolean :=
-                 Files.Model.Selection.Select_By_Name (Model, Rename_Source);
-               pragma Unreferenced (Selection_Restored);
-            begin
-               null;
-            end;
-            Files.Model.Rename.Resume (Model, Rename_Text);
-            Files.Model.Set_Text_Cursor_Position (Model, Rename_Caret);
-         end if;
+      if not Load.Success then
+         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Target);
       end if;
 
-      return Reload;
+      if Direction = History_Back then
+         Files.Model.Go_Back (Model);
+      else
+         Files.Model.Go_Forward (Model);
+      end if;
+      Files.Model.Replace_Items (Model, Load.Items);
+      Support.Show_Loaded_Folder (Model, Load);
+      return Make_Result (Operation_Navigated, Path => Target);
    end;
 end Navigate_History;

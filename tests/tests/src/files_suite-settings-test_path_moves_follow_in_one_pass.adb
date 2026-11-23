@@ -8,8 +8,9 @@ separate (Files_Suite.Settings)
    --  label rides a chain of moves, a label at a place a labelled entry
    --  moved onto goes, a removed folder takes its own along, a renamed file
    --  keeps its own label, a sibling whose name merely starts like a moved
-   --  folder's stays, and a favorite moved onto one already listed is listed
-   --  once. A move named in another normalization of a folder's name (é
+   --  folder's stays, a favorite moved onto one already listed is listed
+   --  once, and a stale label at a place a chain of moves passes through
+   --  goes. A move named in another normalization of a folder's name (é
    --  composed, the stored path decomposed, as HFS+ lists it) still takes
    --  what is inside, in a batch with another move.
    procedure Test_Path_Moves_Follow_In_One_Pass (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -88,6 +89,21 @@ separate (Files_Suite.Settings)
       Moves.Clear;
       Refs.Follow_Path_Moves (Settings, Moves, Changed);
       Assert (not Changed, "no moves change nothing");
+
+      --  A stale label (its item went outside the app) at a place a
+      --  labelled entry is moved onto goes, even when a later move of the
+      --  same batch takes what is there on: the label that travels on is the
+      --  one moved there.
+      Settings := Files.Settings.Default_Settings;
+      Refs.Testing.Set_Label (Settings, A, Files.Preference_Types.Red);
+      Refs.Testing.Set_Label (Settings, B, Files.Preference_Types.Blue);
+      Queue (B, A, Files.Types.Moved);
+      Queue (A, C, Files.Types.Moved);
+      Refs.Follow_Path_Moves (Settings, Moves, Changed);
+      Assert (Changed, "the chained moves changed what is stored");
+      Assert (Labels_Are (Files.Settings.Path_Label_Vectors.Empty_Vector & Label (C, Files.Preference_Types.Blue)),
+              "the label moved through the stale one's place ends alone at the chain's end");
+      Moves.Clear;
 
       Refs.Testing.Simulate_Folding_Host (True);
       declare

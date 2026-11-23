@@ -4,6 +4,7 @@ separate (Files.Refresh)
       Work  : Request;
       Items : Files.Items.Item_Vectors.Vector)
    is
+      use type Files.UI_Types.Search_Scope;
       Previous_Selection : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Selection.Selected_Paths (Model);
       --  The primary item as the info pane shows it, details and all.
@@ -22,9 +23,17 @@ separate (Files.Refresh)
          Files.Model.Navigate_Recent (Model, Items);
       else
          Files.Model.Replace_Items (Model, Items);
-         Files.Model.Filtering.Clear_Search_Results (Model);
+         if Work.Searched = Files.UI_Types.Filter_Here then
+            Files.Model.Filtering.Clear_Search_Results (Model);
+         else
+            --  Searched again: the items are results still.
+            Files.Model.Filtering.Note_Search_Results (Model, Work.Searched);
+         end if;
       end if;
-      if Length (Work.Selection) > 0 then
+      if Length (Work.Select_Path) > 0 then
+         Files.Model.Selection.Restore
+           (Model, Files.Types.String_Vectors.To_Vector (Work.Select_Path, 1), To_String (Work.Select_Path));
+      elsif Length (Work.Selection) > 0 then
          declare
             Selected : constant Boolean :=
               Files.Model.Selection.Select_By_Name (Model, To_String (Work.Selection));

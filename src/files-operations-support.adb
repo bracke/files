@@ -94,8 +94,7 @@ package body Files.Operations.Support is
    end Real_Selection_Refusal;
 
    function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean is
-     (Files.Model.Jobs.Background_Transfers (Model)
-      and then not Files.Model.Filtering.Search_Results_Are_Active (Model));
+     (Files.Model.Jobs.Background_Transfers (Model));
 
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;
@@ -107,7 +106,11 @@ package body Files.Operations.Support is
    is
    begin
       if Reloads_In_Background (Model) then
-         return Files.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
+         --  Search results are searched again there, not here: a search
+         --  may read every file below the folder.
+         return Files.Refresh.Start
+           (Model, Settings, Force => True, Select_Name => Select_Name, Select_Path => Select_Path,
+            Search_Again => True);
       end if;
       Reload_In_Place :
       declare
@@ -215,12 +218,7 @@ package body Files.Operations.Support is
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
       --  A partial answer is still shown, with a notice that it is one: a
       --  limit cut it short, or something under the root went unsearched.
-      Files.Model.Set_Error
-        (Model,
-         (if Found.Truncated then "search.truncated"
-          elsif Found.Incomplete then "search.incomplete"
-          elsif Found.Items.Is_Empty then "search.no_matches"
-          else ""));
+      Files.Model.Set_Error (Model, Files.File_System.Search.Notice_Of (Found));
       return Make_Result (Operation_Success, Path => Root);
    end Search_Current_Folder;
 

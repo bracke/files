@@ -3,6 +3,7 @@ separate (Files.Refresh)
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Boolean
    is
+      use type Files.UI_Types.Search_Scope;
       Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Refresh (Model);
       Work : Request;
       Done : Outcome;
@@ -48,7 +49,14 @@ separate (Files.Refresh)
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.Recent.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
-        and then Files.Settings.Same_Listing (Work.Settings, Settings, Work.Recent);
+        and then Files.Settings.Same_Listing (Work.Settings, Settings, Work.Recent)
+        --  A search answers its query in its scope, while the window
+        --  still shows those results.
+        and then
+          (Work.Searched = Files.UI_Types.Filter_Here
+           or else (Files.Model.Filtering.Search_Results_Are_Active (Model)
+                    and then Files.Model.Filtering.Search_Scope_Of (Model) = Work.Searched
+                    and then Files.Model.Filtering.Filter_Text (Model) = To_String (Work.Query)));
       if not Matching and then not Cancelled
         and then Work.Root = Files.Model.Current_Path (Model)
       then
@@ -67,9 +75,17 @@ separate (Files.Refresh)
       if Done.Reloaded then
          Apply_Reloaded_Items (Model, Work, Done.Items);
       end if;
-      if Files.Model.Last_Error_Key (Model) /= To_String (Work.Error_Key) then
-         Files.Model.Set_Error (Model, To_String (Work.Error_Key));
-      end if;
+      declare
+         --  The error kept from before the read, else a search's notice.
+         Wanted : constant String :=
+           (if Length (Work.Error_Key) = 0 and then Work.Searched /= Files.UI_Types.Filter_Here
+            then To_String (Done.Notice)
+            else To_String (Work.Error_Key));
+      begin
+         if Files.Model.Last_Error_Key (Model) /= Wanted then
+            Files.Model.Set_Error (Model, Wanted);
+         end if;
+      end;
       Files.Model.Set_Directory_Signature (Model, Done.Signature);
       Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
       return Done.Reloaded;

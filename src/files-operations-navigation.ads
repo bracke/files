@@ -26,21 +26,25 @@ package Files.Operations.Navigation is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Navigate backward and load the destination directory.
+   --  Navigate backward: the destination is read first, and the window moves
+   --  to it only when the read works; one that fails sets the error line
+   --  and changes nothing else.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used for directory classification.
-   --  @return Structured operation result.
+   --  @return Navigated, or the failed read.
    function Navigate_Back
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Navigate forward and load the destination directory.
+   --  Navigate forward: the destination is read first, and the window moves
+   --  to it only when the read works; one that fails sets the error line
+   --  and changes nothing else.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used for directory classification.
-   --  @return Structured operation result.
+   --  @return Navigated, or the failed read.
    function Navigate_Forward
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)

@@ -106,10 +106,10 @@ private package Files.Operations.Support is
       return Operation_Result;
 
    --  Whether Reload_Current_Directory hands the reload to a background
-   --  listing (which keeps the error set before it) rather than reloading
-   --  here (which clears it): while a transfer runs, but never for search
-   --  results, which are searched again here -- a forced background listing
-   --  would put the folder in their place.
+   --  read (which keeps the error set before it) rather than reloading
+   --  here (which clears it): in a window, whose transfers run in helpers.
+   --  Search results are searched again either way (Files.Refresh.Start's
+   --  Search_Again), never replaced by the folder's listing.
    --
    --  @param Model Window model to inspect.
    --  @return True when the next reload runs in the background.

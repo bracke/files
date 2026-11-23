@@ -25,14 +25,6 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "direct rename closes stale command palette");
       Files.Model.Rename.Toggle (Model);
       Assert (not Files.Model.Rename.Is_Active (Model), "direct rename can be cancelled after overlay cleanup");
-      Files.Model.Root_Selector.Open (Model, Files.File_System.Roots.Testing.Available_Roots);
-      Files.Model.Command_Palette.Open (Model);
-      Files.Model.Rename.Resume (Model, "renamed.txt");
-      Assert (Files.Model.Rename.Is_Active (Model), "resume rename enters rename mode");
-      Assert (not Files.Model.Root_Selector.Is_Open (Model), "resume rename closes stale root selector");
-      Assert (not Files.Model.Command_Palette.Is_Open (Model), "resume rename closes stale command palette");
-      Files.Model.Rename.Toggle (Model);
-      Assert (not Files.Model.Rename.Is_Active (Model), "resume rename state can be cancelled");
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
       Assert (Files.Model.Rename.Is_Enabled (Model), "rename enabled with multi-selection");

@@ -636,52 +636,11 @@ package body Files.Model is
       Leave_View (Model, Next);
    end Go_Forward;
 
-   function Mark_Navigation (Model : Window_Model) return Navigation_Mark is
-     ((Path    => Model.Current_Path_Value,
-       Recent  => Model.Recent_View_Active,
-       Back    => Model.Back_History,
-       Forward => Model.Forward_History,
-       View    =>
-         (Search_Scope          => Model.Search_Scope_Value,
-          Search_Results_Active => Model.Search_Results_Active,
-          Results_Hide_Hidden   => Model.Results_Hide_Hidden,
-          Filter                => Model.Filter,
-          Folded_Filter         => Model.Folded_Filter,
-          Selected_Item_Index   => Model.Selected_Item_Index,
-          Selected_Item_Indexes => Model.Selected_Item_Indexes,
-          Info_Pane_Scroll      => Model.Info_Pane_Scroll,
-          Main_View_Scroll      => Model.Main_View_Scroll,
-          Focus                 => Model.Focus_Value,
-          Path_Input            => Model.Path_Input)));
+   function Back_Target (Model : Window_Model) return String is
+     (To_String (Model.Back_History.Last_Element));
 
-   procedure Return_To (Model : in out Window_Model; Mark : Navigation_Mark) is
-      View : View_Mark renames Mark.View;
-   begin
-      Support.Touch (Model);
-      Model.Back_History := Mark.Back;
-      Model.Forward_History := Mark.Forward;
-      Model.Recent_View_Active := Mark.Recent;
-      Leave_View (Model, Mark.Path);
-      --  Leave_View reset what belongs to a view; the view left is the one
-      --  shown again, so it comes back as it was.
-      Model.Search_Scope_Value := View.Search_Scope;
-      Model.Search_Results_Active := View.Search_Results_Active;
-      Model.Results_Hide_Hidden := View.Results_Hide_Hidden;
-      Model.Filter := View.Filter;
-      Model.Folded_Filter := View.Folded_Filter;
-      Model.Selected_Item_Index := View.Selected_Item_Index;
-      Model.Selected_Item_Indexes := View.Selected_Item_Indexes;
-      Model.Info_Pane_Scroll := View.Info_Pane_Scroll;
-      Model.Main_View_Scroll := View.Main_View_Scroll;
-      Model.Focus_Value := View.Focus;
-      Model.Path_Input := View.Path_Input;
-      Support.Invalidate_Visible (Model);
-      --  Touch above covers the rows; the selection, the info pane on it and
-      --  the scroll each have their own counter.
-      Support.Touch_Selection (Model);
-      Support.Touch_Info (Model);
-      Support.Touch_Scroll (Model);
-   end Return_To;
+   function Forward_Target (Model : Window_Model) return String is
+     (To_String (Model.Forward_History.Last_Element));
 
    procedure Focus_Path_Input
      (Model : in out Window_Model) is separate;

@@ -44,7 +44,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "back operation reloads target");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -66,7 +66,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "forward operation reloads target");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -121,7 +121,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "second back operation succeeds");
       Project_Tools.Files.Delete_Tree (Second);
       Files.Model.Selection.Select_Visible (Model, 1);
@@ -178,7 +178,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
+         Files.Operation_Results.Operation_Navigated,
          "second forward operation succeeds");
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Selection.Select_Visible (Model, 1);

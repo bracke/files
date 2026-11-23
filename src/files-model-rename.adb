@@ -436,24 +436,4 @@ package body Files.Model.Rename is
       return Result;
    end Targets;
 
-   procedure Resume
-     (Model : in out Window_Model;
-      Text  : String) is
-   begin
-      Touch (Model);
-      Support.Touch_Listing (Model);
-      if not Is_Enabled (Model) then
-         return;
-      end if;
-
-      Clear_Overlay_State_For_Edit (Model);
-      Model.Rename.Fields.Clear;
-      Model.Rename.Fields.Append
-        (Rename_Field'
-           (Item_Index => Effective_Selected_Item_Index (Model),
-            Edit       => (Text => To_Unbounded_String (Text), Cursor => Text'Length)));
-      Model.Rename.Active := True;
-      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
-   end Resume;
-
 end Files.Model.Rename;

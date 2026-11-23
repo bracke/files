@@ -17,6 +17,26 @@ package Files.File_System.Search is
       Incomplete : Boolean := False;
    end record;
 
+   --  The notice a search's answer is shown with: "search.truncated" when a
+   --  limit cut it short, "search.incomplete" when something went
+   --  unsearched, "search.no_matches" when it found nothing, else "".
+   --
+   --  @param Found A successful search's answer.
+   --  @return The notice key, or "".
+   function Notice_Of (Found : Recursive_Search_Result) return String is
+     (if Found.Truncated then "search.truncated"
+      elsif Found.Incomplete then "search.incomplete"
+      elsif Found.Items.Is_Empty then "search.no_matches"
+      else "");
+
+   --  Whether Key is one Notice_Of gives: a notice about the results shown,
+   --  not an operation's diagnostic, so it does not outlive them.
+   --
+   --  @param Key An error line's key.
+   --  @return True for a search notice.
+   function Is_Notice (Key : String) return Boolean is
+     (Key in "search.truncated" | "search.incomplete" | "search.no_matches");
+
    --  Search a directory tree recursively for item names matching Query.
    --  A folder below the root that cannot be read is skipped (Incomplete),
    --  and a limit reached ends the walk (Truncated); both keep what was found.

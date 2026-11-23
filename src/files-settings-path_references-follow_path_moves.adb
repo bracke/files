@@ -14,8 +14,6 @@ is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=",
       "="             => Step_Vectors."=");
-   package Arrival_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type => String, Element_Type => Positive, Hash => Ada.Strings.Hash, Equivalent_Keys => "=");
 
    --  The moves, each by the key (Key) of the path it moves, in the order
    --  they were made: one look-up per head of a stored path finds what
@@ -30,8 +28,16 @@ is
       Last_Step : Natural := 0;
    end record;
 
-   --  The last move each label's key was arrived at by (labels only).
-   Arrivals : Arrival_Maps.Map;
+   --  Each move a label arrived at a key by, per key (labels only).
+   Arrivals : Step_Maps.Map;
+
+   --  Where a label was from one move on: its key, and the move it arrived
+   --  there by (0: where it started).
+   type Stay is record
+      Key    : Unbounded_String;
+      Arrive : Natural := 0;
+   end record;
+   package Stay_Vectors is new Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Stay);
 
    --  The first move after After that takes Path: one whose path is Path
    --  itself or a folder Path lies in. Path's heads are matched whole by
@@ -70,13 +76,21 @@ is
       Consider (Path'Last);
    end Next_Step;
 
-   --  Follow Path through the moves in order; with Note, record each place
-   --  it arrives at in Arrivals.
-   procedure Walk (Path : String; Note : Boolean; Result : out Followed) is
+   --  Follow Path through the moves in order; Stays gets each place it is
+   --  at, from where it starts on, and with Note each place it arrives at
+   --  is recorded in Arrivals.
+   procedure Walk
+     (Path   : String;
+      Note   : Boolean;
+      Result : out Followed;
+      Stays  : in out Stay_Vectors.Vector)
+   is
       Step      : Natural;
       Head_Last : Natural;
    begin
       Result := (Path => To_Unbounded_String (Path), others => <>);
+      Stays.Clear;
+      Stays.Append (Stay'(Key => To_Unbounded_String (Key (Path)), Arrive => 0));
       loop
          declare
             Now : constant String := To_String (Result.Path);
@@ -90,17 +104,17 @@ is
             end if;
             Result.Path := Moves (Step).To & Now (Head_Last + 1 .. Now'Last);
          end;
-         if Note then
-            declare
-               Arrived : constant String := Key (To_String (Result.Path));
-            begin
-               --  Steps only grow along the walks, but walks of other labels
-               --  may have recorded a later one already.
-               if not Arrivals.Contains (Arrived) or else Arrivals (Arrived) < Step then
-                  Arrivals.Include (Arrived, Step);
+         declare
+            Arrived : constant String := Key (To_String (Result.Path));
+         begin
+            Stays.Append (Stay'(Key => To_Unbounded_String (Arrived), Arrive => Step));
+            if Note then
+               if not Arrivals.Contains (Arrived) then
+                  Arrivals.Insert (Arrived, Step_Vectors.Empty_Vector);
                end if;
-            end;
-         end if;
+               Arrivals (Arrived).Append (Step);
+            end if;
+         end;
       end loop;
    end Walk;
 
@@ -115,9 +129,10 @@ is
       Rewritten : Path_Sets.Set;
       Seen      : Path_Sets.Set;
       Kept      : String_Vectors.Vector;
+      Stays     : Stay_Vectors.Vector;
    begin
       for Index in Walks'Range loop
-         Walk (To_String (Paths (Index)), Note => False, Result => Walks (Index));
+         Walk (To_String (Paths (Index)), Note => False, Result => Walks (Index), Stays => Stays);
          if Walks (Index).Last_Step /= 0 then
             Any := True;
             if not Walks (Index).Gone then
@@ -146,13 +161,43 @@ is
 
    procedure Follow_Labels is
       type Walk_Array is array (Positive range <>) of Followed;
+      type Stay_Array is array (Positive range <>) of Stay_Vectors.Vector;
       Labels : Path_Label_Vectors.Vector renames Settings.Paths.Labels;
       Walks  : Walk_Array (1 .. Natural (Labels.Length));
+      Stays  : Stay_Array (1 .. Natural (Labels.Length));
       Any    : Boolean := False;
       Kept   : Path_Label_Vectors.Vector;
+
+      --  A label at a place another labelled entry was moved onto while
+      --  it was there belonged to what was there before: the moved entry's
+      --  label is the one that holds, and wherever a later move takes what
+      --  is there, this one is gone. Each stay lasts from the move it
+      --  arrived by until the next one moving it.
+      function Overwritten (Index : Positive) return Boolean is
+         Places : Stay_Vectors.Vector renames Stays (Index);
+      begin
+         for Place in Places.First_Index .. Places.Last_Index loop
+            declare
+               Here   : constant String := To_String (Places (Place).Key);
+               Arrive : constant Natural := Places (Place).Arrive;
+               Depart : constant Natural :=
+                 (if Place < Places.Last_Index then Places (Place + 1).Arrive else Natural'Last);
+               Found  : constant Step_Maps.Cursor := Arrivals.Find (Here);
+            begin
+               if Step_Maps.Has_Element (Found) then
+                  for Step of Step_Maps.Element (Found) loop
+                     if Step > Arrive and then Step < Depart then
+                        return True;
+                     end if;
+                  end loop;
+               end if;
+            end;
+         end loop;
+         return False;
+      end Overwritten;
    begin
       for Index in Walks'Range loop
-         Walk (To_String (Labels (Index).Path), Note => True, Result => Walks (Index));
+         Walk (To_String (Labels (Index).Path), Note => True, Result => Walks (Index), Stays => Stays (Index));
          Any := Any or else Walks (Index).Last_Step /= 0;
       end loop;
       if not Any then
@@ -160,17 +205,9 @@ is
       end if;
       for Index in Walks'Range loop
          declare
-            Path    : constant String := To_String (Walks (Index).Path);
-            Arrived : constant Arrival_Maps.Cursor :=
-              (if Walks (Index).Gone then Arrival_Maps.No_Element else Arrivals.Find (Key (Path)));
+            Path : constant String := To_String (Walks (Index).Path);
          begin
-            --  A label at a place another labelled entry was moved onto
-            --  after it got there belonged to what was there before: the
-            --  moved entry's label is the one that holds.
-            if Walks (Index).Gone
-              or else (Arrival_Maps.Has_Element (Arrived)
-                       and then Arrival_Maps.Element (Arrived) > Walks (Index).Last_Step)
-            then
+            if Walks (Index).Gone or else Overwritten (Index) then
                Changed := True;
             else
                if Path /= To_String (Labels (Index).Path) then
