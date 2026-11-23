@@ -74,16 +74,21 @@ package body Files.Model.Filtering is
       end Reconcile_Selection;
 
    begin
-      Touch (Model);
-      --  Search results answer the query they were found for (Search_Query),
-      --  not the text typed since: a read searching them again stays good.
-      if not Model.Search_Results_Active then
-         Support.Touch_Listing (Model);
-      end if;
+      --  No background read depends on the text: a folder's listing is
+      --  filtered here, and search results answer the query they were
+      --  found for (Search_Query). So the listing revision stays, and a
+      --  read under way is not thrown away on every keystroke.
       Model.Filter.Text := To_Unbounded_String (Text);
       Model.Folded_Filter := To_Unbounded_String (Files.Text_Case.Fold_Case (Text));
-      Invalidate_Visible (Model);
       Model.Filter.Cursor := Text'Length;
+      if Model.Search_Results_Active then
+         --  Results show every match whatever is typed: only the field
+         --  changes, so the rows, the scroll and the selection stand.
+         Touch_Header (Model);
+         return;
+      end if;
+      Touch (Model);
+      Invalidate_Visible (Model);
       Model.Main_View_Scroll := 0;
       Reconcile_Selection (Model);
    end Set_Filter;
@@ -99,11 +104,11 @@ package body Files.Model.Filtering is
       Touch (Model);
       --  Ending search results changes what a background read is for.
       Support.Touch_Listing (Model);
-      Set_Filter (Model, "");
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
       Model.Search_Query := Null_Unbounded_String;
+      Set_Filter (Model, "");
       Invalidate_Visible (Model);
    end Clear_Filter;
 

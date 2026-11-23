@@ -88,6 +88,10 @@ package body Files.Job_Drivers.Operation.Helper is
          else Files.Model.Last_Error_Key (Model));
       Done.Recent := Files.Model.Recent.In_Recent_View (Model);
       Done.Selection := To_Unbounded_String (Files.Model.Selection.Selected_Name (Model));
+      Done.Selection_Path :=
+        (if Files.Model.Selection.Selected_Count (Model) > 0
+         then Files.Model.Selection.Selected_Item (Model).Full_Path
+         else Null_Unbounded_String);
       Done.Searched :=
         (if Files.Model.Filtering.Search_Results_Are_Active (Model)
          then Files.Model.Filtering.Search_Scope_Of (Model)

@@ -1,6 +1,7 @@
 with Files.Overlays.Settings_Form;
 with Files.Settings.Drafts;
 with Files.Commands.Testing;
+with Files.Commands.Keymap_Settings;
 with Files.Settings.Storage.Testing;
 with Files.Interaction;
 with Files.Interaction.Testing;
@@ -59,6 +60,43 @@ separate (Files_Suite.Settings)
       Draft := Files.Settings.Drafts.Refresh_Draft (Draft, Shared, Shared);
       Assert_Equal (Combos (Draft.Shortcut_Overrides, "view.large"), "control+shift+9;",
                     "an unchanged take-in keeps it too");
+
+      --  The outside change bound another command to the chord the pane's
+      --  unsaved edit captured: the edit gives way (no two commands share a
+      --  chord), and the pane says why. Chords are written as the settings
+      --  write them, as the keymap may give the draft's entries back so.
+      Draft := Files.Settings.Drafts.Make_Draft (Settings);
+      Draft.Shortcut_Overrides.Append (Override ("view.large", "shift+control+9"));
+      Shared := Settings;
+      Shared.Shortcut_Overrides.Append (Override ("view.details", "shift+control+9"));
+      Draft := Files.Overlays.Settings_Form.Refresh_Draft (Draft, Settings, Shared);
+      Assert_Equal (Combos (Draft.Shortcut_Overrides, "view.details"), "shift+control+9;",
+                    "the command bound outside keeps the chord");
+      Assert_Equal (Combos (Draft.Shortcut_Overrides, "view.large"), "",
+                    "the clashing edit is dropped, its command back to its binding in force");
+      Assert (not Draft.Valid and then To_String (Draft.Error_Key) = "settings.shortcut.conflict",
+              "and the pane says the chord was taken");
+      declare
+         Map : constant Files.Commands.Keymap :=
+           Files.Commands.Keymap_Settings.Keymap_Of (Draft.Shortcut_Overrides);
+         use type Files.Commands.Shortcut;
+      begin
+         Assert (Files.Commands.Shortcut_For (Map, Files.Commands.Select_Large_Icons_Command)
+                 /= Files.Commands.Shortcut_For (Map, Files.Commands.Select_Details_Command),
+                 "no two commands share the chord");
+      end;
+      --  An edit the outside change does not clash with stays as captured.
+      Draft := Files.Settings.Drafts.Make_Draft (Settings);
+      Draft.Shortcut_Overrides.Append (Override ("view.large", "shift+control+8"));
+      Draft := Files.Overlays.Settings_Form.Refresh_Draft (Draft, Settings, Shared);
+      Assert_Equal (Combos (Draft.Shortcut_Overrides, "view.large"), "shift+control+8;",
+                    "an edit with a chord of its own stays");
+      Assert (Draft.Valid or else To_String (Draft.Error_Key) /= "settings.shortcut.conflict",
+              "with no clash reported");
+      Shared := Settings;
+      Shared.Shortcut_Overrides.Clear;
+      Shared.Shortcut_Overrides.Append (Override ("view.small", "control+shift+2"));
+      Shared.Shortcut_Overrides.Append (Override ("view.details", "control+shift+3"));
 
       --  And through the window: the pane open with an unsaved capture.
       Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);

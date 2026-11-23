@@ -27,7 +27,7 @@ begin
          --  once the diagnostic it must preserve is final.
          Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
          Note_History_Lost (Done.Kind);
-         Reload_Current_View (To_String (Done.Selection));
+         Reload_Current_View (To_String (Done.Selection), To_String (Done.Selection_Path));
          Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
          return Done.Result;
       when Report =>

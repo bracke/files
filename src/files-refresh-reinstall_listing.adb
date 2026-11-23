@@ -40,7 +40,11 @@ separate (Files.Refresh)
       else
          Files.Model.Replace_Items (Model, Items);
          if Searched = Files.UI_Types.Filter_Here then
-            Files.Model.Filtering.Clear_Search_Results (Model);
+            --  The folder's own listing ends any results shown; with none,
+            --  the chip keeps the scope the next query searches in.
+            if Files.Model.Filtering.Search_Results_Are_Active (Model) then
+               Files.Model.Filtering.Clear_Search_Results (Model);
+            end if;
          elsif New_Results
            or else not Files.Model.Filtering.Search_Results_Are_Active (Model)
            or else Files.Model.Filtering.Search_Scope_Of (Model) /= Searched
@@ -54,6 +58,11 @@ separate (Files.Refresh)
       if Select_Path /= "" then
          Files.Model.Selection.Restore
            (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1), Select_Path);
+      end if;
+      --  A path is exact (search results may list two items of one name);
+      --  the name stands in when the path is gone or none was given.
+      if Select_Path /= "" and then Files.Model.Selection.Selected_Count (Model) > 0 then
+         null;
       elsif Select_Name /= "" then
          declare
             Selected : constant Boolean := Files.Model.Selection.Select_By_Name (Model, Select_Name);

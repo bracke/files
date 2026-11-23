@@ -129,7 +129,7 @@ separate (Check_All)
          Expect ("recovery", 64),
          Expect ("history", 42),
          Expect ("trash", 35),
-         Expect ("search", 13),
+         Expect ("search", 14),
          Expect ("thumbnails", 23),
          Expect ("archives", 7),
          Expect ("info", 33),

@@ -115,7 +115,10 @@ begin
    if Need_Reload then
       declare
          Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, To_String (Focus_Name));
+           --  By its full path: search results may list another item of
+           --  the same name, and the first of those is not this one.
+           Reload_Current_Directory
+             (Model, Settings, To_String (Focus_Name), Select_Path => To_String (Focus_Path));
       begin
          if Reload.Status /= Operation_Success then
             return Reload;

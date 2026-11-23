@@ -56,6 +56,7 @@ package body Files_Suite.Search is
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Results_Keep_Their_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Results_Through_Helpers (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Search_Results_Select_By_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Utf16_Transcoding (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -79,6 +80,10 @@ package body Files_Suite.Search is
         (T, Test_Search_Results_Through_Helpers'Access,
          "a stale search-again read is owed and searches again as the window is now; helpers that trash or "
          & "restore results show their own search afterwards");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Search_Results_Select_By_Path'Access,
+         "results select a renamed or copied item by its path, undo and redo show their helper's search, "
+         & "typing changes only the field, and the chip reads the folder once");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Content_Search_Operation'Access,
          "content search matches file contents case-insensitively, skips binary and capped files, "
@@ -114,6 +119,8 @@ package body Files_Suite.Search is
    procedure Test_Search_Results_Keep_Their_Query (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Results_Through_Helpers (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Search_Results_Select_By_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Limit_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

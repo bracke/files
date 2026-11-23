@@ -61,7 +61,7 @@ is
       and then Candidate.Context_Revision =
         Files.Model.Listing_Revision (Model));
 
-   procedure Reload_Current_View (Select_Name : String := "") is separate;
+   procedure Reload_Current_View (Select_Name : String := ""; Select_Path : String := "") is separate;
 
    --  What the operation reports: nothing, when it was cancelled.
    function Reported return Files.Operation_Results.Operation_Result is

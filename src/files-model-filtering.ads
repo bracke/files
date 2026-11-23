@@ -2,7 +2,10 @@
 --  view holds recursive search results in place of the folder's listing.
 package Files.Model.Filtering is
 
-   --  Set filter text and reconcile selection.
+   --  Set filter text and reconcile selection. While search results are
+   --  shown only the field changes: they show every match whatever is
+   --  typed, so the rows, scroll and selection stand. No background read
+   --  depends on the text, so the listing revision stays.
    --
    --  @param Model Model to update.
    --  @param Text New filter text.

@@ -65,6 +65,24 @@ package Files.Overlays.Settings_Form is
      (Model : in out Files.Model.Window_Model;
       Draft : Files.Settings.Settings_Draft);
 
+   --  The pane's draft brought up to date with a change made outside it
+   --  (Settings.Drafts.Refresh_Draft, which merges shortcuts per command),
+   --  then its own unsaved shortcut edits bound again over what is now in
+   --  force (Commands.Rebind): an edit whose chord the outside change gave
+   --  another command is dropped, the command keeping the binding in
+   --  force, and the draft says so (settings.shortcut.conflict), as the
+   --  pane says when a capture clashes. No two commands share a chord.
+   --
+   --  @param Draft The pane's draft.
+   --  @param Before Settings before the outside change.
+   --  @param After Settings after it.
+   --  @return The draft to show.
+   function Refresh_Draft
+     (Draft  : Files.Settings.Settings_Draft;
+      Before : Files.Settings.Settings_Model;
+      After  : Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Draft;
+
    --  Apply a change the panel emitted to the pane's draft (Apply, against
    --  the saved settings). A No_Change leaves the model as it is. After a
    --  re-check that asks for no save, the error line follows the draft:

@@ -15,14 +15,17 @@ begin
          Show_Hidden => Settings.Show_Hidden_Files,
          Error_Line  => To_String (Done.Visible_Error));
    else
-      --  The view the operation ran in, read again by the helper: search
-      --  results it searched again keep the window's selection where it
-      --  still is; a folder listing deferred its thumbnails, which are owed.
+      --  The view the operation ran in, read again by the helper. It
+      --  selects the item the helper's model selected, by full path (search
+      --  results may list two of one name), else by name; with neither,
+      --  search results keep the window's selection where it still is. A
+      --  folder listing deferred its thumbnails, which are owed.
       Files.Refresh.Reinstall_Listing
         (Model, Done.Items, Done.Signature,
          Recent         => Done.Recent,
          Searched       => Done.Searched,
          Query          => To_String (Work.Query),
+         Select_Path    => To_String (Done.Selection_Path),
          Select_Name    => To_String (Done.Selection),
          Keep_Selection => Done.Searched /= Files.UI_Types.Filter_Here,
          Owe_Thumbnails => Done.Searched = Files.UI_Types.Filter_Here and then not Done.Recent,

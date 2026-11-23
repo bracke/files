@@ -25,7 +25,9 @@ package Files.Settings.Drafts is
    --  another process's rebind taken in), so the pane shows the change and
    --  its next save keeps it. A setting, or a command's shortcuts, that did
    --  not change between Before and After keeps what the pane holds, an
-   --  edit included.
+   --  edit included. Merged so, an edit may clash with the outside change's
+   --  binding: Overlays.Settings_Form.Refresh_Draft, which the window calls,
+   --  binds the edits again over what is in force.
    --
    --  @param Draft The pane's draft.
    --  @param Before Settings before the change.

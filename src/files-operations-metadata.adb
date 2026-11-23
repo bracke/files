@@ -69,7 +69,10 @@ package body Files.Operations.Metadata is
                 Tree_Revision => Null_Unbounded_String), 1)));
       declare
          Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, Files.Model.Selection.Selected_Name (Model));
+           --  By its full path: search results may list another item of
+           --  the same name, and the first of those is not this one.
+           Reload_Current_Directory
+             (Model, Settings, Files.Model.Selection.Selected_Name (Model), Select_Path => Path);
       begin
          if Reload.Status /= Operation_Success then
             return Reload;

@@ -91,7 +91,7 @@ package body Files.Controller is
             use type Files.Settings.Settings_Draft;
             Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
             Refreshed : constant Files.Settings.Settings_Draft :=
-              Files.Settings.Drafts.Refresh_Draft (Shown, Before, Settings);
+              Files.Overlays.Settings_Form.Refresh_Draft (Shown, Before, Settings);
          begin
             if Refreshed /= Shown then
                Files.Overlays.Settings_Form.Set_Draft (Model, Refreshed);

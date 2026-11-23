@@ -329,7 +329,7 @@ package Files.Controller is
 
    --  Take settings another window changed (Shared) as this window's own,
    --  put in force as Take_In_Settings does: an open settings pane is
-   --  refreshed (Files.Settings.Drafts.Refresh_Draft), so its next save
+   --  refreshed (Files.Overlays.Settings_Form.Refresh_Draft), so its next save
    --  cannot write the old values back; the listing is reloaded when what it
    --  lists or how it names entries' types changed; an open command palette
    --  lists its commands again (a shortcut the other window rebound).

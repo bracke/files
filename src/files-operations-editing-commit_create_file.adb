@@ -40,7 +40,9 @@ begin
    --  would strand the model in temporary-item mode.
    Files.Model.Clear_Edit_State (Model);
    declare
-      Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, Name);
+      Reload : constant Operation_Result :=
+        Reload_Current_Directory
+          (Model, Settings, Name, Select_Path => Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name));
    begin
       if Reload.Status /= Operation_Success then
          return Reload;

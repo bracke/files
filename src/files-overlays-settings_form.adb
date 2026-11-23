@@ -230,6 +230,71 @@ package body Files.Overlays.Settings_Form is
       end case;
    end Apply_Shortcut;
 
+   function Refresh_Draft
+     (Draft  : Files.Settings.Settings_Draft;
+      Before : Files.Settings.Settings_Model;
+      After  : Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Draft
+   is
+      use type Files.Settings.Shortcut_Override_Vectors.Vector;
+      use type Files.Commands.Rebind_Outcome;
+      use type Files.Commands.Keymap;
+      Result : Files.Settings.Settings_Draft := Files.Settings.Drafts.Refresh_Draft (Draft, Before, After);
+
+      --  The entries Overrides holds for Command, in their order.
+      function Entries_Of
+        (Overrides : Files.Settings.Shortcut_Override_Vectors.Vector;
+         Command   : UString)
+         return Files.Settings.Shortcut_Override_Vectors.Vector
+      is
+         Found : Files.Settings.Shortcut_Override_Vectors.Vector;
+      begin
+         for Override of Overrides loop
+            if Override.Command = Command then
+               Found.Append (Override);
+            end if;
+         end loop;
+         return Found;
+      end Entries_Of;
+
+      --  The pane's own unsaved edit of Id: what the draft holds for it
+      --  differs from what was in force before, and the outside change
+      --  left it alone (else the merge took the outside binding).
+      function Edited (Id : Files.Commands.Command_Id) return Boolean is
+         Command : constant UString := To_Unbounded_String (Files.Commands.Identifier (Id));
+      begin
+         return Entries_Of (Draft.Shortcut_Overrides, Command) /= Entries_Of (Before.Shortcut_Overrides, Command)
+           and then Entries_Of (Before.Shortcut_Overrides, Command) = Entries_Of (After.Shortcut_Overrides, Command);
+      end Edited;
+
+      Map   : Files.Commands.Keymap;
+      Clash : Boolean := False;
+      Own   : constant Files.Commands.Keymap := Files.Commands.Keymap_Settings.Keymap_Of (Draft.Shortcut_Overrides);
+   begin
+      if Before.Shortcut_Overrides = After.Shortcut_Overrides then
+         return Result;
+      end if;
+      --  What is in force now, then each own edit bound over it.
+      Map := Files.Commands.Keymap_Settings.Keymap_Of (After.Shortcut_Overrides);
+      for Id in Files.Commands.Registered_Command_Id loop
+         if Edited (Id)
+           and then Files.Commands.Rebind (Map, Id, Files.Commands.Shortcut_For (Own, Id)) = Files.Commands.Conflict
+         then
+            Clash := True;
+         end if;
+      end loop;
+      --  The merge as it stands when it binds alike (its entries as written);
+      --  else as the edits bound over what is in force left the keymap.
+      if Files.Commands.Keymap_Settings.Keymap_Of (Result.Shortcut_Overrides) /= Map then
+         Result.Shortcut_Overrides := Files.Commands.Keymap_Settings.Overrides_Of (Map);
+      end if;
+      if Clash then
+         Result.Valid     := False;
+         Result.Error_Key := To_Unbounded_String ("settings.shortcut.conflict");
+      end if;
+      return Result;
+   end Refresh_Draft;
+
    --  A full return to defaults: the draft's shortcut overrides go too (the
    --  default draft has none), so the save that follows persists the default
    --  keymap (no [shortcuts] section) and puts it in force.

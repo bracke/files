@@ -47,7 +47,7 @@ package body Files.Job_Drivers.Operation is
    --  Version 3 carries the path moves as one list of (kind, from, to)
    --  records instead of two parallel path lists. Request version 4 adds
    --  the Sequence of the entry an Undo takes.
-   Result_Header : constant String := "files-operation-result-3";
+   Result_Header : constant String := "files-operation-result-4";
 
    package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -138,6 +138,8 @@ package body Files.Job_Drivers.Operation is
       Files.Job_Payloads.Write_Items (Stream, Done.Items);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Selection), Files.Jobs.Records.Max_Path_Length);
+      Files.IO.Record_Fields.Output_String
+        (Stream, To_String (Done.Selection_Path), Files.Jobs.Records.Max_Path_Length);
       Files.UI_Types.Search_Scope'Output (Stream, Done.Searched);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Visible_Error),
@@ -155,6 +157,8 @@ package body Files.Job_Drivers.Operation is
       Done.Result := Files.Job_Payloads.Read_Operation_Result (Stream);
       Done.Items := Files.Job_Payloads.Read_Items (Stream);
       Done.Selection :=
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+      Done.Selection_Path :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Done.Searched := Files.UI_Types.Search_Scope'Input (Stream);
       Done.Visible_Error :=

@@ -36,9 +36,12 @@ separate (Files.Controller)
             if Has_Query then
                Operation := Operation_Commands.Run_Search (Model, Settings, Next);
             elsif Had_Results then
-               Operation := Files.Operations.Refresh (Model, Settings);
+               --  End the results and turn the chip first: both move the
+               --  listing revision, so a read started before them would be
+               --  thrown away as stale and read again.
                Files.Model.Filtering.Clear_Search_Results (Model);
                Files.Model.Filtering.Set_Search_Scope (Model, Next);
+               Operation := Files.Operations.Refresh (Model, Settings);
             end if;
             return Make_Result
               (Controller_Command_Executed,

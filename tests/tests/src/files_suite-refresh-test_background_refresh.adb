@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Model.Recent;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -96,11 +97,13 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "gamma"), "gamma");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Ready;
-      Files.Model.Filtering.Set_Filter (Model, "alpha");
+      --  The scope chip turned while the read ran: what a read is for
+      --  changed (typing in the filter does not: the window filters what
+      --  it lists).
+      Files.Model.Filtering.Set_Search_Scope (Model, Files.UI_Types.Search_Names);
       Await_Refresh (False);
-      Assert (Files.Model.Item_Count (Model) = 2 and then Files.Model.Visible_Count (Model) = 1,
-              "a completed old read cannot overwrite a later model edit");
-      Files.Model.Filtering.Set_Filter (Model, "");
+      Assert (Files.Model.Item_Count (Model) = 2, "a completed old read cannot overwrite a later model edit");
+      Files.Model.Filtering.Set_Search_Scope (Model, Files.UI_Types.Filter_Here);
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Refresh (True);
       Files_Suite.Support.Assert_Equal

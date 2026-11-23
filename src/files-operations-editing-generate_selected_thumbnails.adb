@@ -8,6 +8,9 @@ is
    Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    First_Path : Unbounded_String;
    First_Name : Unbounded_String;
+   --  The first item given a thumbnail, by its full path: search results
+   --  may list another item of its name.
+   First_Item : Unbounded_String;
    Unsupported_Key  : Unbounded_String;
    Unsupported_Path : Unbounded_String;
 
@@ -49,6 +52,7 @@ begin
          elsif Length (First_Path) = 0 then
             First_Path := Thumbnail.Thumbnail_Path;
             First_Name := Item.Name;
+            First_Item := Item.Full_Path;
          end if;
       end;
    end loop;
@@ -62,7 +66,8 @@ begin
    Files.Model.Set_Error (Model, "");
    declare
       Reload : constant Operation_Result :=
-        Reload_Current_Directory (Model, Settings, Select_Name => To_String (First_Name));
+        Reload_Current_Directory
+          (Model, Settings, Select_Name => To_String (First_Name), Select_Path => To_String (First_Item));
       pragma Unreferenced (Reload);
    begin
       null;

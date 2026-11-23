@@ -68,7 +68,11 @@ private
       Recent    : Boolean := False;
       Result    : Files.Operation_Results.Operation_Result;
       Items     : Files.Items.Item_Vectors.Vector;
+      --  The item the helper's model selected after the operation: its
+      --  name, and its full path, which is what the window selects by
+      --  (search results may list two items of one name).
       Selection : Files.Types.UString;
+      Selection_Path : Files.Types.UString;
       --  Whose search results Items are (Request.Searched), or Filter_Here
       --  for a folder's listing.
       Searched  : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
