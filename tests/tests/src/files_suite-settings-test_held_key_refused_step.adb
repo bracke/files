@@ -70,9 +70,7 @@ separate (Files_Suite.Settings)
          Settings : in out Files.Settings.Settings_Model;
          Key      : Guikit.Input.Key_Code) is
       begin
-         Files.Model.Settings_Pane.Note_Key_Repeat (Model, True);
-         Files.Interaction.Handle_Key (Model, Settings, Path, Key, Result => Result);
-         Files.Model.Settings_Pane.Note_Key_Repeat (Model, False);
+         Files.Interaction.Handle_Key (Model, Settings, Path, Key, Result => Result, Repeated => True);
       end Held;
 
       Base   : Files.Settings.Settings_Model := Files.Settings.Default_Settings;

@@ -4,7 +4,8 @@ separate (Files.Application.Windows)
      (Runtime   : in out Runtime_Window;
       Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set;
-      Consumed  : out Boolean)
+      Consumed  : out Boolean;
+      Repeated  : Boolean := False)
    is
 
       function Tree_Page_Rows return Natural
@@ -76,7 +77,8 @@ separate (Files.Application.Windows)
             Key               => Key,
             Modifiers         => Modifiers,
             Result            => Result,
-            Tree_Page_Rows    => Tree_Page_Rows);
+            Tree_Page_Rows    => Tree_Page_Rows,
+            Repeated          => Repeated);
          Flush_System_Clipboard (Runtime);
          if Result.Zoom_Unsaved then
             Runtime.Zoom_Unsaved := True;

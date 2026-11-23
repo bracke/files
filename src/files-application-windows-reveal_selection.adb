@@ -5,8 +5,8 @@ separate (Files.Application.Windows)
       Frame_H  : Glfw.Size := 0;
       Selected : constant Natural := Files.Model.Selection.Selected_Index (Runtime.Model);
    begin
-      Files.Model.Clear_Reveal (Runtime.Model);
       if Runtime.Handle = null or else Selected = 0 then
+         Files.Controller.Reveal_Selection (Runtime.Model, Lines => 0, Current => False);
          return;
       end if;
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
@@ -19,8 +19,6 @@ separate (Files.Application.Windows)
          Lines       : constant Natural :=
            Files.Rendering.Layouts.Scroll_Lines_Revealing (Snapshot, Layout, Line_Height, Positive (Selected));
       begin
-         if Lines /= Files.Model.Main_View_Scroll_Lines (Runtime.Model) then
-            Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
-         end if;
+         Files.Controller.Reveal_Selection (Runtime.Model, Lines);
       end;
    end Reveal_Selection;

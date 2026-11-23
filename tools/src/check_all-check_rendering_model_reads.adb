@@ -9,18 +9,24 @@ separate (Check_All)
       --  mutators. A dispatch is refused more: any subprogram outside
       --  Files.Controller (and Interaction's own family) that takes the
       --  model "in out" -- an operation, a refresh, an overlay's edit --
-      --  changes it past the controller. A leading "Model." is read as
-      --  "Files.Model." (a unit of Files may name it so). A
-      --  rendering unit names the model in full: a use clause ("use
-      --  Files.Model.Selection", "use all type") or a renaming of a model
-      --  unit would let a mutator be called by a name this check cannot see,
-      --  so those are refused too.
+      --  changes it past the controller. A leading name that is a child of
+      --  Files ("Model.", "Refresh.", "Operations.") is read as "Files."
+      --  that name (a unit of Files may name it so). A checked unit names
+      --  what it calls in full: a use clause ("use Files.Model.Selection",
+      --  "use all type") or a renaming of a model unit, or of any unit that
+      --  owns a subprogram it is refused, would let that subprogram be
+      --  called by a name this check cannot see, so those are refused too.
+      --  The window units that dispatch input -- the pointer gestures, the
+      --  keyboard's dispatch and the selection's reveal -- are refused what
+      --  a dispatch is.
       use Tokens;
 
       Mutators : Key_Sets.Set;
       --  Every subprogram outside the controller and Interaction that takes
       --  the model "in out", the model's mutators among them.
       Past_Controller : Key_Sets.Set;
+      --  Every unit in src/ ("files.refresh"), to read a leading child name.
+      Units : Key_Sets.Set;
 
       --  Adds Unit.Name to Into for every subprogram in the spec at Path
       --  whose parameter list has a Window_Model "in out".
@@ -51,12 +57,34 @@ separate (Check_All)
          return To_String (Result);
       end Name_At;
 
-      --  Every dotted name in the file at Path that is a mutator, and every
-      --  use clause or renaming of a model unit; Who says whose file it is.
+      --  Name spelled out from Files: a leading child of Files ("model.x",
+      --  "refresh.start") gains its "files." prefix.
+      function Resolved (Name : String) return String is
+         Dot : constant Natural := Ada.Strings.Fixed.Index (Name, ".");
+         Head : constant String := (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
+      begin
+         if Head /= "files" and then Units.Contains ("files." & Head) then
+            return "files." & Name;
+         else
+            return Name;
+         end if;
+      end Resolved;
+
+      --  Every dotted name in the file at Path that Refused holds, and every
+      --  use clause or renaming of a model unit or of a unit owning one of
+      --  Refused; Who says whose file it is.
       procedure Check (Path : String; Who : String; Refused : Key_Sets.Set) is
          Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
          Index : Positive := Toks.First_Index;
+         --  The units owning a refused subprogram.
+         Owners : Key_Sets.Set;
+
+         function Is_Refused_Unit (Name : String) return Boolean is
+           (Is_Model (Name) or else Owners.Contains (Name));
       begin
+         for Key of Refused loop
+            Owners.Include (Key (Key'First .. Ada.Strings.Fixed.Index (Key, ".", Ada.Strings.Backward) - 1));
+         end loop;
          while Index <= Toks.Last_Index loop
             if Is_Word (Toks (Index), "use") and then Index < Toks.Last_Index then
                declare
@@ -72,26 +100,26 @@ separate (Check_All)
                      First := First + 2;
                   end if;
                   if First <= Toks.Last_Index and then Toks (First).Kind = Word
-                    and then Is_Model (Name_At (Toks, First))
+                    and then Is_Refused_Unit (Resolved (Name_At (Toks, First)))
                   then
-                     Report (Path & ": " & Who & " names the model in full, not through ""use "
+                     Report (Path & ": " & Who & " names what it calls in full, not through ""use "
                              & Name_At (Toks, First) & """");
                   end if;
                end;
                Index := Index + 1;
             elsif Is_Word (Toks (Index), "renames") and then Index < Toks.Last_Index
               and then Toks (Index + 1).Kind = Word
-              and then Is_Model (Name_At (Toks, Index + 1))
+              and then (Is_Refused_Unit (Resolved (Name_At (Toks, Index + 1)))
+                        or else Refused.Contains (Resolved (Name_At (Toks, Index + 1))))
             then
-               Report (Path & ": " & Who & " names the model in full, not through a renaming of "
+               Report (Path & ": " & Who & " names what it calls in full, not through a renaming of "
                        & Name_At (Toks, Index + 1));
                Index := Index + 1;
-            elsif (Is_Word (Toks (Index), "files") or else Is_Word (Toks (Index), "model"))
+            elsif Toks (Index).Kind = Word
               and then (Index = Toks.First_Index or else not Is_Symbol (Toks (Index - 1), "."))
             then
                declare
-                  Name : constant String :=
-                    (if Is_Word (Toks (Index), "model") then "files." else "") & Name_At (Toks, Index);
+                  Name : constant String := Resolved (Name_At (Toks, Index));
                begin
                   if Refused.Contains (Name) then
                      Report (Path & ": " & Who & " must not change the model (" & Name & ")");
@@ -104,6 +132,9 @@ separate (Check_All)
          end loop;
       end Check;
    begin
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.ads", Generated_Directories) loop
+         Units.Include (Unit_Of_File (To_String (Item)));
+      end loop;
       for Pattern of String_List'[To_Unbounded_String ("files-model.ads"), To_Unbounded_String ("files-model-*.ads")]
       loop
          for Item of Project_Tools.Files.List_Tree (Root & "/src", To_String (Pattern), Generated_Directories) loop
@@ -132,12 +163,19 @@ separate (Check_All)
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-interaction*.ad?", Generated_Directories) loop
          Check (To_String (Item), "a dispatch (it goes through Files.Controller)", Past_Controller);
       end loop;
-      --  The window's pointer gestures (a scrollbar drag, a marquee) place
-      --  and select through the controller too (Controller.Scroll_To,
-      --  Select_Marquee_Rows), never by a model mutator.
-      for Item of Project_Tools.Files.List_Tree
-        (Root & "/src", "files-application-windows-gestures*.ad?", Generated_Directories)
+      --  The window's pointer gestures (a scrollbar drag, a marquee), its
+      --  keyboard dispatch and the selection's reveal place, select and
+      --  note through the controller too (Controller.Scroll_To,
+      --  Select_Marquee_Rows, Reveal_Selection, Note_Key_Repeat).
+      for Pattern of String_List'
+        [To_Unbounded_String ("files-application-windows-gestures*.ad?"),
+         To_Unbounded_String ("files-application-windows-handle_keyboard.adb"),
+         To_Unbounded_String ("files-application-windows-fire_key.adb"),
+         To_Unbounded_String ("files-application-windows-reveal_selection.adb")]
       loop
-         Check (To_String (Item), "a pointer gesture (it goes through Files.Controller)", Mutators);
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", To_String (Pattern), Generated_Directories) loop
+            Check (To_String (Item), "the window's input dispatch (it goes through Files.Controller)",
+                   Past_Controller);
+         end loop;
       end loop;
    end Check_Rendering_Model_Reads;

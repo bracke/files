@@ -113,6 +113,14 @@ package body Files.Application.Accessibility is
    --  closes or draws does not register the application again.
    Stopped : Boolean := False;
 
+   --  Set only by the suite (Ignore_Listeners).
+   Listeners_Ignored : Boolean := False;
+
+   procedure Ignore_Listeners (Ignore : Boolean) is
+   begin
+      Listeners_Ignored := Ignore;
+   end Ignore_Listeners;
+
    procedure Start is
    begin
       Stopped := False;
@@ -208,7 +216,7 @@ package body Files.Application.Accessibility is
       end if;
       if not Files.Application.Window_Policy.Publish_Due
           (First        => First,
-           Listening    => A11ykit.Provider.Listening,
+           Listening    => A11ykit.Provider.Listening and then not Listeners_Ignored,
            Quiet_Passed =>
              Files.Timing.Elapsed
                (Ada.Real_Time.Clock,

@@ -41,15 +41,14 @@ begin
    Files.Model.Clear_Edit_State (Model);
    declare
       Reload : constant Operation_Result :=
-        Reload_Current_Directory
-          (Model, Settings, Name, Select_Path => Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name));
+        Reload_Saying
+          (Model, Settings, "",
+           Select_Name => Name, Select_Path => Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name));
    begin
       if Reload.Status /= Operation_Success then
          return Reload;
       end if;
    end;
-
-   Files.Model.Set_Error (Model, "");
    return
      Make_Result
        (Operation_Success,

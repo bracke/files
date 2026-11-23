@@ -239,7 +239,8 @@ package body Files.Application.Windows is
      (Runtime   : in out Runtime_Window;
       Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set;
-      Consumed  : out Boolean)
+      Consumed  : out Boolean;
+      Repeated  : Boolean := False)
  is separate;
 
    procedure Dispatch_Text

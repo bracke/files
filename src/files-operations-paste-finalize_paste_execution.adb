@@ -79,6 +79,7 @@ begin
       return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
    end if;
 
-   Files.Model.Set_Error (Model, "");
+   --  The reload showed the view with its own line (search results their
+   --  notice).
    return Make_Result (Operation_Success, Path => First_Dest);
 end Finalize_Paste_Execution;

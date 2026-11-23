@@ -105,15 +105,18 @@ package body Files.Operations.Support is
 
    --  What every folder loaded to show in a view moved to it ends with,
    --  once Load_And_Show's caller installed Load's items: the trash flag
-   --  settled, the signature the watch compares with stored, the error
-   --  line cleared, and the images still lacking a thumbnail owed to a
-   --  background listing (Files.Model.Note_Owed_Refresh, which the window's
-   --  poll pays through Files.Refresh.Resume_Owed), so nothing waits on
-   --  decoding. A folder read again in place goes through
-   --  Files.Refresh.Reinstall_Listing instead, which keeps the place in it.
+   --  settled, then the listing settled as every listing shown is
+   --  (Files.Refresh.Settle_Listed): the signature the watch compares with
+   --  stored, the images still lacking a thumbnail owed to a background
+   --  listing (which the window's poll pays through
+   --  Files.Refresh.Resume_Owed, so nothing waits on decoding), the error
+   --  line cleared and the selected item's details read. A folder read
+   --  again in place goes through Files.Refresh.Reinstall_Listing instead,
+   --  which keeps the place in it and ends the same way.
    procedure Show_Loaded_Folder
-     (Model : in out Files.Model.Window_Model;
-      Load  : Files.File_System.Directory_Load_Result);
+     (Model       : in out Files.Model.Window_Model;
+      Load        : Files.File_System.Directory_Load_Result;
+      Show_Hidden : Boolean);
 
    function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean is
      (Files.Model.Jobs.Background_Transfers (Model));
@@ -251,6 +254,25 @@ package body Files.Operations.Support is
          return Make_Result (Operation_Failed, Error_Key, Directory);
    end Batch_Failed;
 
+   function Reload_Saying
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : Files.Settings.Settings_Model;
+      Error_Key   : String;
+      Path        : String := "";
+      Select_Name : String := "";
+      Select_Path : String := "")
+      return Operation_Result
+   is
+      Reload : Operation_Result;
+   begin
+      Files.Model.Set_Error (Model, Error_Key, Path);
+      Reload := Reload_Current_Directory (Model, Settings, Select_Name, Select_Path => Select_Path);
+      if Reload.Status = Operation_Success and then not Reloads_In_Background (Model) and then Error_Key /= "" then
+         Files.Model.Set_Error (Model, Error_Key, Path);
+      end if;
+      return Reload;
+   end Reload_Saying;
+
    procedure Reload_With_Error
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -277,17 +299,16 @@ package body Files.Operations.Support is
         (Path, Files.Settings.Classification_Of (Settings), Files.Settings.Listing_Options_Of (Settings)));
 
    procedure Show_Loaded_Folder
-     (Model : in out Files.Model.Window_Model;
-      Load  : Files.File_System.Directory_Load_Result) is
+     (Model       : in out Files.Model.Window_Model;
+      Load        : Files.File_System.Directory_Load_Result;
+      Show_Hidden : Boolean) is
    begin
       Settle_Current_Is_Trash (Model);
-      Files.Model.Set_Directory_Signature (Model, Load.Signature);
-      Files.Model.Set_Error (Model, "");
-      --  Last, once the listing it refreshes is the current one: a debt
-      --  noted before the view moved would be moot.
-      if Files.File_System.Thumbnails_Missing (Load.Items) then
-         Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
-      end if;
+      Files.Refresh.Settle_Listed
+        (Model, Load.Items, Load.Signature,
+         Owe_Thumbnails => True,
+         Error_Line     => "",
+         Show_Hidden    => Show_Hidden);
    end Show_Loaded_Folder;
 
    function Load_And_Show
@@ -309,7 +330,7 @@ package body Files.Operations.Support is
          return Make_Result (Operation_Failed, To_String (Load.Error_Key), Path);
       end if;
       Install (Model, Load);
-      Show_Loaded_Folder (Model, Load);
+      Show_Loaded_Folder (Model, Load, Settings.Show_Hidden_Files);
       return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
    end Load_And_Show;
 

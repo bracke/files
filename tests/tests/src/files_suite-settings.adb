@@ -101,6 +101,8 @@ package body Files_Suite.Settings is
    procedure Test_Held_Key_Saves_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Held_Key_Refused_Step (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pane_Save_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Hidden_Toggle_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Loaded_Shortcuts_Follow_The_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Outside_Rebind_Keeps_Draft_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -249,6 +251,12 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pane_Save_Keeps_The_View'Access,
          "a settings-pane save reads the view again only for what it changed, keeping results and folder sizes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Hidden_Toggle_Keeps_The_View'Access,
+         "the Toggle Hidden Files command keeps search results and measured folder sizes, as other changes do");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Loaded_Shortcuts_Follow_The_Rules'Access,
+         "shortcut overrides read from settings follow the keymap's rules: no chord shared, no default stored");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Outside_Rebind_Keeps_Draft_Shortcuts'Access,
          "an outside rebind taken in merges with the pane's draft per command, keeping its unsaved capture");
@@ -445,6 +453,8 @@ package body Files_Suite.Settings is
    procedure Test_Held_Key_Refused_Step (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Pane_Save_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Hidden_Toggle_Keeps_The_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Loaded_Shortcuts_Follow_The_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Outside_Rebind_Keeps_Draft_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 end Files_Suite.Settings;

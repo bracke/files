@@ -209,7 +209,8 @@ package body Files.Interaction is
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result;
-      Tree_Page_Rows    : Natural := 0) is separate;
+      Tree_Page_Rows    : Natural := 0;
+      Repeated          : Boolean := False) is separate;
 
    procedure Append_Text
      (Model         : in out Files.Model.Window_Model;

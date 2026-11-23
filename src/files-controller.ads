@@ -586,6 +586,42 @@ package Files.Controller is
       Target   : Files.Input_Actions.Scroll_Target;
       Position : Natural);
 
+   --  Bring the selection into view (the window's Reveal_Selection, which
+   --  measured where it is): the main view scrolls to Lines when that is
+   --  not where it is, and the pending reveal is settled either way.
+   --
+   --  @param Model Window model to update.
+   --  @param Lines The main view's scroll that shows the selection, or
+   --    Current when the window could not place it (no selection, no
+   --    window) and only the pending reveal is settled.
+   --  @param Current False when Lines is no measured position.
+   procedure Reveal_Selection
+     (Model   : in out Files.Model.Window_Model;
+      Lines   : Natural;
+      Current : Boolean := True);
+
+   --  Band and order the items by the grouping Settings hold
+   --  (Files.Model.Sync_Grouping) before a key is dispatched: a key that
+   --  navigated or reloaded replaced the items, and the next one queued in
+   --  the same batch walks them in the drawn group order.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings, whose grouping is followed.
+   procedure Sync_Grouping
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   --  Note whether the key being dispatched is a held key's repeat (the
+   --  settings pane and the zoom then put a change in force and save it
+   --  once the key rests); Files.Interaction.Handle_Key notes it around
+   --  each key.
+   --
+   --  @param Model Window model to update.
+   --  @param Repeated True while a repeat is dispatched.
+   procedure Note_Key_Repeat
+     (Model    : in out Files.Model.Window_Model;
+      Repeated : Boolean);
+
    --  Focus a text field from a mouse click and place its cursor.
    --
    --  @param Model Window model to update.

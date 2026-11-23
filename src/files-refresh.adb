@@ -274,6 +274,23 @@ package body Files.Refresh is
       Ensure_Selected_Item_Extra (Model, Show_Hidden);
    end Settle_Shown;
 
+   procedure Settle_Listed
+     (Model          : in out Files.Model.Window_Model;
+      Items          : Files.Items.Item_Vectors.Vector;
+      Signature      : Files.File_System_Types.Directory_Signature;
+      Owe_Thumbnails : Boolean;
+      Error_Line     : String;
+      Show_Hidden    : Boolean) is
+   begin
+      Files.Model.Set_Directory_Signature (Model, Signature);
+      --  Once the listing it refreshes is the current one: a debt noted
+      --  before the view moved would be moot.
+      if Owe_Thumbnails and then Files.File_System.Thumbnails_Missing (Items) then
+         Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
+      end if;
+      Settle_Shown (Model, Error_Line, Show_Hidden);
+   end Settle_Listed;
+
    procedure Reinstall_Listing
      (Model          : in out Files.Model.Window_Model;
       Items          : Files.Items.Item_Vectors.Vector;

@@ -586,10 +586,11 @@ package Files.Model is
       Items          : Files.Items.Item_Vectors.Vector);
 
    --  Enter the virtual recent-items view, showing Items in place of an ordinary
-   --  directory listing. The first entry into the view pushes the current path
-   --  onto the back navigation history so Back leaves the view; re-entering while already in the
-   --  view (a refresh or clear) simply replaces the listing. The current path is
-   --  cleared because the view is synthetic and has no backing directory.
+   --  directory listing. Entering pushes the current path onto the back
+   --  navigation history so Back leaves the view. Already in the view, it does
+   --  nothing: the shown view is listed again through
+   --  Files.Refresh.Reinstall_Listing (Replace_Recent_Items). The current path
+   --  is cleared because the view is synthetic and has no backing directory.
    --
    --  @param Model Model to update.
    --  @param Items Recent items materialized from the stored recent paths.
@@ -789,6 +790,16 @@ package Files.Model is
    --  @param Model Model to update.
    --  @param Items New loaded item list.
    procedure Replace_Items
+     (Model : in out Window_Model;
+      Items : Files.Items.Item_Vectors.Vector);
+
+   --  Replace the shown Recent view's items, in recency order, without
+   --  changing path history (Files.Refresh.Reinstall_Listing's install of a
+   --  Recent view listed again).
+   --
+   --  @param Model Model to update; it shows the Recent view.
+   --  @param Items Recent items materialized from the stored recent paths.
+   procedure Replace_Recent_Items
      (Model : in out Window_Model;
       Items : Files.Items.Item_Vectors.Vector);
 

@@ -36,7 +36,11 @@ separate (Files.Refresh)
          Files.Model.Clear_Owed_Refresh (Model);
       end if;
       if Recent then
-         Files.Model.Navigate_Recent (Model, Items);
+         if Files.Model.Recent.In_Recent_View (Model) then
+            Files.Model.Replace_Recent_Items (Model, Items);
+         else
+            Files.Model.Navigate_Recent (Model, Items);
+         end if;
       else
          Files.Model.Replace_Items (Model, Items);
          if Searched = Files.UI_Types.Filter_Here then
@@ -54,7 +58,6 @@ separate (Files.Refresh)
          --  Searched again, the items are results still, kept as the window
          --  showed them.
       end if;
-      Files.Model.Set_Directory_Signature (Model, Signature);
       if Select_Path /= "" then
          Files.Model.Selection.Restore
            (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1), Select_Path);
@@ -95,9 +98,5 @@ separate (Files.Refresh)
                 else Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model))));
          end if;
       end if;
-      --  Last, once the listing it refreshes is the current one.
-      if Owe_Thumbnails and then Files.File_System.Thumbnails_Missing (Items) then
-         Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
-      end if;
-      Settle_Shown (Model, Error_Line, Show_Hidden);
+      Settle_Listed (Model, Items, Signature, Owe_Thumbnails, Error_Line, Show_Hidden);
    end Reinstall_Listing;

@@ -11,7 +11,9 @@ separate (Files_Suite.Keyboard)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
 
-      procedure Zoom (Key : Guikit.Input.Key_Code; Mods : Guikit.Input.Modifier_Set; Path : String := "") is
+      procedure Zoom
+        (Key : Guikit.Input.Key_Code; Mods : Guikit.Input.Modifier_Set; Path : String := ""; Held : Boolean := False)
+      is
       begin
          Files.Interaction.Handle_Key
            (Model             => Model,
@@ -19,7 +21,8 @@ separate (Files_Suite.Keyboard)
             Settings_Path     => Path,
             Key               => Key,
             Modifiers         => Mods,
-            Result            => Result);
+            Result            => Result,
+            Repeated          => Held);
       end Zoom;
    begin
       Files_Suite.Support.Assert_Equal (Settings.Font_Pixel_Size, 16, "the default font size is the starting point");
@@ -108,9 +111,7 @@ separate (Files_Suite.Keyboard)
          Assert (Ada.Directories.Exists (Path) and then not Result.Zoom_Unsaved, "the press is written at once");
          Ada.Directories.Delete_File (Path);
          for Repeat in 1 .. 3 loop
-            Files.Model.Settings_Pane.Note_Key_Repeat (Model, True);
-            Zoom (Guikit.Input.Key_Equal, Ctrl, Path => Path);
-            Files.Model.Settings_Pane.Note_Key_Repeat (Model, False);
+            Zoom (Guikit.Input.Key_Equal, Ctrl, Path => Path, Held => True);
             Assert (Result.Settings_Changed and then Result.Zoom_Unsaved,
                     "a repeat puts the size in force and says it is not written");
          end loop;

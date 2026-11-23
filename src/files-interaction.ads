@@ -60,6 +60,8 @@ package Files.Interaction is
    --  @param Result Follow-up flags describing what the key dispatch did.
    --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
    --    zero when geometry is unavailable.
+   --  @param Repeated True for a held key's repeat: a settings step or a
+   --    zoom is put in force and saved once the key rests.
    procedure Handle_Key
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -67,7 +69,8 @@ package Files.Interaction is
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result;
-      Tree_Page_Rows    : Natural := 0);
+      Tree_Page_Rows    : Natural := 0;
+      Repeated          : Boolean := False);
 
    --  Type Text into the window: the focused field edits it, or the grid's
    --  type-ahead moves the selection (Files.Controller.Append_Focused_Text),

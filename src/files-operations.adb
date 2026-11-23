@@ -1,5 +1,4 @@
 with Files.File_System.Trash;
-with Files.Operations.Navigation;
 with Files.File_System;
 with Files.Model.Recent;
 with Files.Model.Filtering;

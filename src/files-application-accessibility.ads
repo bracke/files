@@ -90,5 +90,12 @@ private
    --
    --  @return The number of windows whose newest nodes are not published yet.
    function Waiting_Windows return Natural;
+   --  Publish as though no assistive technology listened, whatever the host
+   --  says: the quiet interval is what the suite checks, and a client
+   --  listening on the test host (any UI Automation client on Windows)
+   --  would otherwise publish every change at once.
+   --
+   --  @param Ignore True to ignore listeners until called again with False.
+   procedure Ignore_Listeners (Ignore : Boolean);
 
 end Files.Application.Accessibility;

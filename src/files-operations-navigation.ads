@@ -73,12 +73,15 @@ package Files.Operations.Navigation is
 
    --  Enter the virtual recent-items view, materializing a listing from the
    --  stored recent paths. Each path is stat-ed through Load_Item; paths that no
-   --  longer resolve are skipped so a stale entry never blocks the view. Also
-   --  used to rebuild the view in place after the recent list changes.
+   --  longer resolve are skipped so a stale entry never blocks the view.
+   --  Already in the view, it is listed again in place, keeping the place in
+   --  it (Support.Reload_Current_Directory, in the background in a window),
+   --  as after the recent list changes.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model providing the recent paths and classification.
-   --  @return Structured operation result (always navigated).
+   --  @return Structured operation result: navigated on entering the view,
+   --    else the reload's.
    function Navigate_Recent
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)

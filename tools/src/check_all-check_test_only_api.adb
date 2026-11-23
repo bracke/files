@@ -74,12 +74,13 @@ separate (Check_All)
          and then not (Index - 1 > Toks.First_Index and then Is_Word (Toks (Index - 2), "not")));
 
       --  Whether the word at Spot names something else than a use of the
-      --  subprogram: its own declaration, a parameter, component or object
-      --  of that name (followed by ':'), a formal in a named association
-      --  (followed by "=>"), a selected component (after '.'), or a pragma's
-      --  argument.
+      --  subprogram: its own declaration or its end ("end Name;"), a
+      --  parameter, component or object of that name (followed by ':'), a
+      --  formal in a named association (followed by "=>"), a selected
+      --  component (after '.'), or a pragma's argument.
       function Is_No_Use (Toks : Token_List; Spot : Positive) return Boolean is
         ((Spot > Toks.First_Index and then Declares (Toks, Spot - 1))
+         or else (Spot > Toks.First_Index and then Is_Word (Toks (Spot - 1), "end"))
          or else (Spot < Toks.Last_Index
                   and then (Is_Symbol (Toks (Spot + 1), ":") or else Is_Symbol (Toks (Spot + 1), "=>")))
          or else (Spot > Toks.First_Index and then Is_Symbol (Toks (Spot - 1), "."))
@@ -127,8 +128,9 @@ separate (Check_All)
          Seen_Uses : Token_List := Uses_Seen_By (Path);
 
          --  The words this source declares as an object, a parameter, a
-         --  component or a loop or block name ("X, Y : T"): a bare one
-         --  written here names that, not an ancestor's subprogram.
+         --  component or a loop or block name ("X, Y : T"), or as a
+         --  subprogram of its own: a bare one written here names that, not
+         --  an ancestor's subprogram.
          Locals : Name_Sets.Set;
 
          procedure Visit (Name : String; Next : Positive) is
@@ -154,6 +156,11 @@ separate (Check_All)
          end Visit;
       begin
          Seen_Uses.Append (Toks);
+         for Index in Toks.First_Index .. Toks.Last_Index loop
+            if Declares (Toks, Index) then
+               Locals.Include (To_String (Toks (Index + 1).Text));
+            end if;
+         end loop;
          for Index in Toks.First_Index + 1 .. Toks.Last_Index loop
             if Is_Symbol (Toks (Index), ":") and then Toks (Index - 1).Kind = Word then
                declare

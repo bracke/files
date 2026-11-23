@@ -94,6 +94,8 @@ package body Files_Suite.Interaction is
    procedure Test_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Refused_After_Failed_Load (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Typed_Text_Finishes_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scroll_To_Places_Each_Region (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -216,6 +218,12 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Refused_After_Failed_Load'Access,
          "after a failed settings load changes apply but report they are not saved");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Typed_Text_Finishes_Dispatch'Access,
+         "text typed into the grid selects by type-ahead and ends its dispatch reading the item's details");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scroll_To_Places_Each_Region'Access,
+         "Controller.Scroll_To places the main view, the info pane and the tree panel where it is asked");
    end Register_Tests;
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -292,6 +300,8 @@ package body Files_Suite.Interaction is
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Refused_After_Failed_Load (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Typed_Text_Finishes_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Scroll_To_Places_Each_Region (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

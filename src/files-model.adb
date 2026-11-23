@@ -593,11 +593,10 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.Items.Item_Vectors.Vector) is
    begin
-      --  A refresh or clear re-enters while already active: the view stays,
-      --  only its items change (as a folder's refresh), in recency order,
-      --  which is also the order drawn.
+      --  Only enters: a shown Recent view is listed again through
+      --  Files.Refresh.Reinstall_Listing (Replace_Recent_Items), which keeps
+      --  the place in it.
       if Model.Recent_View_Active then
-         Swap_Items (Model, Items, Sorted => False);
          return;
       end if;
       Support.Touch (Model);
@@ -873,6 +872,14 @@ package body Files.Model is
    begin
       Swap_Items (Model, Items, Sorted => True);
    end Replace_Items;
+
+   procedure Replace_Recent_Items
+     (Model : in out Window_Model;
+      Items : Files.Items.Item_Vectors.Vector) is
+   begin
+      --  Recency order, which is also the order drawn.
+      Swap_Items (Model, Items, Sorted => False);
+   end Replace_Recent_Items;
 
    procedure Swap_Items
      (Model  : in out Window_Model;

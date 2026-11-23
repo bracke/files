@@ -74,7 +74,8 @@ separate (Files_Suite.Archives)
          Archives.Append (Loaded.Item);
          Loaded := Files_Suite.Listings.Load_Item (Copy_Zip, Settings);
          Archives.Append (Loaded.Item);
-         Files.Model.Navigate_Recent (Model, Archives);
+         --  Still in the Recent view: its items are the two archives now.
+         Files.Model.Replace_Recent_Items (Model, Archives);
          Files.Model.Selection.Select_All_Visible (Model);
          Step := Complete_Operation (Model, Settings, Operation_Commands.Extract_Selected (Model, Settings));
          Files_Suite.Support.Assert_Equal

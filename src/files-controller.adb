@@ -793,25 +793,26 @@ package body Files.Controller is
  is separate;
 
    --  A settings command's change, through Commit_Settings, with the save's
-   --  outcome in the result. Reload re-lists the directory after an accepted
-   --  change, for a setting that changes which items are listed.
+   --  outcome in the result. A change that was taken and alters what is
+   --  listed (the hidden filter) is followed as every other settings change
+   --  is: Follow_Listing_Settings.
    function Apply_Settings_Change
      (Id            : Files.Commands.Command_Id;
       Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Updated       : Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Reload        : Boolean := False)
+      Settings_Path : String)
       return Controller_Result
    is
+      Before    : constant Files.Settings.Settings_Model := Settings;
       Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
       Outcome   : constant Commit_Outcome := Commit (Model, Settings, Updated, Settings_Path);
       Saved     : Files.Settings.Settings_Write_Result renames Outcome.Saved;
    begin
-      --  List again only after a change that was taken (Settings now holds
-      --  Updated); an unchanged or refused one leaves the listing as it is.
-      if Reload and then Outcome.Accepted then
-         Operation := Files.Operations.Refresh (Model, Settings);
+      --  Follow only a change that was taken (Settings now holds Updated);
+      --  an unchanged or refused one leaves the listing as it is.
+      if Outcome.Accepted then
+         Operation := Follow_Listing_Settings (Model, Before, Settings);
       end if;
       if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Id, Operation);
@@ -841,7 +842,7 @@ package body Files.Controller is
       Updated.Show_Hidden_Files := not Updated.Show_Hidden_Files;
       return
         Apply_Settings_Change
-          (Files.Commands.Toggle_Hidden_Files_Command, Model, Settings, Updated, Settings_Path, Reload => True);
+          (Files.Commands.Toggle_Hidden_Files_Command, Model, Settings, Updated, Settings_Path);
    end Toggle_Hidden_Files;
 
    --  Flip the Show_File_Extensions setting and persist it. Display-only: the
@@ -1383,6 +1384,31 @@ package body Files.Controller is
             | Files.Input_Actions.Scroll_Command_Palette => null;
       end case;
    end Scroll_To;
+
+   procedure Reveal_Selection
+     (Model   : in out Files.Model.Window_Model;
+      Lines   : Natural;
+      Current : Boolean := True) is
+   begin
+      Files.Model.Clear_Reveal (Model);
+      if Current and then Lines /= Files.Model.Main_View_Scroll_Lines (Model) then
+         Scroll_To (Model, Files.Input_Actions.Scroll_Main_View, Lines);
+      end if;
+   end Reveal_Selection;
+
+   procedure Sync_Grouping
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      Files.Model.Sync_Grouping (Model, Settings);
+   end Sync_Grouping;
+
+   procedure Note_Key_Repeat
+     (Model    : in out Files.Model.Window_Model;
+      Repeated : Boolean) is
+   begin
+      Files.Model.Settings_Pane.Note_Key_Repeat (Model, Repeated);
+   end Note_Key_Repeat;
 
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;

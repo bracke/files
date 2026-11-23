@@ -19,8 +19,15 @@ begin
          Note_History_Lost (Done.Kind);
          return Reported;
       when Apply_Snapshot =>
+         --  The helper's listing is shown with its diagnostic and the
+         --  selected item's details (Refresh.Reinstall_Listing): only a
+         --  history given up is left to say.
          Apply_Snapshot;
-         return Report_In_View;
+         if Cancelled then
+            return Report_In_View;
+         end if;
+         Note_History_Lost (Done.Kind);
+         return Done.Result;
       when Owe_Reload =>
          --  Its snapshot predates a later listing change: reread it
          --  rather than leave the operation's new entries unlisted,

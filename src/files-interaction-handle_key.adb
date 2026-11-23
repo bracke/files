@@ -6,7 +6,8 @@ separate (Files.Interaction)
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result;
-      Tree_Page_Rows    : Natural := 0)
+      Tree_Page_Rows    : Natural := 0;
+      Repeated          : Boolean := False)
    is
       --  Ctrl (Shift allowed for '+') without Alt/Meta drives keyboard zoom.
       Zoom_Modifier : constant Boolean :=
@@ -38,6 +39,9 @@ separate (Files.Interaction)
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
       Result := (others => <>);
+      --  Noted for the dispatch's settings steps (Save_Settings), and
+      --  cleared again before each return below.
+      Files.Controller.Note_Key_Repeat (Model, Repeated);
       --  Keyboard zoom is handled on this pure seam, not in the controller: the
       --  live font size is the shell's, not the model's. Ctrl+'=' / Ctrl+'+'
       --  grows, Ctrl+'-' shrinks, and Ctrl+0 resets it, through Apply_Zoom as
@@ -57,7 +61,7 @@ separate (Files.Interaction)
             --  A held chord's repeats are put in force only and written
             --  once the keys rest (the window's Save_Pending_Zoom, as for
             --  the wheel): a durable write per repeat held the window.
-            Held : constant Boolean := Files.Model.Settings_Pane.Key_Repeat (Model);
+            Held : constant Boolean := Repeated;
          begin
             Apply_Zoom (Model, Settings, Settings_Path, New_Size, Save_Now => not Held, Result => Result);
             Result.Zoom_Unsaved := Held and then Result.Settings_Changed;
@@ -65,6 +69,7 @@ separate (Files.Interaction)
             --  keystroke never leaks a glyph into a focused text field.
             Result.Clear_Pending_Text := True;
          end;
+         Files.Controller.Note_Key_Repeat (Model, False);
          Finish_Dispatch (Model, Settings, Settings_Path, Result);
          return;
       end if;
@@ -122,5 +127,6 @@ separate (Files.Interaction)
          Result.Clear_Pending_Text := True;
       end if;
 
+      Files.Controller.Note_Key_Repeat (Model, False);
       Finish_Dispatch (Model, Settings, Settings_Path, Result);
    end Handle_Key;

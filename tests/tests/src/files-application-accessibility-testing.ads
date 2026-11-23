@@ -23,4 +23,10 @@ package Files.Application.Accessibility.Testing is
      (Frame : Files.Rendering.Frame_Commands)
       return A11ykit.Tree.Accessibility_Tree;
 
+   --  Publish as though no assistive technology listened, whatever the
+   --  host says, until called again with False.
+   --
+   --  @param Ignore True to ignore listeners.
+   procedure Ignore_Listeners (Ignore : Boolean);
+
 end Files.Application.Accessibility.Testing;

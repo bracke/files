@@ -6,10 +6,14 @@ with Files.Settings;
 --  only settings put in force change the live one.
 package Files.Commands.Keymap_Settings is
 
-   --  The keymap Overrides describe. An override for a command this build
-   --  does not know, or with a combo it cannot read (a typo), is dropped:
-   --  the command keeps its default binding rather than losing it or taking
-   --  whatever the rest names. An empty combo is an explicit unbind.
+   --  The keymap Overrides describe, bound by the keymap's rules (Rebind).
+   --  An override for a command this build does not know, or with a combo
+   --  it cannot read (a typo), is dropped: the command keeps its default
+   --  binding rather than losing it or taking whatever the rest names. An
+   --  override whose chord another command holds (two entries merged onto
+   --  one chord) is dropped the same way, the command keeping its default
+   --  binding, or none when that is held too; one equal to the default is
+   --  no override. An empty combo is an explicit unbind.
    --
    --  @param Overrides A settings [shortcuts] section.
    --  @return The keymap they describe.

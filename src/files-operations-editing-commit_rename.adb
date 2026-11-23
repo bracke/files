@@ -112,40 +112,41 @@ begin
       Record_Undo (Model, Files.Undo.History.Undo_Rename, Published (Renamed));
    end if;
 
-   if Need_Reload then
-      declare
-         Reload : constant Operation_Result :=
-           --  By its full path: search results may list another item of
-           --  the same name, and the first of those is not this one.
-           Reload_Current_Directory
-             (Model, Settings, To_String (Focus_Name), Select_Path => To_String (Focus_Path));
-      begin
-         if Reload.Status /= Operation_Success then
-            return Reload;
-         end if;
-      end;
-   end if;
-
-   if Stranded_Path /= Null_Unbounded_String then
-      --  Some items renamed, but one was left at neither name: say where.
-      Files.Model.Set_Error (Model, Files.File_System.Rename_Stranded_Key, To_String (Stranded_Path));
-      return
-        Make_Result
-          (Operation_Success,
-           Files.File_System.Rename_Stranded_Key,
-           To_String (Stranded_Path));
-   elsif Failure > 0 then
-      --  Some items renamed, some failed: report partial success so the
-      --  user learns not every rename landed.
-      Files.Model.Set_Error (Model, "error.rename.partial");
-      return
-        Make_Result
-          (Operation_Success,
-           "error.rename.partial",
-           To_String (Focus_Path));
-   end if;
-
-   Files.Model.Set_Error (Model, "");
+   declare
+      --  What the rename says: where an item was left at neither name, that
+      --  not every rename landed, or nothing.
+      Said_Key  : constant String :=
+        (if Stranded_Path /= Null_Unbounded_String then Files.File_System.Rename_Stranded_Key
+         elsif Failure > 0 then "error.rename.partial"
+         else "");
+      Said_Path : constant String :=
+        (if Stranded_Path /= Null_Unbounded_String then To_String (Stranded_Path) else "");
+   begin
+      if Need_Reload then
+         declare
+            Reload : constant Operation_Result :=
+              --  By its full path: search results may list another item of
+              --  the same name, and the first of those is not this one.
+              Reload_Saying
+                (Model, Settings, Said_Key, Said_Path,
+                 Select_Name => To_String (Focus_Name), Select_Path => To_String (Focus_Path));
+         begin
+            if Reload.Status /= Operation_Success then
+               return Reload;
+            end if;
+         end;
+      else
+         Files.Model.Set_Error (Model, Said_Key, Said_Path);
+      end if;
+      if Stranded_Path /= Null_Unbounded_String then
+         --  Some items renamed, but one was left at neither name: say where.
+         return Make_Result (Operation_Success, Said_Key, Said_Path);
+      elsif Failure > 0 then
+         --  Some items renamed, some failed: report partial success so the
+         --  user learns not every rename landed.
+         return Make_Result (Operation_Success, Said_Key, To_String (Focus_Path));
+      end if;
+   end;
    return
      Make_Result
        (Operation_Success,

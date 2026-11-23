@@ -17,10 +17,11 @@ begin
    if Files.Model.Jobs.Background_Transfers (Model) then
       return Files.Refresh.Start (Model, Settings, Force => True);
    end if;
-   --  The virtual recent view has no backing directory to reload; rebuild its
-   --  synthetic listing from the current recent paths instead.
+   --  The virtual recent view has no backing directory to reload; its
+   --  listing is rebuilt from the current recent paths, keeping the place
+   --  in it (Reload_Current_Directory handles the view).
    if Files.Model.Recent.In_Recent_View (Model) then
-      return Files.Operations.Navigation.Navigate_Recent (Model, Settings);
+      return Reload_Current_Directory (Model, Settings, Preserve_Selection => True);
    end if;
    --  Refresh lists the folder again, ending a search as a forced
    --  background refresh does (Files.Refresh.Start); an operation's own

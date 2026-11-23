@@ -39,9 +39,8 @@ separate (Files_Suite.Settings)
          Assert (not Written, "no settings file yet");
          --  Three repeats of a held Right.
          for Repeat in 1 .. 3 loop
-            Files.Model.Settings_Pane.Note_Key_Repeat (Model, True);
-            Files.Interaction.Handle_Key (Model, Settings, Path, Guikit.Input.Key_Right, Result => Result);
-            Files.Model.Settings_Pane.Note_Key_Repeat (Model, False);
+            Files.Interaction.Handle_Key
+              (Model, Settings, Path, Guikit.Input.Key_Right, Result => Result, Repeated => True);
          end loop;
          Assert (Files.Model.Settings_Pane.Focused_Value (Model) /= Before, Key & ": the held key stepped the value");
          Assert

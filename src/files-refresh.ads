@@ -75,6 +75,28 @@ package Files.Refresh is
       Show_Hidden    : Boolean;
       Error_Line     : String := "");
 
+   --  How every listing shown in a view ends -- a folder a view moved to
+   --  (Files.Operations.Support.Load_And_Show) or a view read again
+   --  (Reinstall_Listing): the signature the watch compares with stored,
+   --  the images still lacking a thumbnail owed to a forced background
+   --  listing (Files.Model.Note_Owed_Refresh) when the listing deferred
+   --  them, the error line set to Error_Line (only when it differs) and the
+   --  selected item's details read (Ensure_Selected_Item_Extra).
+   --
+   --  @param Model Window whose view shows Items.
+   --  @param Items The listing shown.
+   --  @param Signature The listed folder's signature.
+   --  @param Owe_Thumbnails The listing deferred thumbnails.
+   --  @param Error_Line The error line the view is shown with.
+   --  @param Show_Hidden Settings.Show_Hidden_Files, for the details read.
+   procedure Settle_Listed
+     (Model          : in out Files.Model.Window_Model;
+      Items          : Files.Items.Item_Vectors.Vector;
+      Signature      : Files.File_System_Types.Directory_Signature;
+      Owe_Thumbnails : Boolean;
+      Error_Line     : String;
+      Show_Hidden    : Boolean);
+
    --  @param Model Window owning a pending read.
    --  @param Settings Current settings used to reject stale results.
    --  @return True when a new listing was applied.

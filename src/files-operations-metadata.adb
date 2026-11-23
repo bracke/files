@@ -71,14 +71,14 @@ package body Files.Operations.Metadata is
          Reload : constant Operation_Result :=
            --  By its full path: search results may list another item of
            --  the same name, and the first of those is not this one.
-           Reload_Current_Directory
-             (Model, Settings, Files.Model.Selection.Selected_Name (Model), Select_Path => Path);
+           Reload_Saying
+             (Model, Settings, "",
+              Select_Name => Files.Model.Selection.Selected_Name (Model), Select_Path => Path);
       begin
          if Reload.Status /= Operation_Success then
             return Reload;
          end if;
       end;
-      Files.Model.Set_Error (Model, "");
       return Make_Result (Operation_Success, Path => Path);
    end Finish_Attribute_Change;
 

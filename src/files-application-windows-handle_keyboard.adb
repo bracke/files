@@ -26,7 +26,7 @@ separate (Files.Application.Windows)
       for Event of Events loop
          --  A key that navigated (or reloaded) replaced the items; the next
          --  one queued in this batch walks them in the drawn group order.
-         Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
+         Files.Controller.Sync_Grouping (Runtime.Model, Runtime.Settings);
          case Event.Kind is
             when Key_Press_Event =>
                --  With the traces below a presented frame, CI follows a key
@@ -43,9 +43,7 @@ separate (Files.Application.Windows)
                   else
                      Save_Held_Settings (Runtime, Force => True);
                   end if;
-                  Files.Model.Settings_Pane.Note_Key_Repeat (Runtime.Model, Event.Repeated);
-                  Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
-                  Files.Model.Settings_Pane.Note_Key_Repeat (Runtime.Model, False);
+                  Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed, Repeated => Event.Repeated);
                   Files.Diagnostics.Trace
                     ("Files.Application.Windows",
                      "selected=" & Files.Text_Basics.Natural_Text (Key_Selected_Before) & "->"

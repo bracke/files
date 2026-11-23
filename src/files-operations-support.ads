@@ -162,6 +162,31 @@ private package Files.Operations.Support is
       Error_Key : String;
       Path : String := "");
 
+   --  Read the view again after an operation that says Error_Key ("" when
+   --  it has nothing to say), selecting Select_Path, else Select_Name. It
+   --  is said before the reload is scheduled: a read in the background
+   --  keeps it and, with nothing said, shows the view's own line when it
+   --  lands (search results their notice) -- and the error line moving
+   --  after the read began would make the read stale, so a search would
+   --  run twice. A reload done here shows the view's own line too, so what
+   --  the operation says is said again after it.
+   --
+   --  @param Model Window whose error and listing to update.
+   --  @param Settings Directory settings for the reload.
+   --  @param Error_Key What the operation says, or "".
+   --  @param Path The path the error's message names, or "" when none.
+   --  @param Select_Name Leaf name to select after the reload.
+   --  @param Select_Path Full path to select after the reload.
+   --  @return The reload's result.
+   function Reload_Saying
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : Files.Settings.Settings_Model;
+      Error_Key   : String;
+      Path        : String := "";
+      Select_Name : String := "";
+      Select_Path : String := "")
+      return Operation_Result;
+
    --  The one way a view moves to a folder: Path read (Load_Folder); a read
    --  that fails says why in the error line (unless Say_Failure is False:
    --  a window not yet started has none) and leaves the window as it was;

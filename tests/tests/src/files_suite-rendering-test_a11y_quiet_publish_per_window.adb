@@ -1,4 +1,3 @@
-with A11ykit.Provider;
 with Files.Application.Window_Policy;
 with Files.Preference_Types;
 separate (Files_Suite.Rendering)
@@ -21,15 +20,15 @@ separate (Files_Suite.Rendering)
       Quiet  : constant Accessibility.Window_Key := Accessibility.New_Window_Key;
    begin
       Accessibility.Start;
+      --  Whatever listens on this host, the quiet interval is checked.
+      Accessibility.Testing.Ignore_Listeners (True);
       --  A window's first tree is published at once.
       Accessibility.Publish (Busy, Two);
       Accessibility.Publish (Quiet, Two);
       Files_Suite.Support.Assert_Equal (Accessibility.Testing.Published_Windows, 2, "both first trees published");
-      if not A11ykit.Provider.Listening then
-         Accessibility.Publish (Busy, Three);
-         Files_Suite.Support.Assert_Equal
-           (Accessibility.Testing.Waiting_Windows, 1, "a change within the quiet interval waits");
-      end if;
+      Accessibility.Publish (Busy, Three);
+      Files_Suite.Support.Assert_Equal
+        (Accessibility.Testing.Waiting_Windows, 1, "a change within the quiet interval waits");
       delay Files.Application.Window_Policy.Quiet_Publish_Interval + 0.1;
       --  The busy window's change goes out; the quiet window's, coming
       --  right after it, is due by its own interval too.
@@ -42,9 +41,11 @@ separate (Files_Suite.Rendering)
          "one window's publish does not hold back another window's change");
       Accessibility.Forget (Busy);
       Accessibility.Forget (Quiet);
+      Accessibility.Testing.Ignore_Listeners (False);
       Accessibility.Stop;
    exception
       when others =>
+         Accessibility.Testing.Ignore_Listeners (False);
          Accessibility.Stop;
          raise;
    end Test_A11y_Quiet_Publish_Per_Window;

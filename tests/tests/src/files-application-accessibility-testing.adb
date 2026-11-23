@@ -8,4 +8,6 @@ package body Files.Application.Accessibility.Testing is
      (Frame : Files.Rendering.Frame_Commands)
       return A11ykit.Tree.Accessibility_Tree renames Files.Application.Accessibility.To_A11ykit_Tree;
 
+   procedure Ignore_Listeners (Ignore : Boolean) renames Files.Application.Accessibility.Ignore_Listeners;
+
 end Files.Application.Accessibility.Testing;
