@@ -1011,7 +1011,13 @@ jobs:
             HOMEBREW_NO_AUTO_UPDATE=1 brew install vulkan-tools || true
           fi
           echo "VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-<unset>}"
-          if command -v vulkaninfo > /dev/null; then vulkaninfo --summary; fi
+          # A diagnostic only: it once hung on a macOS Intel runner until the
+          # job timed out, so give it a minute (perl's alarm: macOS has no
+          # timeout(1)).
+          if command -v vulkaninfo > /dev/null; then
+            perl -e 'alarm 60; exec @ARGV' vulkaninfo --summary \
+              || echo "::warning::vulkaninfo failed or took over 60 s"
+          fi
           "$bin" --live-smoke
           code=$?
           echo "live-smoke exit $code on $MATRIX_OS"
