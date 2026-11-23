@@ -1,3 +1,6 @@
+with Files.Input_Actions;
+with Files.Interaction;
+with Guikit.Input;
 with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -213,6 +216,54 @@ separate (Files_Suite.Transfer)
          "cancel changes nothing at the destination");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
       Assert (Files.Model.Clipboard.Has_Items (Model), "cancel keeps the clipboard for a retry");
+
+      --  The dialog's buttons, clicked: each reaches the choice it names
+      --  through Interaction and the controller, as the window sends it.
+      declare
+         use Files.Input_Actions;
+         type Button_Case is record
+            Button : Conflict_Button_Kind;
+            Target : String (1 .. 4);
+            Copy   : Boolean;
+         end record;
+         Cases : constant array (1 .. 3) of Button_Case :=
+           [(Conflict_Button_Replace, "SRC ", False),
+            (Conflict_Button_Skip, "DEST", False),
+            (Conflict_Button_Rename, "DEST", True)];
+         Settings_Copy : Files.Settings.Settings_Model := Settings;
+         Clicked       : Files.Interaction.Interaction_Result;
+      begin
+         for Case_Of of Cases loop
+            Reset_Root;
+            Ada.Directories.Create_Path (Src_Dir);
+            Ada.Directories.Create_Path (Dest_Dir);
+            Write_File (Join (Src_Dir, "a.txt"), "SRC");
+            Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+            Arm_Model (Model, One_File);
+            Routed :=
+              Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+            Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a colliding paste arms the dialog for a click");
+            Files.Interaction.Apply_Input_Action
+              (Model, Settings_Copy, "",
+               (Kind => Conflict_Click_Input_Action, Conflict_Button => Case_Of.Button),
+               Guikit.Input.No_Modifiers, Clicked);
+            Assert
+              (not Files.Model.Pasting.Conflict_Is_Active (Model),
+               Conflict_Button_Kind'Image (Case_Of.Button) & " clicked closes the dialog");
+            Files_Suite.Support.Assert_Equal
+              (Read (Join (Dest_Dir, "a.txt")),
+               Ada.Strings.Fixed.Trim (Case_Of.Target, Ada.Strings.Right),
+               Conflict_Button_Kind'Image (Case_Of.Button) & " clicked leaves the destination as it says");
+            Assert
+              (Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")) = Case_Of.Copy,
+               Conflict_Button_Kind'Image (Case_Of.Button)
+               & (if Case_Of.Copy then " clicked writes the renamed copy" else " clicked writes no renamed copy"));
+            if Case_Of.Copy then
+               Files_Suite.Support.Assert_Equal
+                 (Read (Join (Dest_Dir, "a 2.txt")), "SRC", "the renamed copy holds the source");
+            end if;
+         end loop;
+      end;
 
       --  A dangling link holding the name is a conflict too: the listing the
       --  dialog is armed from must not drop it, and Replace puts the file there.

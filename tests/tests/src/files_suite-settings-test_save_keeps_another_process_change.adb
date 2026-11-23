@@ -1,5 +1,5 @@
+with Files_Suite.Operations_Support;
 with Files.Settings.Storage.Testing;
-with GNAT.OS_Lib;
 with Files.Settings.Storage;
 with Files.Settings.Path_References;
 with Project_Tools.Files;
@@ -84,31 +84,31 @@ separate (Files_Suite.Settings)
       --  A save that fails after taking in the other's change still counts
       --  that change as seen: the value adopted from the file is not this
       --  process's own, so the other's later change to it is kept, not
-      --  reverted. Needs a folder the host refuses to write into.
-      if Hostkit.Host.Current /= Hostkit.Host.Windows then
-         declare
-            Folder : constant String := Join (Root, "merge-after-failed-save");
-            Shared : constant String := Join (Folder, "settings.conf");
-            Here   : Files.Settings.Settings_Model;
-            There  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-            Saved  : Files.Settings.Settings_Write_Result;
-         begin
-            Ada.Directories.Create_Path (Folder);
-            Written := Files.Settings.Storage.Testing.Save_Text (Shared, Files.Settings.To_Text (There));
-            Loaded := Files.Settings.Storage.Load_File (Shared);
-            Assert (Written.Success and then Loaded.Success, "a second shared file is written and loaded");
-            Here := Loaded.Settings;
-            There.Show_Hidden_Files := True;
-            Write_File (Shared, Files.Settings.To_Text (There));
-            GNAT.OS_Lib.Set_Non_Writable (Folder);
+      --  reverted. Needs a folder the host refuses to write into: a mode on
+      --  POSIX, a protected access list on Windows (Lock_Directory).
+      declare
+         Folder : constant String := Join (Root, "merge-after-failed-save");
+         Shared : constant String := Join (Folder, "settings.conf");
+         Here   : Files.Settings.Settings_Model;
+         There  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Saved  : Files.Settings.Settings_Write_Result;
+      begin
+         Ada.Directories.Create_Path (Folder);
+         Written := Files.Settings.Storage.Testing.Save_Text (Shared, Files.Settings.To_Text (There));
+         Loaded := Files.Settings.Storage.Load_File (Shared);
+         Assert (Written.Success and then Loaded.Success, "a second shared file is written and loaded");
+         Here := Loaded.Settings;
+         There.Show_Hidden_Files := True;
+         Write_File (Shared, Files.Settings.To_Text (There));
+         if Files_Suite.Operations_Support.Lock_Directory (Folder) then
             begin
                Saved := Files.Settings.Storage.Testing.Write (Shared, Here);
             exception
                when others =>
-                  GNAT.OS_Lib.Set_Writable (Folder);
+                  Files_Suite.Operations_Support.Unlock_Directory (Folder);
                   raise;
             end;
-            GNAT.OS_Lib.Set_Writable (Folder);
+            Files_Suite.Operations_Support.Unlock_Directory (Folder);
             Assert (not Saved.Success or else not Saved.Durable, "the save into the refused folder fails");
             Assert (Here.Show_Hidden_Files, "after taking in the other's change");
             There.Show_Hidden_Files := False;
@@ -116,6 +116,10 @@ separate (Files_Suite.Settings)
             Saved := Files.Settings.Storage.Testing.Write (Shared, Here);
             Assert (Saved.Success, "the next save succeeds");
             Assert (not Here.Show_Hidden_Files, "and keeps the other's later change rather than reverting it");
-         end;
-      end if;
+         else
+            Files_Suite.Support.Skip
+              ("Test_Save_Keeps_Another_Process_Change",
+               "the failed-save half needs a folder the host refuses writes into (not as POSIX root)");
+         end if;
+      end;
    end Test_Save_Keeps_Another_Process_Change;

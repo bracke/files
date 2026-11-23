@@ -652,41 +652,59 @@ procedure Check_All is
    File_System_Units : constant String :=
      "ada.directories" & ASCII.LF & "gnat.os_lib" & ASCII.LF & "gnat.directory_operations" & ASCII.LF
      & "ada.streams.stream_io" & ASCII.LF & "ada.text_io" & ASCII.LF
-     & "ada.sequential_io" & ASCII.LF & "ada.direct_io";
+     & "ada.sequential_io" & ASCII.LF & "ada.direct_io" & ASCII.LF
+     & "ada.wide_text_io" & ASCII.LF & "ada.wide_wide_text_io";
 
    --  Whether Lines (LF-separated) holds Line.
    function Has_Line (Lines, Line : String) return Boolean is
      (Ada.Strings.Fixed.Index (ASCII.LF & Lines & ASCII.LF, ASCII.LF & Line & ASCII.LF) > 0);
 
    --  Name with a leading alias of Aliases ("alias=unit" lines) read as its
-   --  unit: "ad.compose" for "ad=ada.directories" is "ada.directories.compose".
+   --  unit: "ad.compose" for "ad=ada.directories" is "ada.directories.compose";
+   --  a leading "standard." is dropped.
    --  @param Name A dotted name, lower case.
    --  @param Aliases "alias=unit" lines.
    --  @return The name spelled out.
    function Spelled_Out (Name, Aliases : String) return String is separate;
 
+   --  The aliases of Aliases ("scope:alias=unit" lines) Unit sees -- its own
+   --  and its parents' (a subunit calls through its parent's renaming), as
+   --  "alias=unit" lines.
+   --  @param Aliases "scope:alias=unit" lines (Package_Aliases).
+   --  @param Unit A unit, lower case (Unit_Of_File).
+   --  @return The "alias=unit" lines Unit sees.
+   function Aliases_Seen_By (Aliases, Unit : String) return String is separate;
+
    --  Every package in src/ that renames or instantiates one of Units (one a
-   --  line, lower case), an "alias=unit" line each: a subunit calls through
-   --  its parent's renaming, and a renaming of a renaming counts too.
+   --  line, lower case), a "scope:alias=unit" line each, scope the unit
+   --  declaring it: a renaming of a renaming counts too.
    --  @param Units Units to follow, lower case, one a line.
-   --  @return The "alias=unit" lines.
+   --  @return The "scope:alias=unit" lines.
    function Package_Aliases (Units : String) return String is separate;
 
-   --  The units of Units a use clause in Toks names, directly or through an
-   --  alias (a use clause naming several is read whole), one a line.
+   --  The units of Units a use clause in Toks names, directly, through an
+   --  alias or after a use of a package leading to them ("use Ada.Streams;
+   --  use Stream_IO;"); a use clause naming several is read whole. One a line.
    --  @param Toks The source's tokens.
-   --  @param Aliases "alias=unit" lines (Package_Aliases).
+   --  @param Aliases "alias=unit" lines (Aliases_Seen_By).
    --  @param Units Units to report, lower case, one a line.
-   --  @return The used units, one a line.
-   function Used_Units (Toks : Tokens.Token_List; Aliases : String; Units : String) return String is separate;
+   --  @param Prefixes Return instead the used packages that only lead to a
+   --    unit of Units ("ada", "gnat", "ada.streams").
+   --  @return The used units (or leading packages), one a line.
+   function Used_Units
+     (Toks     : Tokens.Token_List;
+      Aliases  : String;
+      Units    : String;
+      Prefixes : Boolean := False) return String is separate;
 
    --  Visit every name Toks spells -- a word with its dotted prefix, as
    --  "ada.directories.compose" -- spelled out: a leading alias (Aliases'
    --  "alias=unit" lines) read as its unit, and a name a use clause of a
-   --  unit makes direct read with that unit before it too. Names inside a
+   --  unit (or of a package leading to one, as "use Ada;") makes direct
+   --  read with that package before it too. Names inside a
    --  with or use clause are not visited.
    --  @param Toks The source's tokens.
-   --  @param Aliases "alias=unit" lines (Package_Aliases).
+   --  @param Aliases "alias=unit" lines (Aliases_Seen_By).
    --  @param Units The units whose use clauses make their names direct.
    --  @param Visit Called with each spelling (lower case) and the index of
    --    the token after the name.

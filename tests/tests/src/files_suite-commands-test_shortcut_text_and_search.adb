@@ -1,3 +1,4 @@
+with Files.Overlays.Command_Palette.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Shortcut_Text_And_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -83,7 +84,7 @@ separate (Files_Suite.Commands)
             "the shown shortcut does not spell control+p, so this tests the search text");
          Guikit.Command_Palette.Set_Commands
            (Palette,
-            Files.Overlays.Command_Palette.Commands
+            Files.Overlays.Command_Palette.Testing.Commands
               (Model, Files.Model.Palette_Commands, Files.Model.Command_Palette.Open_With_Applications (Model)));
          Guikit.Command_Palette.Set_Query (Palette, "control+p");
          for C of Guikit.Command_Palette.Results (Palette) loop

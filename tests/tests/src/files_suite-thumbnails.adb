@@ -64,6 +64,7 @@ package body Files_Suite.Thumbnails is
    overriding procedure Register_Tests (T : in out Thumbnails_Test_Case);
 
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Shows_Loaded_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -142,6 +143,9 @@ package body Files_Suite.Thumbnails is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Navigation_Defers_Thumbnails'Access,
          "opening a folder never waits on new thumbnails: a background listing makes them");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Shows_Loaded_Folder'Access,
+         "a startup folder is shown as navigation shows one: thumbnails owed, signature kept, trash known");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Plain_Listing_Makes_No_Thumbnails'Access,
          "a plain directory listing decodes no image and writes no thumbnail cache file");
@@ -223,6 +227,7 @@ package body Files_Suite.Thumbnails is
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Startup_Shows_Loaded_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

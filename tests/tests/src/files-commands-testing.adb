@@ -15,4 +15,6 @@ package body Files.Commands.Testing is
    function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut
      renames Files.Commands.Shortcut_Override;
 
+   function Contains (Identifier_Text : String) return Boolean renames Files.Commands.Contains;
+
 end Files.Commands.Testing;

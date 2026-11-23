@@ -34,11 +34,6 @@ private package Files.File_System.Recovery is
       Ran   : out Boolean)
       return Boolean;
 
-   --  Drop the registry record for a payload whose stage was removed by a
-   --  caller other than Discard or Restore (which unregister themselves).
-   --  @param Payload Payload path returned by Preserve.
-   procedure Unregister (Payload : String);
-
    --  @param Path Payload returned by Preserve.
    --  @return Original path from the recovery sidecar, or empty on failure.
    function Original_Path (Path : String) return String;
@@ -131,6 +126,11 @@ private package Files.File_System.Recovery is
       Expected_Identity   : String := "")
       return Mutation_Result;
 private
+
+   --  Drop the registry record for a payload whose stage was removed by a
+   --  caller other than Discard or Restore (which unregister themselves).
+   --  @param Payload Payload path returned by Preserve.
+   procedure Unregister (Payload : String);
 
    --  The cross-device half of a move, where rename cannot go: copy Source
    --  to the new path Destination, then remove Source. Rename, trash, drop

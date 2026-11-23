@@ -6,7 +6,9 @@ separate (Check_All)
       Visit   : not null access procedure (Name : String; Next : Positive))
    is
       use Tokens;
-      Used  : constant String := Used_Units (Toks, Aliases, Units);
+      Used    : constant String := Used_Units (Toks, Aliases, Units);
+      --  use Ada; makes Directories.Delete_File Ada.Directories.Delete_File.
+      Leading : constant String := Used_Units (Toks, Aliases, Units, Prefixes => True);
       Index : Natural := Toks.First_Index;
 
       --  Whether a with or use clause starts at Index: "use" anywhere, "with"
@@ -47,6 +49,7 @@ separate (Check_All)
                end loop;
                Visit (Spelled_Out (To_String (Name), Aliases), Last + 1);
                For_Each_Line (Used, Through_Use'Access);
+               For_Each_Line (Leading, Through_Use'Access);
                Index := Last + 1;
             end;
          else

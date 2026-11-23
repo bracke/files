@@ -8,6 +8,8 @@ package Files.Recovery_CLI is
    --  @return True when a recovery command was recognized and handled.
    function Run_If_Requested return Boolean;
 
+private
+
    --  Run_If_Requested over Arguments instead of the command line, without
    --  touching the process exit status.
    --  @param Arguments The arguments, the command first.
@@ -16,8 +18,6 @@ package Files.Recovery_CLI is
    function Run
      (Arguments : Files.Types.String_Vectors.Vector;
       Failed    : out Boolean) return Boolean;
-
-private
 
    --  Text as --list-recoveries prints a path, one line per payload and a
    --  tab between its two fields: a tab, line feed or carriage return as

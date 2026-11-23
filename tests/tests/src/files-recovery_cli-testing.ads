@@ -21,4 +21,13 @@ package Files.Recovery_CLI.Testing is
    --  @return The path.
    function Unescaped (Text : String) return String;
 
+   --  Run_If_Requested over Arguments instead of the command line, without
+   --  touching the process exit status.
+   --  @param Arguments The arguments, the command first.
+   --  @param Failed True when a recognized command failed.
+   --  @return True when a recovery command was recognized and handled.
+   function Run
+     (Arguments : Files.Types.String_Vectors.Vector;
+      Failed    : out Boolean) return Boolean;
+
 end Files.Recovery_CLI.Testing;

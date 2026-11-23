@@ -41,4 +41,10 @@ package Files.Commands.Testing is
    --  @return The override shortcut (meaningful only when Is_Set).
    function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut;
 
+   --  Return whether Identifier names a registered command.
+   --
+   --  @param Identifier_Text Stable identifier string to find.
+   --  @return True when a registered command exists.
+   function Contains (Identifier_Text : String) return Boolean;
+
 end Files.Commands.Testing;

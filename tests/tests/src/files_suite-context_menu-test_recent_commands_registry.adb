@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Item_Lists;
 with Files.Operations.Navigation;
 with Files.Model.Recent;
@@ -27,8 +28,8 @@ separate (Files_Suite.Context_Menu)
       Ada.Directories.Create_Path (Empty);
 
       --  Both commands are registered and palette-visible.
-      Assert (Files.Commands.Contains ("navigate.recent"), "Navigate Recent is a registered command");
-      Assert (Files.Commands.Contains ("recent.clear"), "Clear Recent is a registered command");
+      Assert (Files.Commands.Testing.Contains ("navigate.recent"), "Navigate Recent is a registered command");
+      Assert (Files.Commands.Testing.Contains ("recent.clear"), "Clear Recent is a registered command");
       Assert (Files.Commands.Command_Palette_Visible (Files.Commands.Navigate_Recent_Command),
               "Navigate Recent appears in the command palette");
       Assert (Files.Commands.Command_Palette_Visible (Files.Commands.Clear_Recent_Command),

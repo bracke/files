@@ -4,8 +4,8 @@ with Files.IO.Durable_Writes;
 with Files.Undo.Journal;
 separate (Files_Suite.Recovery)
    --  Durable_Writes.Write_Private_File, under the history journal, the job
-   --  records and the copy links: the file is owner-only where the host has
-   --  mode bits (the journal lists every path the user touched), an entry
+   --  records and the copy links: the file is private to its owner on every
+   --  host (the journal lists every path the user touched), an entry
    --  already there is refused and kept, a writer that fails leaves nothing,
    --  and Remove_Owned removes only the file it made.
    procedure Test_Private_Record_Writes (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -25,11 +25,15 @@ separate (Files_Suite.Recovery)
          raise Program_Error;
       end Write_Fails;
 
+      --  Private by the host's own rule (owner and access list on Windows,
+      --  owner, mode and ACL elsewhere), and where mode bits are native, with
+      --  no group or other bit either.
       function Owner_Only (Path : String) return Boolean is
          Known : Boolean;
          Bits  : constant Natural := Hostkit.Metadata.File_Permission_Bits (Path, Known);
       begin
-         return not Hostkit.Metadata.Mode_Bits_Are_Native or else (Known and then Bits mod 8#100# = 0);
+         return Hostkit.Metadata.Private_To_Current_User (Path)
+           and then (not Hostkit.Metadata.Mode_Bits_Are_Native or else (Known and then Bits mod 8#100# = 0));
       end Owner_Only;
    begin
       Reset_Root;

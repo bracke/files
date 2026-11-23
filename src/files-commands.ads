@@ -272,14 +272,6 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
-   --  Return whether Identifier names a registered command.
-   --
-   --  @param Identifier_Text Stable identifier string to find.
-   --  @return True when a registered command exists.
-   function Contains
-     (Identifier_Text : String)
-      return Boolean;
-
    --  Return the command whose stable identifier is Identifier_Text.
    --
    --  @param Identifier_Text Stable identifier string to find.
@@ -348,6 +340,14 @@ package Files.Commands is
       return String;
 
 private
+
+   --  Return whether Identifier names a registered command.
+   --
+   --  @param Identifier_Text Stable identifier string to find.
+   --  @return True when a registered command exists.
+   function Contains
+     (Identifier_Text : String)
+      return Boolean;
 
    --  Whether Parse_Shortcut reads Text in full: empty or blank (an explicit
    --  unbind), or modifiers and exactly one key, every token known. A

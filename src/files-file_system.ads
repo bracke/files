@@ -397,29 +397,6 @@ package Files.File_System is
    function Delete_Created_Entry
      (Path : String; Expected_Identity, Expected_Tree_Revision : String) return Mutation_Result;
 
-   --  Quarantine and remove a private staging tree by the identity captured
-   --  when its root was created. Contents may legitimately change while work
-   --  is in progress, so only the root identity is compared. A replacement is
-   --  restored without deleting its contents.
-   --  @param Path Private staging directory to remove.
-   --  @param Expected_Identity Root identity captured at stage creation.
-   --  @return Success only when the verified stage was removed.
-   function Delete_Staging_Entry
-     (Path : String; Expected_Identity : String) return Mutation_Result;
-
-   --  Remove a helper transport (Files.Jobs.Transports) by the identity
-   --  captured when it was created: no quarantine, recovery record or flush.
-   --  A transport is an owner-only folder of protocol files under the user's
-   --  temporary directory, holding no user data, and the removal never
-   --  follows a link and takes its marker and lease last: one cut short
-   --  leaves a transport the scavenger still recognizes and finishes. A
-   --  folder that is not the one created (another identity) is left alone.
-   --  @param Path Transport directory to remove.
-   --  @param Expected_Identity Identity captured when the transport was created.
-   --  @return Success only when the transport is gone.
-   function Delete_Transport_Entry
-     (Path : String; Expected_Identity : String) return Mutation_Result;
-
    --  @param Path Existing entry to inspect without following symbolic links.
    --  @return SHA-256 of a directory's recursive metadata and file contents,
    --    a regular-file metadata and content revision, or empty for a link or
@@ -508,6 +485,29 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
+
+   --  Quarantine and remove a private staging tree by the identity captured
+   --  when its root was created. Contents may legitimately change while work
+   --  is in progress, so only the root identity is compared. A replacement is
+   --  restored without deleting its contents.
+   --  @param Path Private staging directory to remove.
+   --  @param Expected_Identity Root identity captured at stage creation.
+   --  @return Success only when the verified stage was removed.
+   function Delete_Staging_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result;
+
+   --  Remove a helper transport (Files.Jobs.Transports) by the identity
+   --  captured when it was created: no quarantine, recovery record or flush.
+   --  A transport is an owner-only folder of protocol files under the user's
+   --  temporary directory, holding no user data, and the removal never
+   --  follows a link and takes its marker and lease last: one cut short
+   --  leaves a transport the scavenger still recognizes and finishes. A
+   --  folder that is not the one created (another identity) is left alone.
+   --  @param Path Transport directory to remove.
+   --  @param Expected_Identity Identity captured when the transport was created.
+   --  @return Success only when the transport is gone.
+   function Delete_Transport_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result;
 
    --  Whether an entry is hidden: a leading dot in its name, or the host's
    --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's

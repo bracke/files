@@ -15,7 +15,7 @@ separate (Files_Suite.Commands)
             Secondary  : constant Files.Commands.Shortcut := Files.Commands.Secondary_Shortcut_For (Id);
          begin
             Assert (Identifier /= "", "registered command identifier is non-empty");
-            Assert (Files.Commands.Contains (Identifier), "registered command is found by its identifier");
+            Assert (Files.Commands.Testing.Contains (Identifier), "registered command is found by its identifier");
             Assert (Key /= "", "registered command name key is non-empty");
             Assert (Text /= Key, "command localization exists for " & Identifier);
             Assert (Description_Key /= "", "registered command description key is non-empty");

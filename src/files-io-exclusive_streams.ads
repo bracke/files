@@ -39,10 +39,6 @@ package Files.IO.Exclusive_Streams is
    procedure Close_Safely (Stream : in out Output_Stream);
 
    --  @param Stream Stream to inspect.
-   --  @return True while Stream owns an open descriptor.
-   function Is_Open (Stream : Output_Stream) return Boolean;
-
-   --  @param Stream Stream to inspect.
    --  @return Number of bytes written so far, buffered ones included.
    function Size (Stream : Output_Stream) return Long_Long_Integer;
 
@@ -51,6 +47,10 @@ package Files.IO.Exclusive_Streams is
       Item   : Ada.Streams.Stream_Element_Array);
 
 private
+
+   --  @param Stream Stream to inspect.
+   --  @return True while Stream owns an open descriptor.
+   function Is_Open (Stream : Output_Stream) return Boolean;
    --  Writes are gathered into blocks by the parent (Descriptor_Streams):
    --  records are encoded a field at a time, and a write per field was a
    --  syscall per field.

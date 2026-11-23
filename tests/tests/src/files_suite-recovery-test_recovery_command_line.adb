@@ -17,7 +17,7 @@ separate (Files_Suite.Recovery)
          if Second /= "" then
             Arguments.Append (To_Unbounded_String (Second));
          end if;
-         return Files.Recovery_CLI.Run (Arguments, Failed);
+         return Files.Recovery_CLI.Testing.Run (Arguments, Failed);
       end Run;
 
       --  Restores what the test changes, on failure too.

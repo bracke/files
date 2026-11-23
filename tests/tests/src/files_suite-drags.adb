@@ -46,6 +46,7 @@ package body Files_Suite.Drags is
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Selection_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Waits_For_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Finishes_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Drags_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -78,6 +79,9 @@ package body Files_Suite.Drags is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Drop_Waits_For_Overlay'Access,
          "a drop made while an overlay owns the input waits for it to close");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Finishes_Dispatch'Access,
+         "a drop ends like every dispatch: moved labels saved, the selected item's details read");
    end Register_Tests;
 
    procedure Test_Drop_Contained_By_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -95,6 +99,7 @@ package body Files_Suite.Drags is
    procedure Test_Marquee_Selection_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Drop_Waits_For_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Drop_Finishes_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

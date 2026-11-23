@@ -25,14 +25,22 @@ separate (Check_All)
         & "ada.streams.stream_io.open" & LF & "ada.streams.stream_io.create" & LF
         & "ada.text_io.open" & LF & "ada.text_io.create" & LF
         & "ada.sequential_io.open" & LF & "ada.sequential_io.create" & LF
-        & "ada.direct_io.open" & LF & "ada.direct_io.create";
+        & "ada.direct_io.open" & LF & "ada.direct_io.create" & LF
+        & "ada.wide_text_io.open" & LF & "ada.wide_text_io.create" & LF
+        & "ada.wide_wide_text_io.open" & LF & "ada.wide_wide_text_io.create" & LF
+        & "ada.directories.set_directory" & LF
+        & "gnat.os_lib.is_readable_file" & LF & "gnat.os_lib.is_writable_file" & LF
+        & "gnat.os_lib.set_writable" & LF & "gnat.os_lib.set_read_only" & LF
+        & "gnat.os_lib.set_executable" & LF & "gnat.os_lib.file_time_stamp" & LF
+        & "gnat.os_lib.is_symbolic_link" & LF & "gnat.directory_operations.change_dir";
 
       --  Every package renaming or instantiation of one of the units in
-      --  src/: a subunit calls through its parent's.
-      Aliases : constant String := Package_Aliases (File_System_Units);
+      --  src/, read where it is seen: a subunit calls through its parent's.
+      All_Aliases : constant String := Package_Aliases (File_System_Units);
 
       procedure Check_File (Path : String) is
          Toks    : constant Tokens.Token_List := Tokens.Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Aliases : constant String := Aliases_Seen_By (All_Aliases, Unit_Of_File (Path));
          Refused : Unbounded_String;
 
          procedure Refuse (Name : String; Why : String) is

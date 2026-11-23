@@ -1,13 +1,14 @@
 separate (Check_All)
    function Package_Aliases (Units : String) return String is
       use Tokens;
-      --  Every package renaming or instantiation in src/, "alias=named" a line.
+      --  Every package renaming or instantiation in src/, "scope:alias=named" a line.
       Candidates : Unbounded_String;
       Result     : Unbounded_String;
       Grew       : Boolean := True;
 
       procedure Collect (Path : String) is
          Toks  : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Scope : constant String := Unit_Of_File (Path);
          Index : Natural;
          Named : Unbounded_String;
       begin
@@ -32,7 +33,8 @@ separate (Check_All)
                      Append (Named, "." & To_String (Toks (Index + 2).Text));
                      Index := Index + 2;
                   end loop;
-                  Append (Candidates, To_String (Toks (Start + 1).Text) & "=" & To_String (Named) & ASCII.LF);
+                  Append (Candidates,
+                          Scope & ":" & To_String (Toks (Start + 1).Text) & "=" & To_String (Named) & ASCII.LF);
                end if;
             end if;
          end loop;
@@ -40,12 +42,17 @@ separate (Check_All)
 
       procedure Take (Line : String; Number : Positive) is
          pragma Unreferenced (Number);
+         Colon  : constant Natural := Ada.Strings.Fixed.Index (Line, ":");
          Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
-         Alias  : constant String := Line (Line'First .. Equals - 1);
-         Named  : constant String := Spelled_Out (Line (Equals + 1 .. Line'Last), To_String (Result));
+         Scope  : constant String := Line (Line'First .. Colon - 1);
+         Alias  : constant String := Line (Colon + 1 .. Equals - 1);
+         --  A renaming of a renaming reads the aliases its own unit sees.
+         Named  : constant String :=
+           Spelled_Out (Line (Equals + 1 .. Line'Last), Aliases_Seen_By (To_String (Result), Scope));
+         Entry_Line : constant String := Scope & ":" & Alias & "=" & Named;
       begin
-         if Has_Line (Units, Named) and then not Has_Line (To_String (Result), Alias & "=" & Named) then
-            Append (Result, Alias & "=" & Named & ASCII.LF);
+         if Has_Line (Units, Named) and then not Has_Line (To_String (Result), Entry_Line) then
+            Append (Result, Entry_Line & ASCII.LF);
             Grew := True;
          end if;
       end Take;

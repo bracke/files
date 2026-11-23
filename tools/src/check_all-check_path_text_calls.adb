@@ -1,10 +1,11 @@
 separate (Check_All)
    procedure Check_Path_Text_Calls is
       use Tokens;
-      Aliases : constant String := Package_Aliases (File_System_Units);
+      All_Aliases : constant String := Package_Aliases (File_System_Units);
 
       procedure Check_File (Path : String) is
-         Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Toks    : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Aliases : constant String := Aliases_Seen_By (All_Aliases, Unit_Of_File (Path));
          Bad  : Boolean := False;
 
          --  Simple_Name of a search entry, named Directory_Entry, is no path's text.
