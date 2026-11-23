@@ -1,3 +1,4 @@
+with Files.Jobs.Context.Testing;
 with Files.File_System.Permissions.Testing;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Strings.Fixed;
@@ -58,32 +59,51 @@ separate (Files_Suite.Recovery)
                end if;
                return To_String (Result);
          end Read_List;
-      begin
-         Ada.Directories.Start_Search
-           (Search, "/proc/self/task", "*", [Ada.Directories.Directory => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            declare
-               Name : constant String := Ada.Directories.Simple_Name (Item);
-            begin
-               if Name /= "." and then Name /= ".." then
-                  declare
-                     List  : constant String := Read_List (Ada.Directories.Full_Name (Item) & "/children");
-                     First : Positive := List'First;
-                  begin
-                     for Index in List'First .. List'Last + 1 loop
-                        if Index > List'Last or else List (Index) = ' ' then
-                           if Index > First then
-                              Pids.Include (List (First .. Index - 1));
+
+         --  One scan of the threads. A thread that ends while the search
+         --  reads the folder makes the search itself fail: scan again.
+         procedure Scan is
+         begin
+            Pids.Clear;
+            Ada.Directories.Start_Search
+              (Search, "/proc/self/task", "*", [Ada.Directories.Directory => True, others => False]);
+            while Ada.Directories.More_Entries (Search) loop
+               Ada.Directories.Get_Next_Entry (Search, Item);
+               declare
+                  Name : constant String := Ada.Directories.Simple_Name (Item);
+               begin
+                  if Name /= "." and then Name /= ".." then
+                     declare
+                        List  : constant String := Read_List (Ada.Directories.Full_Name (Item) & "/children");
+                        First : Positive := List'First;
+                     begin
+                        for Index in List'First .. List'Last + 1 loop
+                           if Index > List'Last or else List (Index) = ' ' then
+                              if Index > First then
+                                 Pids.Include (List (First .. Index - 1));
+                              end if;
+                              First := Index + 1;
                            end if;
-                           First := Index + 1;
-                        end if;
-                     end loop;
-                  end;
-               end if;
+                        end loop;
+                     end;
+                  end if;
+               end;
+            end loop;
+            Ada.Directories.End_Search (Search);
+         end Scan;
+      begin
+         for Attempt in 1 .. 10 loop
+            begin
+               Scan;
+               exit;
+            exception
+               when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
+                  Ada.Directories.End_Search (Search);
+                  if Attempt = 10 then
+                     raise;
+                  end if;
             end;
          end loop;
-         Ada.Directories.End_Search (Search);
          for Pid of Pids loop
             Append (Result, Pid & " ");
          end loop;
@@ -172,7 +192,7 @@ separate (Files_Suite.Recovery)
          Join (Join (Join (Transport, "stages"), "stage-1"), "data"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), "trailing");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Jobs.Process.Clean_Stages (Transport_Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
       Assert
         (Ada.Directories.Exists (To_String (Stage))
          and then not Ada.Directories.Exists
@@ -202,7 +222,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File
         (Join (Join (Join (Transport, "stages"), "stage-truncated"), "data"),
          "truncated");
-      Files.Jobs.Process.Clean_Stages (Transport_Job);
+      Files.Jobs.Context.Testing.Clean_Session_Stages (Transport_Job);
       Assert (not Ada.Directories.Exists (To_String (Stage)), "cleanup removes its own partial staging directory");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Join (Unrelated, "keep")),
