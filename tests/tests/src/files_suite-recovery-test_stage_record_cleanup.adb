@@ -1,5 +1,6 @@
 with Files.File_System.Permissions.Testing;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Strings.Fixed;
 with Files.File_System.Permissions;
 with Files.Job_Drivers.Helpers.Testing;
 with Files_Suite.Support.Timing;
@@ -88,6 +89,25 @@ separate (Files_Suite.Recovery)
          end loop;
          return To_String (Result);
       end Process_Children;
+
+      --  The children in Now that Before did not list: a child an earlier
+      --  test left may end meanwhile, so only new ones count.
+      function Children_Added (Before, Now : String) return String is
+         Result : Files.Types.UString;
+         First  : Positive := Now'First;
+      begin
+         for Index in Now'Range loop
+            if Now (Index) = ' ' then
+               if Index > First
+                 and then Ada.Strings.Fixed.Index (" " & Before, " " & Now (First .. Index)) = 0
+               then
+                  Append (Result, Now (First .. Index));
+               end if;
+               First := Index + 1;
+            end if;
+         end loop;
+         return To_String (Result);
+      end Children_Added;
       Transport_Identity : Files.Types.UString;
       Before    : Instant;
 
@@ -311,11 +331,11 @@ separate (Files_Suite.Recovery)
                  "idle foreground cleanup retries its durable record and removes its transport");
          if Lists_Children then
             for Attempt in Files_Suite.Support.Timing.Polling loop
-               exit when Process_Children = To_String (Children_Before);
+               exit when Children_Added (To_String (Children_Before), Process_Children) = "";
             end loop;
             Files_Suite.Support.Assert_Equal
-              (Process_Children,
-               To_String (Children_Before),
+              (Children_Added (To_String (Children_Before), Process_Children),
+               "",
                "idle cleanup leaves no child process waiting for a later job API call");
          else
             Files_Suite.Support.Skip
