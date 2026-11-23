@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Preference_Types;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -12,7 +13,7 @@ separate (Files_Suite.Interaction)
    begin
       --  The toggle command flips the persisted visibility and reports the
       --  settings change through the interaction result.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
@@ -23,7 +24,7 @@ separate (Files_Suite.Interaction)
       Assert (Result.Settings_Changed, "the column toggle reports a settings change");
 
       --  Run again through the same entry, the settings command flips back.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
@@ -36,7 +37,7 @@ separate (Files_Suite.Interaction)
 
       --  The group command advances the persisted grouping mode.
       Result.Clear_Pending_Text := True;
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",

@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 with Files.Operations.History.Testing;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
@@ -53,7 +54,7 @@ separate (Files_Suite.Recovery)
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the helper reaches its stalled work");
-      Files.Application.Windows.Release_Window_Jobs (Model, Watch);
+      Files.Application.Windows.Testing.Release_Window_Jobs (Model, Watch);
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Seen);
@@ -84,7 +85,7 @@ separate (Files_Suite.Recovery)
               and then Files.Model.Jobs.Foreground_Job_Is_Active (Model)
               and then File_Has_Bytes (Join (Root, "one.txt"), "new"),
               "the paste has replaced its first item and is still running");
-      Files.Application.Windows.Release_Window_Jobs (Model, Watch);
+      Files.Application.Windows.Testing.Release_Window_Jobs (Model, Watch);
       Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the closing window lets the paste go");
       Assert (Files.Model.History.Undo_Available (Model),
               "with what it did recorded, the replaced original among it, for the history to settle");

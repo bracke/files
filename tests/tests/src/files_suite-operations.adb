@@ -121,6 +121,7 @@ package body Files_Suite.Operations is
    procedure Test_Unreadable_Hardlink_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Host_Sample_Gates_Info_Editors (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -197,6 +198,9 @@ package body Files_Suite.Operations is
         (T, Test_Toggle_Hidden_Files'Access, "toggle hidden files persists and reloads with new visibility");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Permission_Grid_Click'Access, "info-pane permission cell click toggles the mode bit");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Host_Sample_Gates_Info_Editors'Access,
+         "the info pane's permission and ownership editors follow the host sample");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Set_Ownership_Identity_And_Undo'Access,
          "chown to the file's own uid/gid succeeds, records undo, and undo restores");
@@ -319,6 +323,8 @@ package body Files_Suite.Operations is
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Host_Sample_Gates_Info_Editors (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

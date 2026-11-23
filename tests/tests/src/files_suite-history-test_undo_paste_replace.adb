@@ -12,6 +12,13 @@ separate (Files_Suite.History)
       Trash_Home  : constant String := Root & "_replace_xdg";
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
+
+      --  The first three bytes of Path: what Write_File wrote, without its line end.
+      function Head (Path : String) return String is
+         Text : constant String := Project_Tools.Files.Read_Raw_File (Path);
+      begin
+         return Text (Text'First .. Natural'Min (Text'Last, Text'First + 2));
+      end Head;
    begin
       Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Guards.Save (Environment, "HOME");
@@ -57,7 +64,7 @@ separate (Files_Suite.History)
            (Step.Status, Files.Operation_Results.Operation_Success, "the copy-replace paste succeeds");
          Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the copy-replace paste finalizes");
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Read_Preview_Text (Dest, 3),
+           (Head (Dest),
             "new",
             "the copy-replace overwrites the destination with the pasted content");
 
@@ -67,7 +74,7 @@ separate (Files_Suite.History)
            (Step.Status, Files.Operation_Results.Operation_Success, "undo of a copy-replace succeeds");
          Assert
            (Ada.Directories.Exists (Dest)
-              and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
+              and then Head (Dest) = "old",
             "undo of a copy-replace restores the overwritten original at the destination");
          Assert
            (not Files.Model.History.Redo_Available (Model),
@@ -107,7 +114,7 @@ separate (Files_Suite.History)
            (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
          Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the move-replace paste finalizes");
          Assert
-           (Files.File_System.Read_Preview_Text (Dest, 3) = "new"
+           (Head (Dest) = "new"
               and then not Ada.Directories.Exists (Source),
             "the move-replace overwrites the destination and consumes the source");
 
@@ -117,11 +124,11 @@ separate (Files_Suite.History)
            (Step.Status, Files.Operation_Results.Operation_Success, "undo of a move-replace succeeds");
          Assert
            (Ada.Directories.Exists (Source)
-              and then Files.File_System.Read_Preview_Text (Source, 3) = "new",
+              and then Head (Source) = "new",
             "undo of a move-replace returns the source to its origin");
          Assert
            (Ada.Directories.Exists (Dest)
-              and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
+              and then Head (Dest) = "old",
             "undo of a move-replace restores the overwritten original at the destination");
          Assert
            (not Files.Model.History.Redo_Available (Model),

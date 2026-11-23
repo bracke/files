@@ -34,19 +34,6 @@ package Files.Images is
      --  89 'P' 'N' 'G' CR LF 1A LF
      [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
 
-   --  The big-endian 32-bit value at Data (First .. First + 3), as image
-   --  formats store sizes and lengths. A value past Natural'Last (the high
-   --  bit set, which only a crafted file has) comes back as Natural'Last, so
-   --  a caller's bound refuses it rather than the arithmetic raising.
-   --
-   --  @param Data Bytes holding the value.
-   --  @param First Index of its most significant byte.
-   --  @return The value, clamped to Natural'Last.
-   function U32_BE
-     (Data  : Ada.Streams.Stream_Element_Array;
-      First : Ada.Streams.Stream_Element_Offset)
-      return Natural;
-
    --  Whether Data starts as a PNG must: the signature, then the IHDR chunk
    --  (length 13) first. The width and height are what IHDR declares,
    --  unchecked against any bound.
@@ -122,5 +109,20 @@ package Files.Images is
      (Path     : String;
       Max_Size : Positive)
       return Decoded_Image;
+
+private
+
+   --  The big-endian 32-bit value at Data (First .. First + 3), as image
+   --  formats store sizes and lengths. A value past Natural'Last (the high
+   --  bit set, which only a crafted file has) comes back as Natural'Last, so
+   --  a caller's bound refuses it rather than the arithmetic raising.
+   --
+   --  @param Data Bytes holding the value.
+   --  @param First Index of its most significant byte.
+   --  @return The value, clamped to Natural'Last.
+   function U32_BE
+     (Data  : Ada.Streams.Stream_Element_Array;
+      First : Ada.Streams.Stream_Element_Offset)
+      return Natural;
 
 end Files.Images;

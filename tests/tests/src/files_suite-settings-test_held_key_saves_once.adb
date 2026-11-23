@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Interaction;
 with Files.Overlays.Settings_Form;
 separate (Files_Suite.Settings)
@@ -51,7 +52,7 @@ separate (Files_Suite.Settings)
 
          --  Let go: the window layer saves what was deferred, once.
          Assert (Files.Model.Settings_Pane.Take_Deferred_Save (Model), "the deferred save is taken");
-         Files.Interaction.Execute_Command
+         Files.Interaction.Testing.Execute_Command
            (Model, Settings, Path, Files.Commands.Save_Settings_Command, Result => Result);
          Assert (Written, Key & ": the value is written once the key is let go");
          declare

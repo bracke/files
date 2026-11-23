@@ -258,6 +258,8 @@ package Files.Settings.Path_References is
       Moves    : Files.Types.Path_Move_Vectors.Vector;
       Changed  : out Boolean);
 
+private
+
    --  Follow a rename or move: every label, favorite and recent path that is
    --  From, or lies inside the folder From, is rewritten to the same place
    --  under To, so a label stays with its item and a new item at the old path
@@ -286,8 +288,6 @@ package Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Path     : String;
       Changed  : out Boolean);
-
-private
 
    --  Assign Label to Path, replacing any existing label. Passing No_Label
    --  clears Path's label by removing its stored entry. The empty path is

@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 with Files.Settings.Storage;
 with Files.Controller;
 with Files.Interaction;
@@ -142,7 +143,7 @@ separate (Files_Suite.Settings)
             Add (Rest - (Length_Of (Probe) - Before - Rest));
          end;
          Files_Suite.Support.Assert_Equal (Length_Of (Base), Target, "the settings are padded to the bound");
-         Assert (Files.Settings.Loadable (Base), "the padded settings still load");
+         Assert (Files.Settings.Testing.Loadable (Base), "the padded settings still load");
       end;
       declare
          Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
@@ -177,7 +178,7 @@ separate (Files_Suite.Settings)
          Files_Suite.Support.Assert_Equal
            (Files.Model.Settings_Pane.Focused_Value (Model), Ada.Strings.Unbounded.To_String (Shown),
             "the pane goes back to the value in force");
-         Assert (Files.Settings.Loadable (Settings), "the settings in force still load");
+         Assert (Files.Settings.Testing.Loadable (Settings), "the settings in force still load");
          Assert (not Ada.Directories.Exists (Path), "nothing is written while the key is held");
 
          --  The key is let go: the window takes the deferred save and

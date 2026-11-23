@@ -210,16 +210,6 @@ package Files.Commands is
    --  @return The parsed shortcut.
    function Parse_Shortcut (Text : String) return Shortcut;
 
-   --  Whether Parse_Shortcut reads Text in full: empty or blank (an explicit
-   --  unbind), or modifiers and exactly one key, every token known. A
-   --  misspelt token ("ctrl+bogus", "ctrl+shfit+1") makes it invalid, so a
-   --  settings file's typo can be refused instead of unbinding the command
-   --  or binding another key.
-   --
-   --  @param Text A shortcut string, modifiers then key, joined by '+'.
-   --  @return True when every token is a modifier or the one known key.
-   function Is_Valid_Shortcut_Text (Text : String) return Boolean;
-
    --  Override a command's shortcut (Value.Present False unbinds it). The
    --  override replaces the whole default binding, built-in secondary included.
    --  Shortcut_For / Find_By_Shortcut then resolve to the effective
@@ -239,13 +229,6 @@ package Files.Commands is
 
    --  Clear every shortcut override, reverting all commands to their defaults.
    procedure Reset_Shortcut_Overrides;
-
-   --  The override in effect for a command, if any.
-   --
-   --  @param Id Command identifier.
-   --  @param Is_Set Out: whether Id has an override at all.
-   --  @return The override shortcut (meaningful only when Is_Set).
-   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut;
 
    --  The built-in default primary shortcut for a command, ignoring any override.
    --
@@ -365,6 +348,23 @@ package Files.Commands is
       return String;
 
 private
+
+   --  Whether Parse_Shortcut reads Text in full: empty or blank (an explicit
+   --  unbind), or modifiers and exactly one key, every token known. A
+   --  misspelt token ("ctrl+bogus", "ctrl+shfit+1") makes it invalid, so a
+   --  settings file's typo can be refused instead of unbinding the command
+   --  or binding another key.
+   --
+   --  @param Text A shortcut string, modifiers then key, joined by '+'.
+   --  @return True when every token is a modifier or the one known key.
+   function Is_Valid_Shortcut_Text (Text : String) return Boolean;
+
+   --  The override in effect for a command, if any.
+   --
+   --  @param Id Command identifier.
+   --  @param Is_Set Out: whether Id has an override at all.
+   --  @return The override shortcut (meaningful only when Is_Set).
+   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut;
 
    --  Parse the key name produced by Key_Text back into a key code, or
    --  Key_Unknown when the text names no key.

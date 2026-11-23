@@ -9,6 +9,22 @@ package Files.Controller.Testing is
      (Model : in out Files.Model.Window_Model;
       Text  : String);
 
+   --  The one policy for a settings change (Files.Controller.Commit_Settings):
+   --  Updated replaces Settings and is saved, unless the file could not hold
+   --  it -- then it is refused whole and the error line says so.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return The write's result; Success is False for a refused change.
+   function Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result;
+
    --  Validate, apply, refresh, and save edited settings (Commit_Settings): a
    --  valid draft is applied even when the save then fails, and the failure
    --  is reported; one the file could not hold is refused. An unchanged draft

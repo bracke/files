@@ -21,7 +21,7 @@ separate (Files_Suite.Settings)
    begin
       Files.Settings.Path_References.Testing.Set_Label (Settings, Inside, Files.Preference_Types.Green);
       Files.Settings.Path_References.Testing.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
-      Files.Settings.Path_References.Forget_Path_References (Settings, Folder, Changed);
+      Files.Settings.Path_References.Testing.Forget_Path_References (Settings, Folder, Changed);
       Assert (Changed, "forgetting a folder drops what lies inside it");
       Assert
         (Files.Settings.Path_References.Label_Of (Settings, Inside) = Files.Preference_Types.No_Label,
@@ -32,7 +32,7 @@ separate (Files_Suite.Settings)
       Assert
         (Top'Length > 0 and then Hostkit.Path_Text.Is_Separator_In (Top, Top (Top'Last)),
          "the root ends in a separator");
-      Files.Settings.Path_References.Forget_Path_References (Settings, Top, Changed);
+      Files.Settings.Path_References.Testing.Forget_Path_References (Settings, Top, Changed);
       Assert (Changed, "forgetting the root drops what lies below it");
       Assert
         (Files.Settings.Path_References.Label_Of (Settings, Sibling) = Files.Preference_Types.No_Label,

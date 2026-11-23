@@ -7,6 +7,7 @@ Test_An_Unwritable_Thumbnail_Fails_Cleanly: this host has no file-size limit
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
 Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash separates directories
 Test_Cancelled_Drop_Keeps_Cause: recovery records a folder's mode only where mode bits are native
+Test_Clearing_A_Label_Clears_Every_Spelling: this host folds names, so it stores one spelling per path
 Test_Copy_Access_Bits: needs native POSIX mode bits
 Test_Cross_Device_Move_Keeps_Setgid: needs native POSIX mode bits
 Test_Fifo_Never_Blocks: Windows has no FIFOs

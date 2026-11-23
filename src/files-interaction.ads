@@ -46,24 +46,6 @@ package Files.Interaction is
       --  does a wheel zoom.
    end record;
 
-   --  Execute a single command with the follow-ups a settings change needs:
-   --  a settings command's own (font size, glyphs), the UI state it changed
-   --  written back to the settings, and an open settings pane refreshed.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Live settings model, updated in place when the command persists state.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Command Command identifier to execute.
-   --  @param Modifiers Active modifier keys.
-   --  @param Result Follow-up flags describing what the command did.
-   procedure Execute_Command
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : in out Files.Settings.Settings_Model;
-      Settings_Path     : String;
-      Command           : Files.Commands.Command_Id;
-      Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Result            : out Interaction_Result);
-
    --  Take settings another window changed (Shared) as this window's own.
    --  An open settings pane is refreshed as after a command run here
    --  (Files.Settings.Drafts.Refresh_Draft), so its draft shows the change and its
@@ -298,6 +280,24 @@ package Files.Interaction is
       Base_Rows : Marquee_Rows);
 
 private
+
+   --  Execute a single command with the follow-ups a settings change needs:
+   --  a settings command's own (font size, glyphs), the UI state it changed
+   --  written back to the settings, and an open settings pane refreshed.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, updated in place when the command persists state.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Command Command identifier to execute.
+   --  @param Modifiers Active modifier keys.
+   --  @param Result Follow-up flags describing what the command did.
+   procedure Execute_Command
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Settings_Path     : String;
+      Command           : Files.Commands.Command_Id;
+      Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result            : out Interaction_Result);
 
    --  Apply a chosen context-menu row command: close the menu, then execute the
    --  command when it is not No_Command. Reached through Apply_Input_Action

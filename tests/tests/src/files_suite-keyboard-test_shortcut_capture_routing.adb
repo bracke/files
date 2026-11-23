@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Overlays;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
@@ -124,7 +125,7 @@ separate (Files_Suite.Keyboard)
          Open_And_Arm (Model, Settings);
          Press (Model, Settings, Guikit.Input.Key_Delete, Guikit.Input.No_Modifiers);
          declare
-            Ignore : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Cmd, Is_Set);
+            Ignore : constant Files.Commands.Shortcut := Files.Commands.Testing.Shortcut_Override (Cmd, Is_Set);
          begin
             pragma Unreferenced (Ignore);
             Assert (not Is_Set, "Delete clears the override, resetting to the built-in default");

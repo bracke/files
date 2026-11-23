@@ -5,6 +5,7 @@ with Ada.Strings.Unbounded;
 with Files.Diagnostics;
 with Files.File_System.Copying;
 with Files.File_System.Recovery;
+with Files.File_System.Recovery.Testing;
 with Files.File_System.Support;
 with Hostkit.Fs;
 
@@ -281,7 +282,7 @@ package body Files.File_System.Testing is
       Identity, Revision : UString;
       Copy_Kept : Boolean;
    begin
-      return Files.File_System.Recovery.Move_By_Copy
+      return Files.File_System.Recovery.Testing.Move_By_Copy
         (Source, Destination, "error.move.failed", Identity, Revision, Copy_Kept,
          Expected_Identity => Expected_Identity);
    end Move_By_Copy;

@@ -3,15 +3,12 @@ separate (Check_All)
       --  No file is exempt: Files.IO.Fs_Primitives' wrappers call Hostkit too.
       LF : constant Character := ASCII.LF;
 
-      Units : constant String :=
-        "ada.directories" & LF & "gnat.os_lib" & LF & "gnat.directory_operations" & LF
-        & "ada.streams.stream_io" & LF & "ada.text_io";
-
       --  Unit and subprogram, lower case, one a line.
       Banned : constant String :=
         "ada.directories.create_directory" & LF & "ada.directories.create_path" & LF
         & "ada.directories.delete_file" & LF & "ada.directories.delete_directory" & LF
         & "ada.directories.delete_tree" & LF & "ada.directories.start_search" & LF
+        & "ada.directories.search" & LF
         & "ada.directories.full_name" & LF & "ada.directories.kind" & LF
         & "ada.directories.exists" & LF & "ada.directories.size" & LF
         & "ada.directories.modification_time" & LF & "ada.directories.current_directory" & LF
@@ -26,147 +23,46 @@ separate (Check_All)
         & "gnat.directory_operations.open" & LF & "gnat.directory_operations.read" & LF
         & "gnat.directory_operations.make_dir" & LF & "gnat.directory_operations.remove_dir" & LF
         & "ada.streams.stream_io.open" & LF & "ada.streams.stream_io.create" & LF
-        & "ada.text_io.open" & LF & "ada.text_io.create";
+        & "ada.text_io.open" & LF & "ada.text_io.create" & LF
+        & "ada.sequential_io.open" & LF & "ada.sequential_io.create" & LF
+        & "ada.direct_io.open" & LF & "ada.direct_io.create";
 
-      --  Every package renaming of one of Units in src/, an "alias=unit" line
-      --  each: a subunit calls through its parent's renaming.
-      Aliases : Unbounded_String;
-
-      function Is_Name_Character (C : Character) return Boolean
-        renames Project_Tools.Ada_Source.Is_Identifier_Character;
-
-      --  Code (lower case) of a source in src/.
-      function Lower_Code (Path : String) return String is
-        (Ada.Characters.Handling.To_Lower
-           (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True)));
-
-      --  Whether Lower names Name whole: not as the tail of a longer name,
-      --  nor followed by more of one.
-      function Names (Lower, Name : String) return Boolean is
-         From    : Positive := Lower'First;
-         At_Name : Natural;
-      begin
-         loop
-            At_Name := Ada.Strings.Fixed.Index (Lower (From .. Lower'Last), Name);
-            exit when At_Name = 0;
-            if (At_Name = Lower'First
-                or else not (Is_Name_Character (Lower (At_Name - 1)) or else Lower (At_Name - 1) = '.'))
-              and then (At_Name + Name'Length > Lower'Last
-                        or else not Is_Name_Character (Lower (At_Name + Name'Length)))
-            then
-               return True;
-            end if;
-            exit when At_Name = Lower'Last;
-            From := At_Name + 1;
-         end loop;
-         return False;
-      end Names;
-
-      procedure Collect_Aliases (Path : String) is
-         Lower : constant String := Lower_Code (Path);
-
-         procedure For_Unit (Unit : String; Number : Positive) is
-            pragma Unreferenced (Number);
-            Pattern   : constant String := "renames " & Unit & ";";
-            From      : Positive := Lower'First;
-            At_Rename : Natural;
-            Last      : Natural;
-            First     : Natural;
-         begin
-            loop
-               At_Rename := Ada.Strings.Fixed.Index (Lower (From .. Lower'Last), Pattern);
-               exit when At_Rename = 0;
-               Last := At_Rename - 1;
-               while Last >= Lower'First and then Lower (Last) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
-                  Last := Last - 1;
-               end loop;
-               First := Last + 1;
-               while First > Lower'First and then Is_Name_Character (Lower (First - 1)) loop
-                  First := First - 1;
-               end loop;
-               if First <= Last
-                 and then First - Lower'First >= 8
-                 and then Lower (First - 8 .. First - 1) = "package "
-               then
-                  Append (Aliases, Lower (First .. Last) & "=" & Unit & LF);
-               end if;
-               exit when At_Rename + Pattern'Length > Lower'Last;
-               From := At_Rename + Pattern'Length;
-            end loop;
-         end For_Unit;
-      begin
-         For_Each_Line (Units, For_Unit'Access);
-      end Collect_Aliases;
+      --  Every package renaming or instantiation of one of the units in
+      --  src/: a subunit calls through its parent's.
+      Aliases : constant String := Package_Aliases (File_System_Units);
 
       procedure Check_File (Path : String) is
-         Lower : constant String := Lower_Code (Path);
+         Toks    : constant Tokens.Token_List := Tokens.Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Refused : Unbounded_String;
 
          procedure Refuse (Name : String; Why : String) is
          begin
-            Report (Path & ": " & Why & " " & Name & ", which GNAT refuses past 260 characters on Windows;"
-               & " use Files.IO.Fs_Primitives or Hostkit");
+            if not Has_Line (To_String (Refused), Name) then
+               Append (Refused, Name & LF);
+               Report (Path & ": " & Why & " " & Name & ", which GNAT refuses past 260 characters on Windows;"
+                  & " use Files.IO.Fs_Primitives or Hostkit");
+            end if;
          end Refuse;
 
-         --  Name, and Name with its unit spelled as each of the unit's aliases.
-         procedure Check_Spellings (Unit, Rest : String; Why : String) is
-            procedure Check_Alias (Line : String; Number : Positive) is
-               pragma Unreferenced (Number);
-               Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
-            begin
-               if Equals > 0 and then Line (Equals + 1 .. Line'Last) = Unit
-                 and then Names (Lower, Line (Line'First .. Equals - 1) & Rest)
-               then
-                  Refuse (Line (Line'First .. Equals - 1) & Rest, Why);
-               end if;
-            end Check_Alias;
+         procedure Check_Name (Name : String; Next : Positive) is
+            pragma Unreferenced (Next);
          begin
-            if Names (Lower, Unit & Rest) then
-               Refuse (Unit & Rest, Why);
+            if Has_Line (Banned, Name) then
+               Refuse (Name, "calls");
             end if;
-            For_Each_Line (To_String (Aliases), Check_Alias'Access);
-         end Check_Spellings;
-
-         procedure Check_Call (Line : String; Number : Positive) is
-            pragma Unreferenced (Number);
-            Dot : constant Natural := Ada.Strings.Fixed.Index (Line, ".", Ada.Strings.Backward);
-         begin
-            Check_Spellings (Line (Line'First .. Dot - 1), Line (Dot .. Line'Last), "calls");
-         end Check_Call;
+         end Check_Name;
 
          procedure Check_Use (Unit : String; Number : Positive) is
             pragma Unreferenced (Number);
-            Use_Clause : constant String := "use ";
          begin
-            if Names (Lower, Use_Clause & Unit & ";") then
-               Refuse (Unit, "uses");
-            end if;
-            declare
-               procedure Check_Alias (Line : String; Number : Positive) is
-                  pragma Unreferenced (Number);
-                  Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
-               begin
-                  if Equals > 0 and then Line (Equals + 1 .. Line'Last) = Unit
-                    and then Names (Lower, Use_Clause & Line (Line'First .. Equals - 1) & ";")
-                  then
-                     Refuse (Line (Line'First .. Equals - 1), "uses");
-                  end if;
-               end Check_Alias;
-            begin
-               For_Each_Line (To_String (Aliases), Check_Alias'Access);
-            end;
+            Refuse (Unit, "uses");
          end Check_Use;
       begin
-         For_Each_Line (Banned, Check_Call'Access);
-         For_Each_Line (Units, Check_Use'Access);
+         For_Each_Resolved_Name (Toks, Aliases, File_System_Units, Check_Name'Access);
+         For_Each_Line (Used_Units (Toks, Aliases, File_System_Units), Check_Use'Access);
       end Check_File;
-
-      Sources : constant Project_Tools.Files.Path_List :=
-        Project_Tools.Files.List_Tree (Root & "/src", "*.ad?", Generated_Directories);
    begin
-      for Item of Sources loop
-         Collect_Aliases (To_String (Item));
-      end loop;
-      for Item of Sources loop
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.ad?", Generated_Directories) loop
          Check_File (To_String (Item));
       end loop;
    end Check_Raw_File_System_Calls;

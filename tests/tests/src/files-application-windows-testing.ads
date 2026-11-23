@@ -1,3 +1,6 @@
+with Files.Model;
+with Files.Refresh;
+
 --  What the suite reaches of Files.Application.Windows that is not part of its interface.
 package Files.Application.Windows.Testing is
 
@@ -10,5 +13,18 @@ package Files.Application.Windows.Testing is
    --
    --  @return True when GLFW reports Vulkan support after initialization.
    function Vulkan_Runtime_Available return Boolean;
+
+   --  Stop a closing window's helpers without waiting for filesystem I/O
+   --  (Files.Application.Windows.Release_Window_Jobs).
+   --  @param Model Closing window whose transfer, operation and refresh sessions to release.
+   --  @param Watch Closing window's native notification session to release.
+   procedure Release_Window_Jobs
+     (Model : in out Files.Model.Window_Model;
+      Watch : in out Files.Refresh.Watch_Session);
+
+   --  Return desktop runtime capabilities observable without opening a window.
+   --
+   --  @return Display, Vulkan, and smoke-test readiness flags.
+   function Runtime_Capabilities return Desktop_Capabilities;
 
 end Files.Application.Windows.Testing;

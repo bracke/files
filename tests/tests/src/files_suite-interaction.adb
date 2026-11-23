@@ -84,6 +84,8 @@ package body Files_Suite.Interaction is
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Moves_Refused_When_Full (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recent_Opens_And_Moves (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Remember_Window_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -185,6 +187,12 @@ package body Files_Suite.Interaction is
         (T, Test_Path_Moves_Refused_When_Full'Access,
          "Labels do not follow a move the settings file cannot hold");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recent_Opens_And_Moves'Access,
+         "queued opens and path moves are written as one edit, and moves go in alone when the opens do not fit");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Remember_Window_Size'Access,
+         "the window size is written only when it changed, and refused when the settings file is full");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Writes_Report_Failure'Access,
          "settings toggles apply without a settings file, and a failed write is reported");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -264,6 +272,10 @@ package body Files_Suite.Interaction is
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Path_Moves_Refused_When_Full (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Recent_Opens_And_Moves (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Remember_Window_Size (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

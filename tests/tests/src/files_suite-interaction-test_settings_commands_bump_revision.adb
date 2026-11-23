@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Item_Lists;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
@@ -27,7 +28,7 @@ separate (Files_Suite.Interaction)
 
          procedure Run (Command : Files.Commands.Command_Id) is
          begin
-            Files.Interaction.Execute_Command (Model, Settings, Path, Command, Result => Result);
+            Files.Interaction.Testing.Execute_Command (Model, Settings, Path, Command, Result => Result);
          end Run;
 
          procedure Press (Key : Guikit.Input.Key_Code) is

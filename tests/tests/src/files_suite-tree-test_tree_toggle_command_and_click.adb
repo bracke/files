@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.File_System_Types;
 with Files.Rendering.Layouts.Tree;
 with Files.Input_Actions;
@@ -13,7 +14,7 @@ separate (Files_Suite.Tree)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
          Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Tree_Panel.Is_Open (Model), "the toggle command opens the folder tree");
@@ -89,7 +90,7 @@ separate (Files_Suite.Tree)
             & Files.Model.Current_Path (Model) & """");
       end;
 
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
          Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Panel.Is_Open (Model), "toggling again closes the folder tree");

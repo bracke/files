@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Application.Testing;
 with Files.Settings.Drafts;
 with Files_Suite.Support.Guards;
@@ -22,12 +23,12 @@ separate (Files_Suite.Startup)
       use type Files.Commands.Shortcut;
    begin
       Reset_Root;
-      Assert (not Files.Commands.Is_Valid_Shortcut_Text ("control+bogus"), "an unknown key is invalid");
-      Assert (not Files.Commands.Is_Valid_Shortcut_Text ("control+shfit+5"), "a misspelt modifier is invalid");
-      Assert (not Files.Commands.Is_Valid_Shortcut_Text ("control++5"), "an empty token is invalid");
-      Assert (not Files.Commands.Is_Valid_Shortcut_Text ("control"), "a combo without a key is invalid");
-      Assert (Files.Commands.Is_Valid_Shortcut_Text (""), "an empty combo (an unbind) is valid");
-      Assert (Files.Commands.Is_Valid_Shortcut_Text ("Control+Shift+F7"), "a well-formed combo is valid");
+      Assert (not Files.Commands.Testing.Is_Valid_Shortcut_Text ("control+bogus"), "an unknown key is invalid");
+      Assert (not Files.Commands.Testing.Is_Valid_Shortcut_Text ("control+shfit+5"), "a misspelt modifier is invalid");
+      Assert (not Files.Commands.Testing.Is_Valid_Shortcut_Text ("control++5"), "an empty token is invalid");
+      Assert (not Files.Commands.Testing.Is_Valid_Shortcut_Text ("control"), "a combo without a key is invalid");
+      Assert (Files.Commands.Testing.Is_Valid_Shortcut_Text (""), "an empty combo (an unbind) is valid");
+      Assert (Files.Commands.Testing.Is_Valid_Shortcut_Text ("Control+Shift+F7"), "a well-formed combo is valid");
 
       Write_File
         (Settings_Path,

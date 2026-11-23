@@ -24,4 +24,21 @@ package Files.Commands.Testing is
      (Id : Command_Id)
       return Boolean;
 
+   --  Whether Parse_Shortcut reads Text in full: empty or blank (an explicit
+   --  unbind), or modifiers and exactly one key, every token known. A
+   --  misspelt token ("ctrl+bogus", "ctrl+shfit+1") makes it invalid, so a
+   --  settings file's typo can be refused instead of unbinding the command
+   --  or binding another key.
+   --
+   --  @param Text A shortcut string, modifiers then key, joined by '+'.
+   --  @return True when every token is a modifier or the one known key.
+   function Is_Valid_Shortcut_Text (Text : String) return Boolean;
+
+   --  The override in effect for a command, if any.
+   --
+   --  @param Id Command identifier.
+   --  @param Is_Set Out: whether Id has an override at all.
+   --  @return The override shortcut (meaningful only when Is_Set).
+   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut;
+
 end Files.Commands.Testing;

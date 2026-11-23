@@ -2,6 +2,7 @@
 -- each as "Test: reason", exactly as the test's Skip call gives them: a listed
 -- test that skips for another reason fails the run as an unlisted skip does.
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
+Test_Clearing_A_Label_Clears_Every_Spelling: this host folds names, so it stores one spelling per path
 Test_Copy_Encrypted_File: EFS encryption is Windows'
 Test_Copy_Extended_Metadata: the xattr and POSIX ACL fixture is Linux C
 Test_Copy_Without_Xattr_Support: the xattr fault hooks lsetxattr in Linux-only C

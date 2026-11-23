@@ -1,3 +1,5 @@
+with Files.Settings.Testing;
+with Files.Controller.Testing;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -21,7 +23,7 @@ separate (Files_Suite.Operations)
       --  Where the column commands are enabled.
       Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
 
-      Saved := Files.Controller.Commit_Settings (Model, Settings, Settings, Unwritable);
+      Saved := Files.Controller.Testing.Commit_Settings (Model, Settings, Settings, Unwritable);
       Assert (Saved.Success, "an unchanged change writes nothing, so nothing fails");
 
       Outcome :=
@@ -43,13 +45,13 @@ separate (Files_Suite.Operations)
          Updated : Files.Settings.Settings_Model := Settings;
       begin
          for Batch in 0 .. 1_000 loop
-            exit when not Files.Settings.Loadable (Updated);
+            exit when not Files.Settings.Testing.Loadable (Updated);
             for Index in Batch * 100 + 1 .. Batch * 100 + 100 loop
                Files.Settings.Path_References.Toggle_Favorite_Path (Updated, "/nowhere/" & Index'Image);
             end loop;
          end loop;
-         Assert (not Files.Settings.Loadable (Updated), "the settings file has an entry bound");
-         Saved := Files.Controller.Commit_Settings (Model, Settings, Updated, Join (Root, "settings"));
+         Assert (not Files.Settings.Testing.Loadable (Updated), "the settings file has an entry bound");
+         Saved := Files.Controller.Testing.Commit_Settings (Model, Settings, Updated, Join (Root, "settings"));
          Assert (not Saved.Success, "a change the file cannot hold is refused");
          Assert (Files.Settings.Same_Content (Settings, Before), "and not applied");
          Files_Suite.Support.Assert_Equal

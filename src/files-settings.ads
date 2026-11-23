@@ -345,14 +345,6 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Settings_Model;
 
-   --  Whether Settings, once written, would load again: Parse bounds the file
-   --  (size and entry count) against hostile input, so an edit that grows it
-   --  past those bounds -- thousands of labels -- must be refused, not saved.
-   --
-   --  @param Settings Settings model to check.
-   --  @return True when To_Text (Settings) parses successfully.
-   function Loadable (Settings : Settings_Model) return Boolean;
-
    --  Parse settings text into a settings model.
    --
    --  @param Text Settings file content.
@@ -378,6 +370,14 @@ package Files.Settings is
      ((Extension_Filetypes => Settings.Extension_Filetypes, Icon_Mappings => Settings.Icon_Mappings));
 
 private
+
+   --  Whether Settings, once written, would load again: Parse bounds the file
+   --  (size and entry count) against hostile input, so an edit that grows it
+   --  past those bounds -- thousands of labels -- must be refused, not saved.
+   --
+   --  @param Settings Settings model to check.
+   --  @return True when To_Text (Settings) parses successfully.
+   function Loadable (Settings : Settings_Model) return Boolean;
 
    type Path_Store is record
       --  Favorite item and folder paths, in the order they were starred.

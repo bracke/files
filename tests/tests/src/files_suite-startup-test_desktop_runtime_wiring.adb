@@ -9,7 +9,7 @@ separate (Files_Suite.Startup)
          Display_Available : constant Boolean := Files.Application.Windows.Testing.Live_Display_Available;
          Vulkan_Available  : constant Boolean := Files.Application.Windows.Testing.Vulkan_Runtime_Available;
          Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
-           Files.Application.Windows.Runtime_Capabilities;
+           Files.Application.Windows.Testing.Runtime_Capabilities;
       begin
          Files_Suite.Support.Assert_Equal
            (Capabilities.Display_Available,

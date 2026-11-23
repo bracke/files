@@ -20,4 +20,33 @@ package Files.Settings.Path_References.Testing is
       Path     : String;
       Label    : Files.Preference_Types.Color_Label);
 
+   --  Follow a rename or move: every label, favorite and recent path that is
+   --  From, or lies inside the folder From, is rewritten to the same place
+   --  under To, so a label stays with its item and a new item at the old path
+   --  does not inherit it. A rewritten favorite or recent path already listed
+   --  is not listed twice, and a label left at a path a labelled entry moved
+   --  onto goes: the moved entry's label holds there.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param From Old full path of the moved item.
+   --  @param To New full path of the moved item.
+   --  @param Changed True when any stored path was rewritten.
+   procedure Move_Path_References
+     (Settings : in out Settings_Model;
+      From     : String;
+      To       : String;
+      Changed  : out Boolean);
+
+   --  Forget an item that is gone for good: every label, favorite and recent
+   --  path that is Path, or lies inside the folder Path, is dropped, so a new
+   --  item later created there does not inherit them.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full path of the removed item.
+   --  @param Changed True when any stored path was dropped.
+   procedure Forget_Path_References
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Changed  : out Boolean);
+
 end Files.Settings.Path_References.Testing;

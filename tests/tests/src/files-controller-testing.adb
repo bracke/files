@@ -6,6 +6,14 @@ package body Files.Controller.Testing is
       Text  : String)
      renames Files.Controller.Replace_Focused_Text;
 
+   function Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result
+     renames Files.Controller.Commit_Settings;
+
    function Save_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;

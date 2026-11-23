@@ -45,10 +45,10 @@ separate (Files_Suite.Settings)
       Assert (not Refs.Is_Favorite (Settings, Stored), "starring it again in another spelling unstars it");
 
       Refs.Toggle_Favorite_Path (Settings, Stored);
-      Refs.Move_Path_References (Settings, "/users/me/documents", "/Users/Me/Archive", Changed);
+      Refs.Testing.Move_Path_References (Settings, "/users/me/documents", "/Users/Me/Archive", Changed);
       Assert (Changed and then Refs.Label_Of (Settings, "/Users/Me/Archive/Report.txt") = Files.Preference_Types.Blue,
               "a move named in another spelling takes the label along");
-      Refs.Forget_Path_References (Settings, "/users/ME/archive", Changed);
+      Refs.Testing.Forget_Path_References (Settings, "/users/ME/archive", Changed);
       Assert (Changed and then Refs.Path_Labels (Settings).Is_Empty and then Refs.Favorite_Paths (Settings).Is_Empty
               and then Refs.Recent_Paths (Settings).Is_Empty,
               "forgetting it in another spelling drops its label, star and Recent entry");

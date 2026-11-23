@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -78,7 +79,7 @@ separate (Files_Suite.Interaction)
       end loop;
 
       --  Window 2 turns hidden files on and shares it.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Windows (2).Model, Windows (2).Settings, "", Files.Commands.Toggle_Hidden_Files_Command, Result => Result);
       Assert (Windows (2).Settings.Show_Hidden_Files, "window 2 turns hidden files on");
       Share (Windows, Windows'First, Windows'Last, 2);

@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 with Files.File_System_Types;
 with Files.Drop_Events.Testing;
 separate (Files_Suite.Startup)
@@ -5,7 +6,7 @@ separate (Files_Suite.Startup)
       pragma Unreferenced (T);
       Dir  : constant String := Join (Root, "report-dir");
       Caps : constant Files.Application.Windows.Desktop_Capabilities :=
-        Files.Application.Windows.Runtime_Capabilities;
+        Files.Application.Windows.Testing.Runtime_Capabilities;
    begin
       --  What this host has is the host's business; the rule is tested on
       --  every combination.

@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Settings.Drafts;
 with Files.Commands.Keymap_Settings;
 with Files.Overlays.Settings_Form;
@@ -68,7 +69,7 @@ separate (Files_Suite.Settings)
            Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
          Is_Set : Boolean;
          Ignore : constant Files.Commands.Shortcut :=
-           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+           Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
       begin
          pragma Unreferenced (Ignore);
          Assert (SC.Present, "the live keymap reflects the rebind (present)");
@@ -103,7 +104,7 @@ separate (Files_Suite.Settings)
       declare
          Is_Set : Boolean;
          Ignore : constant Files.Commands.Shortcut :=
-           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+           Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
       begin
          pragma Unreferenced (Ignore);
          Assert (not Is_Set, "binding a command to its default clears the override");
@@ -129,7 +130,7 @@ separate (Files_Suite.Settings)
       declare
          Is_Set : Boolean;
          Ignore : constant Files.Commands.Shortcut :=
-           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+           Files.Commands.Testing.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
       begin
          pragma Unreferenced (Ignore);
          Assert (not Is_Set, "Reset clears shortcut overrides, returning the keymap to defaults");

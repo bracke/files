@@ -150,43 +150,6 @@ package Files.Controller is
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String);
 
-   --  The one policy for a settings change, wherever it comes from: Updated
-   --  replaces Settings and is saved -- a write that fails or is not durable
-   --  is reported in the window's error line and the result, never by
-   --  dropping the change -- unless the file could not hold it (it would not
-   --  load again): then the change is refused whole, Settings stays as it
-   --  was, and the error line says the settings are full. (Settings that
-   --  already would not load take the change in memory, unsaved.) An
-   --  Updated equal to Settings writes nothing.
-   --
-   --  @param Model Window whose error line reports a refused change or a failed write.
-   --  @param Settings Live settings model, replaced by Updated when it is accepted.
-   --  @param Updated The settings with the change made.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @return The write's result; Success is False for a refused change.
-   function Commit_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Updated       : Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Files.Settings.Settings_Write_Result;
-
-   --  Commit_Settings, saying whether the change took.
-   --
-   --  @param Model Window whose error line reports a refused change or a failed write.
-   --  @param Settings Live settings model, replaced by Updated when it is accepted.
-   --  @param Updated The settings with the change made.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Accepted True when Updated differed from Settings and is now the
-   --    live settings (written, or with the write's failure on the error line);
-   --    False when it changed nothing or was refused.
-   procedure Commit_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Updated       : Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Accepted      : out Boolean);
-
    --  Star or unstar the current folder, whatever is selected (the path
    --  bar's star), under Commit_Settings' policy. Nothing happens in a view
    --  of no folder (Recent) or while an overlay owns the input.
@@ -620,6 +583,43 @@ package Files.Controller is
       return Controller_Result;
 
 private
+
+   --  The one policy for a settings change, wherever it comes from: Updated
+   --  replaces Settings and is saved -- a write that fails or is not durable
+   --  is reported in the window's error line and the result, never by
+   --  dropping the change -- unless the file could not hold it (it would not
+   --  load again): then the change is refused whole, Settings stays as it
+   --  was, and the error line says the settings are full. (Settings that
+   --  already would not load take the change in memory, unsaved.) An
+   --  Updated equal to Settings writes nothing.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return The write's result; Success is False for a refused change.
+   function Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result;
+
+   --  Commit_Settings, saying whether the change took.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when Updated differed from Settings and is now the
+   --    live settings (written, or with the write's failure on the error line);
+   --    False when it changed nothing or was refused.
+   procedure Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
 
    --  Whether dropped paths may be imported now: not while an overlay owns
    --  the input (a dialog, the palette, a paste's progress), which would turn

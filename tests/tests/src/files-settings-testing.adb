@@ -47,4 +47,6 @@ package body Files.Settings.Testing is
    function Default_Settings_Text return String
      renames Files.Settings.Default_Settings_Text;
 
+   function Loadable (Settings : Settings_Model) return Boolean renames Files.Settings.Loadable;
+
 end Files.Settings.Testing;

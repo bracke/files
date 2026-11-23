@@ -489,17 +489,10 @@ package Files.File_System is
    function Job_Cancelled return Cancellation_Check;
 
    --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
-   --  bounded text preview. Returns an empty string when the file cannot be
-   --  opened or read. Never blocks beyond the capped read.
+   --  bounded text preview (empty when the file cannot be opened or read).
+   --  Never blocks beyond the capped read; a symbolic link or a device is
+   --  refused.
    --
-   --  @param Path File to read.
-   --  @param Max_Bytes Maximum number of leading bytes to return.
-   --  @return Leading bytes as a String, or an empty string on failure.
-   function Read_Preview_Text
-     (Path      : String;
-      Max_Bytes : Natural)
-      return String;
-
    --  @param Path File to read.
    --  @param Max_Bytes Maximum number of leading bytes to return.
    --  @param Success False on an open or read failure, True for valid empty files.

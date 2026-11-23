@@ -1,7 +1,6 @@
 with Files.Preference_Types;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
-with Files.Refresh;
 with Files.Application.Window_Policy;
 with Guikit.Layout;
 with Guikit.Item_Grid;
@@ -19,6 +18,7 @@ private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Input_Actions;
 private with Files.Overlays;
+private with Files.Refresh;
 private with Files.Rendering;
 private with Files.Rendering.Text;
 private with Files.Application.Snapshot_Slots;
@@ -46,6 +46,8 @@ package Files.Application.Windows is
    procedure Run
      (Startup : Startup_Result);
 
+private
+
    --  Stop a closing window's helpers without waiting for filesystem I/O. A
    --  modal job is cancelled as the user's Cancel does, keeping its grace to
    --  undo a replace half done, and a paste's progress is recorded in the
@@ -60,8 +62,6 @@ package Files.Application.Windows is
    --
    --  @return Display, Vulkan, and smoke-test readiness flags.
    function Runtime_Capabilities return Desktop_Capabilities;
-
-private
 
    --  Return whether a live desktop display appears available.
    --

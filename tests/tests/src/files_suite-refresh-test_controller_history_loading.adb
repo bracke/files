@@ -127,6 +127,8 @@ separate (Files_Suite.Refresh)
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "one-renamed.txt");
+      --  The caret inside the name, off its end.
+      Files.Model.Set_Text_Cursor_Position (Model, 3);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -142,6 +144,8 @@ separate (Files_Suite.Refresh)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Rename_Input,
          "failed forward restores rename focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model), 3, "failed forward keeps the rename caret where it was");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Creation.Begin_Create_File
         (Model, "failed-forward-pending.txt", Files.File_Types.Default_Classification);

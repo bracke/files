@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Settings.Drafts;
 with Files_Suite.Listings;
 with Files.Overlays.Settings_Form;
@@ -41,7 +42,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Visible_Count (Second_Window), 1, "the second window lists only the visible file");
 
       --  The second window has its settings pane open, with an edit of its own.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Second_Window, Second_Settings, "", Files.Commands.Toggle_Settings_Pane_Command, Result => Result);
       Assert (Files.Model.Settings_Pane.Is_Open (Second_Window), "the second window's settings pane is open");
       declare
@@ -53,7 +54,7 @@ separate (Files_Suite.Interaction)
       end;
 
       --  The first window turns hidden files on; the second adopts its settings.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (First_Window, First_Settings, "", Files.Commands.Toggle_Hidden_Files_Command, Result => Result);
       Assert (First_Settings.Show_Hidden_Files, "the first window turns hidden files on");
       Files.Interaction.Adopt_Shared_Settings (Second_Window, Second_Settings, First_Settings);

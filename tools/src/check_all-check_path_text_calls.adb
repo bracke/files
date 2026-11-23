@@ -1,35 +1,36 @@
 separate (Check_All)
    procedure Check_Path_Text_Calls is
+      use Tokens;
+      Aliases : constant String := Package_Aliases (File_System_Units);
+
+      procedure Check_File (Path : String) is
+         Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Bad  : Boolean := False;
+
+         --  Simple_Name of a search entry, named Directory_Entry, is no path's text.
+         function Of_Search_Entry (Next : Positive) return Boolean is
+           (Next + 2 <= Toks.Last_Index
+            and then Is_Symbol (Toks (Next), "(")
+            and then Is_Word (Toks (Next + 1), "directory_entry")
+            and then Is_Symbol (Toks (Next + 2), "=>"));
+
+         procedure Check_Name (Name : String; Next : Positive) is
+         begin
+            if Name in "ada.directories.containing_directory" | "ada.directories.compose"
+              or else (Name = "ada.directories.simple_name" and then not Of_Search_Entry (Next))
+            then
+               Bad := True;
+            end if;
+         end Check_Name;
+      begin
+         For_Each_Resolved_Name (Toks, Aliases, File_System_Units, Check_Name'Access);
+         if Bad then
+            Report (Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
+               & " use Files.IO.Fs_Primitives or Hostkit.Fs.Join");
+         end if;
+      end Check_File;
    begin
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.ad?", Generated_Directories) loop
-         declare
-            Path  : constant String := To_String (Item);
-            Lower : constant String :=
-              Ada.Characters.Handling.To_Lower
-                (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
-            Simple : constant String := "ada.directories.simple_name (";
-            From   : Positive := Lower'First;
-            At_Simple : Natural;
-            Bad    : Boolean :=
-              Ada.Strings.Fixed.Index (Lower, "ada.directories.containing_directory (") > 0
-              or else Ada.Strings.Fixed.Index (Lower, "ada.directories.compose (") > 0;
-         begin
-            loop
-               At_Simple := Ada.Strings.Fixed.Index (Lower (From .. Lower'Last), Simple);
-               exit when At_Simple = 0;
-               if Ada.Strings.Fixed.Index
-                    (Lower (At_Simple + Simple'Length .. Natural'Min (Lower'Last, At_Simple + Simple'Length + 40)),
-                     "directory_entry =>") /= At_Simple + Simple'Length
-               then
-                  Bad := True;
-               end if;
-               exit when At_Simple + Simple'Length > Lower'Last;
-               From := At_Simple + Simple'Length;
-            end loop;
-            if Bad then
-               Report (Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
-                  & " use Files.IO.Fs_Primitives or Hostkit.Fs.Join");
-            end if;
-         end;
+         Check_File (To_String (Item));
       end loop;
    end Check_Path_Text_Calls;

@@ -1,3 +1,4 @@
+with Files.Images.Testing;
 with Files.Images;
 separate (Files_Suite.Thumbnails)
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,9 +11,9 @@ separate (Files_Suite.Thumbnails)
       Width, Height : Natural;
    begin
       Files_Suite.Support.Assert_Equal
-        (Files.Images.U32_BE (Ascending, 0), 16#0001_0203#, "a size reads big-endian");
+        (Files.Images.Testing.U32_BE (Ascending, 0), 16#0001_0203#, "a size reads big-endian");
       Files_Suite.Support.Assert_Equal
-        (Files.Images.U32_BE (High_Bit, 0),
+        (Files.Images.Testing.U32_BE (High_Bit, 0),
          Natural'Last,
          "a size with the high bit set clamps instead of raising");
 

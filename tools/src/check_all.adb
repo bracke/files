@@ -646,6 +646,56 @@ procedure Check_All is
    --  on Windows), so no unit answers differently from the rest.
    procedure Check_Environment_Access is separate;
 
+   --  The by-path file-system units, lower case, one a line: what
+   --  Check_Raw_File_System_Calls and Check_Path_Text_Calls read through a
+   --  package renaming or instantiation of (Package_Aliases).
+   File_System_Units : constant String :=
+     "ada.directories" & ASCII.LF & "gnat.os_lib" & ASCII.LF & "gnat.directory_operations" & ASCII.LF
+     & "ada.streams.stream_io" & ASCII.LF & "ada.text_io" & ASCII.LF
+     & "ada.sequential_io" & ASCII.LF & "ada.direct_io";
+
+   --  Whether Lines (LF-separated) holds Line.
+   function Has_Line (Lines, Line : String) return Boolean is
+     (Ada.Strings.Fixed.Index (ASCII.LF & Lines & ASCII.LF, ASCII.LF & Line & ASCII.LF) > 0);
+
+   --  Name with a leading alias of Aliases ("alias=unit" lines) read as its
+   --  unit: "ad.compose" for "ad=ada.directories" is "ada.directories.compose".
+   --  @param Name A dotted name, lower case.
+   --  @param Aliases "alias=unit" lines.
+   --  @return The name spelled out.
+   function Spelled_Out (Name, Aliases : String) return String is separate;
+
+   --  Every package in src/ that renames or instantiates one of Units (one a
+   --  line, lower case), an "alias=unit" line each: a subunit calls through
+   --  its parent's renaming, and a renaming of a renaming counts too.
+   --  @param Units Units to follow, lower case, one a line.
+   --  @return The "alias=unit" lines.
+   function Package_Aliases (Units : String) return String is separate;
+
+   --  The units of Units a use clause in Toks names, directly or through an
+   --  alias (a use clause naming several is read whole), one a line.
+   --  @param Toks The source's tokens.
+   --  @param Aliases "alias=unit" lines (Package_Aliases).
+   --  @param Units Units to report, lower case, one a line.
+   --  @return The used units, one a line.
+   function Used_Units (Toks : Tokens.Token_List; Aliases : String; Units : String) return String is separate;
+
+   --  Visit every name Toks spells -- a word with its dotted prefix, as
+   --  "ada.directories.compose" -- spelled out: a leading alias (Aliases'
+   --  "alias=unit" lines) read as its unit, and a name a use clause of a
+   --  unit makes direct read with that unit before it too. Names inside a
+   --  with or use clause are not visited.
+   --  @param Toks The source's tokens.
+   --  @param Aliases "alias=unit" lines (Package_Aliases).
+   --  @param Units The units whose use clauses make their names direct.
+   --  @param Visit Called with each spelling (lower case) and the index of
+   --    the token after the name.
+   procedure For_Each_Resolved_Name
+     (Toks    : Tokens.Token_List;
+      Aliases : String;
+      Units   : String;
+      Visit   : not null access procedure (Name : String; Next : Positive)) is separate;
+
    --  GNAT's Ada.Directories reads a path's text with a 256-character
    --  component limit on Windows (Name_Error past it): leaves, parents and
    --  joins go through Files.IO.Fs_Primitives (Hostkit.Path_Text) or
@@ -862,6 +912,15 @@ procedure Check_All is
    --  nothing there and says nothing about it.
    procedure Check_Test_Link_Routing is separate;
 
+   --  A production spec's public part holds only what production code
+   --  calls: a subprogram declared there that no source in src/ names but
+   --  its own unit (the spec's other uses of it, the body and its
+   --  subunits) is the suite's, and belongs in the private part, reached
+   --  through a *.Testing child in tests/tests/src. The exceptions are the
+   --  ones CLAUDE.md names: a unit's own interface production happens not
+   --  to call yet.
+   procedure Check_Test_Only_Api is separate;
+
    --  Every share/locales catalog takes the {arguments} the default
    --  locale's message takes, checked by messages' catalog_check: a
    --  placeholder dropped in translation renders without its value.
@@ -947,6 +1006,7 @@ procedure Check_All is
       Named ("Check_Test_Hook_Disarms", Check_Test_Hook_Disarms'Access),
       Named ("Check_Test_Stage_Removal", Check_Test_Stage_Removal'Access),
       Named ("Check_Test_Link_Routing", Check_Test_Link_Routing'Access),
+      Named ("Check_Test_Only_Api", Check_Test_Only_Api'Access),
       Named ("Check_Command_And_Overlay_Layers", Check_Command_And_Overlay_Layers'Access),
       Named ("Check_Job_Layer", Check_Job_Layer'Access),
       Named ("Check_File_System_Closure", Check_File_System_Closure'Access),

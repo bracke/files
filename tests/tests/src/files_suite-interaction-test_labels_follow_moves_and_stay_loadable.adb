@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 with Files.Settings.Path_References.Testing;
 with Files.Operations.Editing;
 with Files.Preference_Types;
@@ -87,13 +88,13 @@ separate (Files_Suite.Interaction)
                Files.Settings.Path_References.Testing.Set_Label (Grown, "/nowhere/" & Index'Image,
                  Files.Preference_Types.Gray);
             end loop;
-            exit when not Files.Settings.Loadable (Grown) or else Next > 10_000;
+            exit when not Files.Settings.Testing.Loadable (Grown) or else Next > 10_000;
             Settings := Grown;
             Next := Next + 10;
          end loop;
          Assert (Next > 0 and then Next <= 10_000, "the settings file has an entry bound");
       end;
-      Assert (Files.Settings.Loadable (Settings), "the settings still load just under the bound");
+      Assert (Files.Settings.Testing.Loadable (Settings), "the settings still load just under the bound");
       for Index in 1 .. 20 loop
          Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "f" & Index'Image), "x");
       end loop;
@@ -109,7 +110,7 @@ separate (Files_Suite.Interaction)
         (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Disk.Join (Dir,
                                                                                            "f" & Integer'(1)'Image))
                 = Files.Preference_Types.No_Label
-              and then Files.Settings.Loadable (Settings),
+              and then Files.Settings.Testing.Loadable (Settings),
               "an edit past the bound is refused and the settings stay loadable");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

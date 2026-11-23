@@ -53,16 +53,6 @@ package body Files.File_System is
    is separate;
 
    function Read_Preview_Text
-     (Path      : String;
-      Max_Bytes : Natural)
-      return String
-   is
-      Success : Boolean;
-   begin
-      return Read_Preview_Text (Path, Max_Bytes, Success);
-   end Read_Preview_Text;
-
-   function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
    is
       Complete : Boolean;
@@ -74,7 +64,7 @@ package body Files.File_System is
          null;
       end Ignore_Completion;
    begin
-      --  These callers accept a leading prefix as it is.
+      --  These callers (the trash info, content search) want a leading prefix as it is.
       Ignore_Completion (Complete);
       return Result;
    end Read_Preview_Text;

@@ -86,4 +86,12 @@ package Files.Settings.Testing is
    --  @return Default settings file text.
    function Default_Settings_Text return String;
 
+   --  Whether Settings, once written, would load again: Parse bounds the file
+   --  (size and entry count) against hostile input, so an edit that grows it
+   --  past those bounds -- thousands of labels -- must be refused, not saved.
+   --
+   --  @param Settings Settings model to check.
+   --  @return True when To_Text (Settings) parses successfully.
+   function Loadable (Settings : Settings_Model) return Boolean;
+
 end Files.Settings.Testing;

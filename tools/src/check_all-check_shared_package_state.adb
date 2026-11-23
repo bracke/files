@@ -4,6 +4,11 @@ separate (Check_All)
         (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
       Checked : Name_Sets.Set;
 
+      --  Test seams a worker task reads but only the suite sets, and only
+      --  while no worker runs: "file: name".
+      Suite_Set_Hooks : constant Name_Sets.Set :=
+        Name_Sets.To_Set ("files-io-fs_primitives.ads: Refuse_Lookup");
+
       procedure Check (Path : String) is
          Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
          Start : Positive := Code'First;
@@ -34,6 +39,9 @@ separate (Check_All)
                     and then Ada.Strings.Fixed.Index (Line, "exception") = 0
                     and then Ada.Strings.Fixed.Index (Line, "renames") = 0
                     and then Ada.Strings.Fixed.Index (Line, ":=") /= Colon
+                    and then not Suite_Set_Hooks.Contains
+                      (Ada.Directories.Simple_Name (Path) & ": "
+                       & Ada.Strings.Fixed.Trim (Line (Line'First .. Colon - 1), Ada.Strings.Both))
                   then
                      Report (Path & ": a package-level variable is shared by every task that runs this code: "
                         & Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
@@ -59,13 +67,41 @@ separate (Check_All)
    begin
       Check_All ("files-file_system-thumbnails.ad?");
       Check_All ("files-images*.ad?");
-      Check_All ("files-application-preview_decoder.ad?");
-      --  The worker tasks of Files.Application.Background_Slots, and the readers the
-      --  info pane's worker runs.
+      --  The worker tasks of Files.Application.Background_Slots, and every
+      --  unit that instantiates it: its Read runs on the worker.
       Check_All ("files-application-background_slots.ad?");
-      Check_All ("files-application-extra_info_reader.ad?");
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-*.adb", Generated_Directories) loop
+         declare
+            Toks : constant Tokens.Token_List :=
+              Tokens.Tokens_Of (Project_Tools.Files.Read_Raw_File (To_String (Item)));
+         begin
+            for Index in Toks.First_Index .. Toks.Last_Index loop
+               if Index + 5 <= Toks.Last_Index
+                 and then Tokens.Is_Word (Toks (Index), "new")
+                 and then Tokens.Is_Word (Toks (Index + 1), "files")
+                 and then Tokens.Is_Word (Toks (Index + 3), "application")
+                 and then Tokens.Is_Word (Toks (Index + 5), "background_slots")
+               then
+                  declare
+                     Stem : constant String := Ada.Directories.Base_Name (To_String (Item));
+                  begin
+                     if not Checked.Contains (Stem & ".adb") then
+                        Check_All (Stem & ".ad?");
+                     end if;
+                  end;
+               end if;
+            end loop;
+         end;
+      end loop;
+      --  What those Reads run: the info pane's extra-info readers, the
+      --  folder tree's listing (and the classifying and sorting it does),
+      --  and the path primitives both stand on.
       Check_All ("files-file_system-content_info*.ad?");
       Check_All ("files-extra_info.ads");
+      Check_All ("files-file_system-load_subdirectories.adb");
+      Check_All ("files-item_lists*.ad?");
+      Check_All ("files-file_types*.ad?");
+      Check_All ("files-io-fs_primitives*.ad?");
       --  Its worker runs a tree walk on a large stack while the caller waits.
       Check_All ("files-file_system-support.adb");
 

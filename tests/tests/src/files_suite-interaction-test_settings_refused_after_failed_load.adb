@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  A session whose settings file could not be loaded runs on defaults with
@@ -19,7 +20,7 @@ separate (Files_Suite.Interaction)
          Plain_Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       begin
          Plain_Settings.Persistence_Refused := False;
-         Files.Interaction.Execute_Command
+         Files.Interaction.Testing.Execute_Command
            (Plain_Model, Plain_Settings, "", Files.Commands.Toggle_Show_Extensions_Command,
             Result => Result);
          Assert (Plain_Settings.Show_File_Extensions /= Before, "the control's toggle applies");
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
       end;
 
       Settings.Persistence_Refused := True;
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Result => Result);
       Assert (Settings.Show_File_Extensions /= Before, "the toggle still applies for the session");
       Files_Suite.Support.Assert_Equal
@@ -37,7 +38,7 @@ separate (Files_Suite.Interaction)
          "the toggle reports that the settings are not being saved");
 
       Files.Model.Set_Error (Model, "");
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model, Settings, "", Files.Commands.Cycle_Group_By_Command, Result => Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.settings.not_persisted",

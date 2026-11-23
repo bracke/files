@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Settings.Drafts;
 with Files.Overlays.Settings_Form;
 with Files.Settings.Testing;
@@ -12,7 +13,7 @@ separate (Files_Suite.Interaction)
 
       procedure Run (Command : Files.Commands.Command_Id) is
       begin
-         Files.Interaction.Execute_Command
+         Files.Interaction.Testing.Execute_Command
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",

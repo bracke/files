@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 with Files.Operations.History.Testing;
 with Files.Operations.History;
 with Files_Suite.Listings;
@@ -26,7 +27,7 @@ separate (Files_Suite.Recovery)
       type Kind is (Trash_Job, Delete_Job, Restore_Job, Empty_Job, Undo_Job, Redo_Job);
       procedure Release_Jobs is
       begin
-         Files.Application.Windows.Release_Window_Jobs (Model, Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Model, Watch);
       end Release_Jobs;
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_OPERATIONS");
@@ -100,7 +101,7 @@ separate (Files_Suite.Recovery)
             Await_View (Model, Settings);
          else
             Before := Now;
-            Files.Application.Windows.Release_Window_Jobs (Model, Watch);
+            Files.Application.Windows.Testing.Release_Window_Jobs (Model, Watch);
             Assert_Within (Before, Prompt_Limit, "window closure never joins a stalled destructive helper");
          end if;
          declare

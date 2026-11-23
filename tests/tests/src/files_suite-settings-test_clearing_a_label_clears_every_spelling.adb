@@ -15,7 +15,8 @@ separate (Files_Suite.Settings)
       Lower    : constant String := Join (Join (Root, "vol"), "x.txt");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
 
-      --  Store both spellings: only where names do not fold, so on Linux.
+      --  Store both spellings: only a host whose names do not fold can
+      --  (a file loaded on a folding host keeps one per path).
       procedure Store_Both is
       begin
          Refs.Testing.Simulate_Folding_Host (False);
@@ -27,6 +28,8 @@ separate (Files_Suite.Settings)
       end Store_Both;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         Files_Suite.Support.Skip
+           ("Test_Clearing_A_Label_Clears_Every_Spelling", "this host folds names, so it stores one spelling per path");
          return;
       end if;
       Store_Both;

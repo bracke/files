@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Quick_Look.Preparation;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -74,9 +75,9 @@ separate (Files_Suite.Interaction)
       declare
          Other_Settings : Files.Settings.Settings_Model := Settings;
       begin
-         Files.Interaction.Execute_Command
+         Files.Interaction.Testing.Execute_Command
            (Other, Other_Settings, "", Files.Commands.Sort_By_Size_Command, Result => Result);
-         Files.Interaction.Execute_Command
+         Files.Interaction.Testing.Execute_Command
            (Other, Other_Settings, "", Files.Commands.Select_Details_Command, Result => Result);
          Assert (Other_Settings.Sort_Field_Value = Files.Types.Sort_Size, "the first window sorts by size");
          Assert (Other_Settings.Default_View = Files.Preference_Types.Details, "and remembers details");
@@ -89,7 +90,7 @@ separate (Files_Suite.Interaction)
 
       --  A command here that changes neither the order nor the view writes
       --  back only the info pane: the shared sort and view mode stay.
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Info_Pane_Command, Result => Result);
       Assert (Settings.Info_Pane_Open, "the info pane change is written");
       Assert (Settings.Sort_Field_Value = Files.Types.Sort_Size, "the shared sort is not written back over");

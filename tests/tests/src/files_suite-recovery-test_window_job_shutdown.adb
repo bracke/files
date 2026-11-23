@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 with Files.Jobs.Process.Testing;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
@@ -27,8 +28,8 @@ separate (Files_Suite.Recovery)
 
       procedure Cleanup is
       begin
-         Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
-         Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Closing, Closing_Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Remaining, Remaining_Watch);
       end Cleanup;
 
       procedure Await_Started (Path : String) is
@@ -94,8 +95,8 @@ separate (Files_Suite.Recovery)
          end case;
          Files.Refresh.Watch_Path (Closing_Watch, Root);
          Before := Now;
-         Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
-         Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Closing, Closing_Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Closing, Closing_Watch);
          Assert_Within (Before, Prompt_Limit, "repeated window closure never joins stalled helpers");
          Assert
            (not Files.Model.Jobs.Foreground_Job_Is_Active (Closing),
@@ -130,7 +131,7 @@ separate (Files_Suite.Recovery)
          Assert (File_Has_Bytes (Join (Root, "source.txt"), "source bytes")
                  and then not Ada.Directories.Exists (Join (Root, "destination.txt")),
                  "a stopped stalled transfer never writes after its window closes");
-         Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
+         Files.Application.Windows.Testing.Release_Window_Jobs (Remaining, Remaining_Watch);
          for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Jobs.Process.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Other_Started));

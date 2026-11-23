@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 with Files.Application.Testing;
 with Files.Application.Windows.Smoke.Testing;
 separate (Files_Suite.Startup)
@@ -9,7 +10,7 @@ separate (Files_Suite.Startup)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Startup  : Files.Application.Startup_Result;
       Caps     : constant Files.Application.Windows.Desktop_Capabilities :=
-        Files.Application.Windows.Runtime_Capabilities;
+        Files.Application.Windows.Testing.Runtime_Capabilities;
       Plan     : Files.Application.Windows.Smoke.Live_Smoke_Plan;
       Live_Result : Files.Application.Windows.Smoke.Live_Smoke_Result;
    begin

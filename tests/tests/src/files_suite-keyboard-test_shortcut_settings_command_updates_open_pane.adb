@@ -1,3 +1,4 @@
+with Files.Interaction.Testing;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -15,7 +16,7 @@ separate (Files_Suite.Keyboard)
    begin
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Toggle_Hidden_Files_Command, (True, Guikit.Input.Key_H, Ctrl));
-      Files.Interaction.Execute_Command
+      Files.Interaction.Testing.Execute_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",

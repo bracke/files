@@ -43,9 +43,9 @@ separate (Files_Suite.Settings)
       Refs.Follow_Path_Moves (Settings, Moves, Changed);
       Assert (Changed, "the moves changed what is stored");
 
-      Refs.Move_Path_References (Stepwise, A, B, Changed);
-      Refs.Move_Path_References (Stepwise, B, C, Changed);
-      Refs.Forget_Path_References (Stepwise, D, Changed);
+      Refs.Testing.Move_Path_References (Stepwise, A, B, Changed);
+      Refs.Testing.Move_Path_References (Stepwise, B, C, Changed);
+      Refs.Testing.Forget_Path_References (Stepwise, D, Changed);
 
       Assert (Refs.Label_Of (Settings, Join (C, "x")) = Files.Preference_Types.Red,
               "a label rides a chain of moves to its end");
@@ -70,7 +70,7 @@ separate (Files_Suite.Settings)
          Refs.Testing.Set_Label (Spelled, Join (Decomposed, "n.txt"), Files.Preference_Types.Red);
          Assert (Refs.Label_Of (Spelled, Join (Composed, "n.txt")) = Files.Preference_Types.Red,
                  "the composed spelling finds the decomposed one's label");
-         Refs.Move_Path_References (Spelled, Composed, Renamed, Changed);
+         Refs.Testing.Move_Path_References (Spelled, Composed, Renamed, Changed);
          Assert (Changed and then Refs.Label_Of (Spelled, Join (Renamed, "n.txt")) = Files.Preference_Types.Red,
                  "a move named in the composed spelling takes the label along");
          Assert (Refs.Label_Of (Spelled, Join (Composed, "n.txt")) = Files.Preference_Types.No_Label,

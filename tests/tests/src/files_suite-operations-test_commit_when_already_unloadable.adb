@@ -1,3 +1,5 @@
+with Files.Settings.Testing;
+with Files.Controller.Testing;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  Settings that already would not load (another writer got them there)
@@ -13,14 +15,14 @@ separate (Files_Suite.Operations)
       Batch    : Natural := 0;
    begin
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      while Files.Settings.Loadable (Settings) and then Batch < 1_000 loop
+      while Files.Settings.Testing.Loadable (Settings) and then Batch < 1_000 loop
          for Index in Batch * 100 + 1 .. Batch * 100 + 100 loop
             Files.Settings.Path_References.Toggle_Favorite_Path (Settings, "/nowhere/" & Index'Image);
          end loop;
          Batch := Batch + 1;
       end loop;
-      Assert (not Files.Settings.Loadable (Settings), "the settings no longer load");
-      Saved := Files.Controller.Commit_Settings
+      Assert (not Files.Settings.Testing.Loadable (Settings), "the settings no longer load");
+      Saved := Files.Controller.Testing.Commit_Settings
         (Model, Settings, (Settings with delta Font_Pixel_Size => Settings.Font_Pixel_Size + 1), "");
       Assert (Settings.Font_Pixel_Size = Files.Settings.Default_Settings.Font_Pixel_Size + 1,
               "a zoom is still taken");

@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 with Files.Settings.Path_References.Testing;
 with Files.Model.Recent;
 with Files.Preference_Types;
@@ -16,7 +17,7 @@ separate (Files_Suite.Interaction)
       for Index in 1 .. 3_000 loop
          Files.Settings.Path_References.Testing.Set_Label (Settings, "/d/f" & Index'Image, Files.Preference_Types.Gray);
       end loop;
-      Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
+      Assert (Files.Settings.Testing.Loadable (Settings), "3000 labels fit");
       Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
       Files.Model.Recent.Note_Path_Move (Model, "/d", Longer);
       Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
@@ -24,7 +25,7 @@ separate (Files_Suite.Interaction)
       Assert (Files.Settings.Path_References.Label_Of (Settings,
         "/d/f" & Integer'(1)'Image) = Files.Preference_Types.Gray,
               "the labels stay where they were");
-      Assert (Files.Settings.Loadable (Settings), "the settings still load");
+      Assert (Files.Settings.Testing.Loadable (Settings), "the settings still load");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.settings.full", "the error line says why");
    end Test_Path_Moves_Refused_When_Full;

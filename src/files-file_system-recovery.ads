@@ -91,41 +91,6 @@ private package Files.File_System.Recovery is
    --  source stays in the trash, still listed there with its info file.
    type Unremoved_Source_Rule is (Take_Copy_Back, Keep_Both);
 
-   --  The cross-device half of a move, where rename cannot go: copy Source
-   --  to the new path Destination, then remove Source. Rename, trash, drop
-   --  import and restore-from-trash all fall back to this.
-   --  @param Source Entry to move.
-   --  @param Destination New pathname; never replaced.
-   --  @param Fallback_Key Error key for a failure with no more specific cause.
-   --  @param Identity The copy's identity, empty if no copy was published.
-   --  @param Revision The copy's tree revision.
-   --  @param Copy_Kept Set when, after a failure, the copy is still at
-   --    Destination: its removal was refused, the source was set aside, or
-   --    If_Source_Stays is Keep_Both.
-   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
-   --  @param Batch Shared hard-link journal of a multi-item job.
-   --  @param If_Source_Stays What becomes of the copy when Source cannot be removed.
-   --  @param After_Copy Called with Source once the copy is published,
-   --    before Source is checked and removed; null for none.
-   --  @param Expected_Identity The identity Source must have when it is
-   --    snapshotted for the copy, or "" for no check: another entry under
-   --    its name is then refused with Fallback_Key, nothing copied. The
-   --    snapshot is what the removal checks Source against afterwards, so
-   --    only the entry named is ever copied and removed.
-   --  @return Success when Destination holds the item and Source is gone;
-   --    otherwise Source is where it was (unless set aside, see Copy_Kept).
-   function Move_By_Copy
-     (Source, Destination : String;
-      Fallback_Key        : String;
-      Identity, Revision  : out Files.Types.UString;
-      Copy_Kept           : out Boolean;
-      Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
-      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
-      After_Copy          : Copy_Hook := null;
-      Expected_Identity   : String := "")
-      return Mutation_Result;
-
    --  How Move_Or_Copy moved an entry, or why it did not.
    --  Renamed: one no-replace rename moved it. Copied: the rename could not
    --  cross a device boundary (or the filesystem has no no-replace rename),
@@ -165,4 +130,41 @@ private package Files.File_System.Recovery is
       After_Copy          : Copy_Hook := null;
       Expected_Identity   : String := "")
       return Mutation_Result;
+private
+
+   --  The cross-device half of a move, where rename cannot go: copy Source
+   --  to the new path Destination, then remove Source. Rename, trash, drop
+   --  import and restore-from-trash all fall back to this.
+   --  @param Source Entry to move.
+   --  @param Destination New pathname; never replaced.
+   --  @param Fallback_Key Error key for a failure with no more specific cause.
+   --  @param Identity The copy's identity, empty if no copy was published.
+   --  @param Revision The copy's tree revision.
+   --  @param Copy_Kept Set when, after a failure, the copy is still at
+   --    Destination: its removal was refused, the source was set aside, or
+   --    If_Source_Stays is Keep_Both.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
+   --  @param Batch Shared hard-link journal of a multi-item job.
+   --  @param If_Source_Stays What becomes of the copy when Source cannot be removed.
+   --  @param After_Copy Called with Source once the copy is published,
+   --    before Source is checked and removed; null for none.
+   --  @param Expected_Identity The identity Source must have when it is
+   --    snapshotted for the copy, or "" for no check: another entry under
+   --    its name is then refused with Fallback_Key, nothing copied. The
+   --    snapshot is what the removal checks Source against afterwards, so
+   --    only the entry named is ever copied and removed.
+   --  @return Success when Destination holds the item and Source is gone;
+   --    otherwise Source is where it was (unless set aside, see Copy_Kept).
+   function Move_By_Copy
+     (Source, Destination : String;
+      Fallback_Key        : String;
+      Identity, Revision  : out Files.Types.UString;
+      Copy_Kept           : out Boolean;
+      Cancel              : Cancellation_Check := Job_Cancelled;
+      Batch               : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
+      return Mutation_Result;
+
 end Files.File_System.Recovery;
