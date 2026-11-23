@@ -1,4 +1,5 @@
 with Files.Model.Sort_Menu;
+with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
@@ -94,5 +95,27 @@ separate (Files_Suite.Keyboard)
          Files_Suite.Support.Assert_Equal
            (Settings.Font_Pixel_Size, Before + 1, "an unsaved zoom still changes the font size");
          Assert (Result.Settings_Changed, "and still reports the settings change");
+      end;
+
+      --  A held chord: the press writes the file, its repeats put each size
+      --  in force and leave the writing to the window once the keys rest.
+      Files_Suite.Support.Disk.Reset_Root;
+      Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size;
+      declare
+         Path : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "zoom.conf");
+      begin
+         Zoom (Guikit.Input.Key_Equal, Ctrl, Path => Path);
+         Assert (Ada.Directories.Exists (Path) and then not Result.Zoom_Unsaved, "the press is written at once");
+         Ada.Directories.Delete_File (Path);
+         for Repeat in 1 .. 3 loop
+            Files.Model.Settings_Pane.Note_Key_Repeat (Model, True);
+            Zoom (Guikit.Input.Key_Equal, Ctrl, Path => Path);
+            Files.Model.Settings_Pane.Note_Key_Repeat (Model, False);
+            Assert (Result.Settings_Changed and then Result.Zoom_Unsaved,
+                    "a repeat puts the size in force and says it is not written");
+         end loop;
+         Files_Suite.Support.Assert_Equal
+           (Settings.Font_Pixel_Size, Files.Settings.Default_Font_Pixel_Size + 4, "every repeat grows the size");
+         Assert (not Ada.Directories.Exists (Path), "no repeat writes the file");
       end;
    end Test_Keyboard_Zoom;

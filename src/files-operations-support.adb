@@ -94,6 +94,10 @@ package body Files.Operations.Support is
       return (Status => Operation_Success, others => <>);
    end Real_Selection_Refusal;
 
+   function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean is
+     (Files.Model.Jobs.Background_Transfers (Model)
+      and then not Files.Model.Filtering.Search_Results_Are_Active (Model));
+
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;
       Settings    : Files.Settings.Settings_Model;
@@ -103,7 +107,7 @@ package body Files.Operations.Support is
       return Operation_Result
    is
    begin
-      if Files.Model.Jobs.Background_Transfers (Model) then
+      if Reloads_In_Background (Model) then
          return Files.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
       end if;
       Reload_In_Place :
@@ -263,7 +267,7 @@ package body Files.Operations.Support is
       --  again after one done here, which clears the error it finds.
       Files.Model.Set_Error (Model, Error_Key, Path);
       Reload := Reload_Current_Directory (Model, Settings);
-      if not Files.Model.Jobs.Background_Transfers (Model) then
+      if not Reloads_In_Background (Model) then
          Files.Model.Set_Error (Model, Error_Key, Path);
       end if;
    end Reload_With_Error;

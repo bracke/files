@@ -21,6 +21,7 @@ package body Files.Job_Drivers.Operation.Helper is
    use Ada.Strings.Unbounded;
 
    procedure Run (Directory : String) is
+      use type Files.UI_Types.Search_Scope;
       Work  : Request;
       Done  : Outcome;
       Model : Files.Model.Window_Model;
@@ -53,6 +54,13 @@ package body Files.Job_Drivers.Operation.Helper is
       if Work.Kind in Search_Names | Search_Contents then
          Files.Model.Filtering.Set_Filter (Model, To_String (Work.Query));
       else
+         --  The window shows search results: so does this model, which
+         --  shows every one it holds whatever the query, and its reload
+         --  searches again rather than list the folder in their place.
+         if Work.Searched /= Files.UI_Types.Filter_Here then
+            Files.Model.Filtering.Note_Search_Results (Model, Work.Searched);
+            Files.Model.Filtering.Set_Filter (Model, To_String (Work.Query));
+         end if;
          Files.Model.Selection.Select_All_Visible (Model);
       end if;
       Done.Result :=
@@ -80,6 +88,10 @@ package body Files.Job_Drivers.Operation.Helper is
          else Files.Model.Last_Error_Key (Model));
       Done.Recent := Files.Model.Recent.In_Recent_View (Model);
       Done.Selection := To_Unbounded_String (Files.Model.Selection.Selected_Name (Model));
+      Done.Searched :=
+        (if Files.Model.Filtering.Search_Results_Are_Active (Model)
+         then Files.Model.Filtering.Search_Scope_Of (Model)
+         else Files.UI_Types.Filter_Here);
       for Row of Files.Model.Visible_Rows (Model) loop
          Done.Items.Append (Row.Item);
       end loop;

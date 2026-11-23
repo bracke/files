@@ -82,6 +82,8 @@ separate (Files_Suite.Search)
       Result := Complete_Operation (Model, Settings, Result);
       Assert (Entries (Deep) = 4 and then Entries (Root) = 1,
               "a helper's duplicate of a search result is made beside its source");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model),
+              "the results stay shown after a helper's duplicate");
 
       Load := Files_Suite.Listings.Load_Directory (Deep, Settings);
       Files.Model.Initialize (Model, Deep, Load.Items, Root);
@@ -140,5 +142,22 @@ separate (Files_Suite.Search)
       Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Assert (Path_Exists (Join (Deep, "notes.txt")) and then not Path_Exists (Join (Root, "notes.txt")),
               "a result still listed after Clear Filter renames in its own folder");
+
+      --  While a transfer runs in the background, an operation's reload
+      --  searches again too: a background listing of the folder would put
+      --  the search root's own items in the results' place.
+      Search ("notes.txt");
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "notes.txt.old");
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
+      Result := Complete_Operation (Model, Settings, Result);
+      Assert (Path_Exists (Join (Deep, "notes.txt.old")), "the result renames while a transfer runs");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model)
+              and then Files.Model.Filtering.Filter_Text (Model) = "notes.txt",
+              "the results stay shown, with their query");
+      Assert (Files.Model.Visible_Index_Of (Model, Join (Deep, "notes.txt.old")) /= 0
+              and then Files.Model.Visible_Index_Of (Model, Join (Root, "a")) = 0,
+              "the renamed result among them, not the search root's own listing");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));
    end Test_Search_Result_Actions_Stay_Beside_Source;

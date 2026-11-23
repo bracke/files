@@ -40,6 +40,10 @@ package Files.Interaction is
       --  memory for one write when the gesture ends.
       Clear_Pending_Text   : Boolean := False;
       --  True when the shell must drop any buffered character input.
+      Zoom_Unsaved         : Boolean := False;
+      --  True when a held zoom chord's repeat put a font size in force
+      --  without writing it: the shell writes it once the keys rest, as it
+      --  does a wheel zoom.
    end record;
 
    --  Execute a single command with the follow-ups a settings change needs:

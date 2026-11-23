@@ -290,23 +290,10 @@ package body Files.Controller is
       Updated : in out Files.Settings.Settings_Model)
       return Boolean
    is
-      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Recent.Take_Path_Moves (Model);
-      Changed : Boolean := False;
+      Changed : Boolean;
    begin
-      for Move of Moves loop
-         declare
-            Followed : Boolean;
-         begin
-            case Move.Kind is
-               when Files.Types.Removed =>
-                  Files.Settings.Path_References.Forget_Path_References (Updated, To_String (Move.From), Followed);
-               when Files.Types.Moved =>
-                  Files.Settings.Path_References.Move_Path_References
-                    (Updated, To_String (Move.From), To_String (Move.To), Followed);
-            end case;
-            Changed := Changed or else Followed;
-         end;
-      end loop;
+      Files.Settings.Path_References.Follow_Path_Moves
+        (Updated, Files.Model.Recent.Take_Path_Moves (Model), Changed);
       return Changed;
    end With_Path_Moves;
 

@@ -325,126 +325,34 @@ package body Files.Settings.Path_References is
       return Files.Preference_Types.No_Label;
    end Label_Of;
 
+   procedure Follow_Path_Moves
+     (Settings : in out Settings_Model;
+      Moves    : Files.Types.Path_Move_Vectors.Vector;
+      Changed  : out Boolean) is separate;
+
    procedure Move_Path_References
      (Settings : in out Settings_Model;
       From     : String;
       To       : String;
-      Changed  : out Boolean)
-   is
-      --  Path moved along with From: From itself or an entry inside it --
-      --  matched as Same matches, whatever the spelling of its head.
-      function Moved (Path : String) return String is
-        (if Folds (From) and then Path'Length >= From'Length
-           and then Key (Path (Path'First .. Path'First + From'Length - 1)) = Key (From)
-         then Hostkit.Fs.Rebase (From & Path (Path'First + From'Length .. Path'Last), From, To)
-         else Hostkit.Fs.Rebase (Path, From, To));
-
-      --  Each entry moved with From is rewritten. An entry that then repeats
-      --  one listed before it goes (the earlier one stays): a path is a
-      --  favorite, or recent, once.
-      procedure Rewrite (Paths : in out String_Vectors.Vector) is
-         Rewritten, Seen : Path_Sets.Set;
-         Kept            : String_Vectors.Vector;
-      begin
-         for Index in Paths.First_Index .. Paths.Last_Index loop
-            declare
-               Old_Path : constant String := To_String (Paths (Index));
-               New_Path : constant String := Moved (Old_Path);
-            begin
-               if New_Path /= Old_Path then
-                  Paths.Replace_Element (Index, To_Unbounded_String (New_Path));
-                  Rewritten.Include (New_Path);
-                  Changed := True;
-               end if;
-            end;
-         end loop;
-         if Rewritten.Is_Empty then
-            return;
-         end if;
-         for Path of Paths loop
-            if not Rewritten.Contains (To_String (Path)) or else not Seen.Contains (To_String (Path)) then
-               Kept.Append (Path);
-               Seen.Include (To_String (Path));
-            end if;
-         end loop;
-         Paths := Kept;
-      end Rewrite;
-
-      --  The labels' new paths, and the labels that moved there.
-      Label_Targets : Path_Sets.Set;
-      Label_Moved   : array (Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index) of Boolean :=
-        [others => False];
-      Kept_Labels   : Path_Label_Vectors.Vector;
+      Changed  : out Boolean) is
    begin
-      Restamp (Settings.Paths);
-      Changed := False;
-      if From = "" or else To = "" or else From = To then
-         return;
-      end if;
-      Rewrite (Settings.Paths.Favorites);
-      Rewrite (Settings.Paths.Recent);
-      for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
-         declare
-            Old_Path : constant String := To_String (Settings.Paths.Labels (Index).Path);
-            New_Path : constant String := Moved (Old_Path);
-         begin
-            if New_Path /= Old_Path then
-               Settings.Paths.Labels.Replace_Element
-                 (Index, (Path => To_Unbounded_String (New_Path), Label => Settings.Paths.Labels (Index).Label));
-               Label_Targets.Include (New_Path);
-               Label_Moved (Index) := True;
-               Changed := True;
-            end if;
-         end;
-      end loop;
-      --  A label left at a path a labelled entry moved onto belonged to what
-      --  was there before: the moved entry's label is the one that holds.
-      if not Label_Targets.Is_Empty then
-         for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
-            if Label_Moved (Index)
-              or else not Label_Targets.Contains (To_String (Settings.Paths.Labels (Index).Path))
-            then
-               Kept_Labels.Append (Settings.Paths.Labels (Index));
-            end if;
-         end loop;
-         Settings.Paths.Labels := Kept_Labels;
-      end if;
+      Follow_Path_Moves
+        (Settings,
+         Files.Types.Path_Move_Vectors.To_Vector
+           ((From => To_Unbounded_String (From), To => To_Unbounded_String (To), Kind => Files.Types.Moved), 1),
+         Changed);
    end Move_Path_References;
 
    procedure Forget_Path_References
      (Settings : in out Settings_Model;
       Path     : String;
-      Changed  : out Boolean)
-   is
-      --  Path itself or an entry inside the folder Path.
-      --  The rule Move_Path_References follows (through Hostkit.Fs.Rebase),
-      --  so a root such as "/" or "C:\" holds what lies below it here too.
-      function Under (Candidate : String) return Boolean is
-        (Hostkit.Fs.Is_Same_Or_Inside (Key (Candidate), Key (Path)));
-
-      procedure Drop (Paths : in out String_Vectors.Vector) is
-      begin
-         for Index in reverse Paths.First_Index .. Paths.Last_Index loop
-            if Under (To_String (Paths (Index))) then
-               Paths.Delete (Index);
-               Changed := True;
-            end if;
-         end loop;
-      end Drop;
+      Changed  : out Boolean) is
    begin
-      Restamp (Settings.Paths);
-      Changed := False;
-      if Path = "" then
-         return;
-      end if;
-      Drop (Settings.Paths.Favorites);
-      Drop (Settings.Paths.Recent);
-      for Index in reverse Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
-         if Under (To_String (Settings.Paths.Labels (Index).Path)) then
-            Settings.Paths.Labels.Delete (Index);
-            Changed := True;
-         end if;
-      end loop;
+      Follow_Path_Moves
+        (Settings,
+         Files.Types.Path_Move_Vectors.To_Vector
+           ((From => To_Unbounded_String (Path), To => Null_Unbounded_String, Kind => Files.Types.Removed), 1),
+         Changed);
    end Forget_Path_References;
 
 end Files.Settings.Path_References;

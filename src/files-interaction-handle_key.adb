@@ -54,8 +54,13 @@ separate (Files.Interaction)
                      Files.Settings.Clamp_Font_Pixel_Size (Old_Size - 1),
                   when others =>
                      Files.Settings.Default_Font_Pixel_Size);
+            --  A held chord's repeats are put in force only and written
+            --  once the keys rest (the window's Save_Pending_Zoom, as for
+            --  the wheel): a durable write per repeat held the window.
+            Held : constant Boolean := Files.Model.Settings_Pane.Key_Repeat (Model);
          begin
-            Apply_Zoom (Model, Settings, Settings_Path, New_Size, Save_Now => True, Result => Result);
+            Apply_Zoom (Model, Settings, Settings_Path, New_Size, Save_Now => not Held, Result => Result);
+            Result.Zoom_Unsaved := Held and then Result.Settings_Changed;
             --  Drop any parallel '=' / '-' / '0' character event so a zoomed
             --  keystroke never leaks a glyph into a focused text field.
             Result.Clear_Pending_Text := True;

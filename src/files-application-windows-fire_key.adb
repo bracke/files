@@ -78,6 +78,10 @@ separate (Files.Application.Windows)
             Result            => Result,
             Tree_Page_Rows    => Tree_Page_Rows);
          Flush_System_Clipboard (Runtime);
+         if Result.Zoom_Unsaved then
+            Runtime.Zoom_Unsaved := True;
+            Runtime.Zoom_At := Ada.Real_Time.Clock;
+         end if;
          Consumed := Result.Clear_Pending_Text;
       end;
    end Fire_Key;

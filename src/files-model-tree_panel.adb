@@ -156,7 +156,8 @@ package body Files.Model.Tree_Panel is
               Current_Offset => Scroll_Rows (Model));
       begin
          if Model.Tree_Panel.Scroll /= Wanted then
-            Touch_Header (Model);
+            --  An offset alone, as Scroll and Set_Scroll_Rows move it.
+            Support.Touch_Scroll (Model);
             Model.Tree_Panel.Scroll := Wanted;
          end if;
       end;

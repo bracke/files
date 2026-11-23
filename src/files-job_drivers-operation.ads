@@ -4,6 +4,7 @@ with Files.Operation_Results;
 with Files.Settings;
 private with Files.Items;
 private with Files.Types;
+private with Files.UI_Types;
 private with Ada.Streams;
 
 --  Long operations execute in a helper using an isolated model.
@@ -48,6 +49,11 @@ private
       Root     : Files.Types.UString;
       Recent   : Boolean;
       Query    : Files.Types.UString;
+      --  The scope whose results the window shows (Query found them), or
+      --  Filter_Here when it shows a folder's listing: the helper's model
+      --  shows them too, so its reload searches again as the window's own
+      --  would (Operations' Reload_Current_Directory).
+      Searched : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
       Selected : Files.Items.Item_Vectors.Vector;
       Settings : Files.Settings.Settings_Model;
       Context_Revision : Natural;
@@ -63,6 +69,9 @@ private
       Result    : Files.Operation_Results.Operation_Result;
       Items     : Files.Items.Item_Vectors.Vector;
       Selection : Files.Types.UString;
+      --  Whose search results Items are (Request.Searched), or Filter_Here
+      --  for a folder's listing.
+      Searched  : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
       Visible_Error : Files.Types.UString;
       Signature : Files.File_System_Types.Directory_Signature;
       --  The renames, moves and removals the helper made (Note_Path_Move),

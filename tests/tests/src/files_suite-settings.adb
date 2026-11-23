@@ -89,6 +89,8 @@ package body Files_Suite.Settings is
    procedure Test_Settings_File_Repeats_Load_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_File_From_Notepad_Loads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Forget_Follows_The_Move_Rule (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Moves_Follow_In_One_Pass (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Clearing_A_Label_Clears_Every_Spelling (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides_Persist (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -209,6 +211,12 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Forget_Follows_The_Move_Rule'Access,
          "forgetting a path drops what a move of it would carry, roots included");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Moves_Follow_In_One_Pass'Access,
+         "Queued moves and removals followed in one pass end where one at a time would, any spelling");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Clearing_A_Label_Clears_Every_Spelling'Access,
+         "Clearing or setting a label reaches every stored spelling of its path");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Overrides_Persist'Access,
          "shortcut overrides round-trip through settings text, including an explicit unbind");
@@ -406,6 +414,8 @@ package body Files_Suite.Settings is
    procedure Test_Settings_File_Repeats_Load_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Settings_File_From_Notepad_Loads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Forget_Follows_The_Move_Rule (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Path_Moves_Follow_In_One_Pass (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Clearing_A_Label_Clears_Every_Spelling (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shortcut_Overrides_Persist (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -241,6 +241,23 @@ package Files.Settings.Path_References is
       Path  : String)
       return Files.Preference_Types.Color_Label;
 
+   --  Follow renames, moves and removals, in the order they were made: every
+   --  label, favorite and recent path that is a move's path, or lies inside
+   --  that folder, is rewritten to the same place under its new path, or
+   --  dropped when it was removed, as Move_Path_References and
+   --  Forget_Path_References each do for one -- in one pass over the stored
+   --  paths, whatever the number of moves. A path is matched by key (as two
+   --  spellings of one path are), head by head, so a spelling of different
+   --  length (another normalization) still follows.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Moves The moves, oldest first.
+   --  @param Changed True when any stored path was rewritten or dropped.
+   procedure Follow_Path_Moves
+     (Settings : in out Settings_Model;
+      Moves    : Files.Types.Path_Move_Vectors.Vector;
+      Changed  : out Boolean);
+
    --  Follow a rename or move: every label, favorite and recent path that is
    --  From, or lies inside the folder From, is rewritten to the same place
    --  under To, so a label stays with its item and a new item at the old path

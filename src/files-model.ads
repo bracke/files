@@ -627,7 +627,10 @@ package Files.Model is
 
    --  Return Model to Mark: the view, whether it is the recent view, and the
    --  navigation history as it was -- not a move the other way, which from the recent
-   --  view (never in history) lands somewhere else.
+   --  view (never in history) lands somewhere else. The view comes back whole
+   --  -- its search results or filter, selection, scroll, focus and path
+   --  field -- over the items the window still holds: a move that failed
+   --  replaced none of them.
    --
    --  @param Model Model to update.
    --  @param Mark  Where it was, from Mark_Navigation.
@@ -1148,10 +1151,28 @@ private
       Banded   : Boolean := False;
    end record;
 
+   --  What Leave_View resets of a view and Return_To puts back: the search
+   --  and filter, the selection (indexes into the items, which a failed move
+   --  leaves as they were), the scrolls, the focus and the path field.
+   type View_Mark is record
+      Search_Scope          : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
+      Search_Results_Active : Boolean := False;
+      Results_Hide_Hidden   : Boolean := False;
+      Filter                : Text_Field_State;
+      Folded_Filter         : UString;
+      Selected_Item_Index   : Natural := 0;
+      Selected_Item_Indexes : Natural_Vectors.Vector;
+      Info_Pane_Scroll      : Natural := 0;
+      Main_View_Scroll      : Natural := 0;
+      Focus                 : Files.UI_Types.Focus_Target := Files.UI_Types.Focus_None;
+      Path_Input            : Path_Input_State;
+   end record;
+
    type Navigation_Mark is record
       Path            : UString;
       Recent          : Boolean := False;
       Back, Forward   : Files.Types.String_Vectors.Vector;
+      View            : View_Mark;
    end record;
 
    type Window_Model is record

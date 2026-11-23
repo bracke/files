@@ -1,6 +1,5 @@
 with Files.Model.Recent;
 with Files.Model.Filtering;
-with Files.UI_Types;
 with Files.Model.Jobs;
 with Files.IO.Record_Fields;
 with Files.Operations.Undo_Recording;
@@ -92,6 +91,7 @@ package body Files.Job_Drivers.Operation is
       Boolean'Output (Stream, Work.Recent);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Query), Files.Jobs.Records.Max_Text_Length);
+      Files.UI_Types.Search_Scope'Output (Stream, Work.Searched);
       Files.Job_Payloads.Write_Items (Stream, Work.Selected);
       Files.Job_Payloads.Write_Settings (Stream, Work.Settings);
       Natural'Output (Stream, Work.Context_Revision);
@@ -109,6 +109,7 @@ package body Files.Job_Drivers.Operation is
       Work.Recent := Boolean'Input (Stream);
       Work.Query :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Text_Length));
+      Work.Searched := Files.UI_Types.Search_Scope'Input (Stream);
       Work.Selected := Files.Job_Payloads.Read_Items (Stream);
       Work.Settings := Files.Job_Payloads.Read_Settings (Stream);
       Work.Context_Revision := Natural'Input (Stream);
@@ -137,6 +138,7 @@ package body Files.Job_Drivers.Operation is
       Files.Job_Payloads.Write_Items (Stream, Done.Items);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Selection), Files.Jobs.Records.Max_Path_Length);
+      Files.UI_Types.Search_Scope'Output (Stream, Done.Searched);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Visible_Error),
          Files.Jobs.Records.Max_Error_Length);
@@ -154,6 +156,7 @@ package body Files.Job_Drivers.Operation is
       Done.Items := Files.Job_Payloads.Read_Items (Stream);
       Done.Selection :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+      Done.Searched := Files.UI_Types.Search_Scope'Input (Stream);
       Done.Visible_Error :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
       Done.Signature := Files.Jobs.Records.Read_Signature (Stream);
@@ -180,6 +183,10 @@ package body Files.Job_Drivers.Operation is
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.Recent.In_Recent_View (Model),
          Query => To_Unbounded_String (Files.Model.Filtering.Filter_Text (Model)),
+         Searched =>
+           (if Files.Model.Filtering.Search_Results_Are_Active (Model)
+            then Files.Model.Filtering.Search_Scope_Of (Model)
+            else Files.UI_Types.Filter_Here),
          Selected => Files.Model.Selection.Selected_Items (Model), Settings => Settings,
          Context_Revision => 0,
          View_Incarnation => Files.Model.View_Incarnation (Model),

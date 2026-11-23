@@ -12,13 +12,17 @@ separate (Files.Settings.Path_References)
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
-      for Index in
-        Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index
-      loop
-         --  Compared in place: no copy of the label nor of its path.
+      --  Every stored label that matches Path is Path's: two spellings of it
+      --  may both be stored (a file written elsewhere, a merge). The first
+      --  takes the label, the others go, so clearing it leaves none behind
+      --  to show instead. Backwards, so a deletion moves nothing still to
+      --  be looked at; compared in place, with no copy of a label.
+      for Index in reverse Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
          if Same (To_String (Settings.Paths.Labels (Index).Path), Path) then
+            if Existing /= 0 then
+               Settings.Paths.Labels.Delete (Existing);
+            end if;
             Existing := Index;
-            exit;
          end if;
       end loop;
       if Label = Files.Preference_Types.No_Label then

@@ -105,6 +105,16 @@ private package Files.Operations.Support is
       Select_Path : String := "")
       return Operation_Result;
 
+   --  Whether Reload_Current_Directory hands the reload to a background
+   --  listing (which keeps the error set before it) rather than reloading
+   --  here (which clears it): while a transfer runs, but never for search
+   --  results, which are searched again here -- a forced background listing
+   --  would put the folder in their place.
+   --
+   --  @param Model Window model to inspect.
+   --  @return True when the next reload runs in the background.
+   function Reloads_In_Background (Model : Files.Model.Window_Model) return Boolean;
+
    --  Replace the view with the recursive search results for the filter
    --  text below the current folder, in Scope (Navigation.Run_Search, which
    --  refuses first, says what is shown).
