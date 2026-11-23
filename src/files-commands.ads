@@ -250,23 +250,22 @@ package Files.Commands is
       Modifiers : Guikit.Input.Modifier_Set)
       return Command_Id;
 
-   --  Override a command's shortcut in Map (Value.Present False unbinds it).
-   --  The override replaces the whole default binding, built-in secondary
-   --  included.
-   --
-   --  @param Map The keymap to change.
-   --  @param Id Command identifier.
-   --  @param Value Shortcut to bind (Present False records an explicit unbind).
-   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut);
+   --  What Rebind did: the chord is Id's now, or another command's primary
+   --  binding holds it and Map is unchanged.
+   type Rebind_Outcome is (Rebound, Conflict);
 
-   --  Clear a command's override in Map so it reverts to its built-in
-   --  default. Its built-in secondary comes back too -- unless another
-   --  command now holds that chord, which then stays the other's: Id keeps
-   --  its default primary alone (as an override equal to it).
+   --  Bind Id to Chord in Map, by the keymap's rules: only bindings in force
+   --  conflict -- another command's primary does (Conflict, nothing
+   --  changed); a chord held only by another command's built-in secondary
+   --  is taken from it, that command keeping its primary alone. A chord
+   --  equal to Id's built-in default clears its override (so an untouched
+   --  keymap persists no [shortcuts] entry); Chord.Present False unbinds Id.
    --
    --  @param Map The keymap to change.
    --  @param Id Command identifier.
-   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id);
+   --  @param Chord The chord to bind, or none to unbind.
+   --  @return Rebound, or Conflict when another primary holds Chord.
+   function Rebind (Map : in out Keymap; Id : Command_Id; Chord : Shortcut) return Rebind_Outcome;
 
    --  The built-in default primary shortcut for a command, ignoring any override.
    --
@@ -388,6 +387,24 @@ private
    end record;
 
    Default_Keymap : constant Keymap := (others => <>);
+
+   --  Override a command's shortcut in Map (Value.Present False unbinds it).
+   --  The override replaces the whole default binding, built-in secondary
+   --  included.
+   --
+   --  @param Map The keymap to change.
+   --  @param Id Command identifier.
+   --  @param Value Shortcut to bind (Present False records an explicit unbind).
+   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut);
+
+   --  Clear a command's override in Map so it reverts to its built-in
+   --  default. Its built-in secondary comes back too -- unless another
+   --  command now holds that chord, which then stays the other's: Id keeps
+   --  its default primary alone (as an override equal to it).
+   --
+   --  @param Map The keymap to change.
+   --  @param Id Command identifier.
+   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id);
 
    --  The live keymap, which Shortcut_For, Secondary_Shortcut_For and
    --  Find_By_Shortcut without a Map read.

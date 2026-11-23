@@ -71,15 +71,20 @@ package Files.Interaction is
 
    --  Type Text into the window: the focused field edits it, or the grid's
    --  type-ahead moves the selection (Files.Controller.Append_Focused_Text),
-   --  as a key press reaches the window through Handle_Key.
+   --  as a key press reaches the window through Handle_Key; like every
+   --  dispatch it ends in Files.Controller.Finish_Dispatch.
    --
    --  @param Model Window model to update.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Settings file path.
    --  @param Text UTF-8 text typed, in the order it arrived.
    --  @param Result Follow-up flags describing what the text did.
    procedure Append_Text
-     (Model  : in out Files.Model.Window_Model;
-      Text   : String;
-      Result : out Interaction_Result);
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Text          : String;
+      Result        : out Interaction_Result);
 
    --  Import the paths dropped on the window (Files.Controller.
    --  Import_Pending_Drops), which stay queued in Source while an overlay owns

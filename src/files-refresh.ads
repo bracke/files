@@ -27,17 +27,18 @@ package Files.Refresh is
       Select_Path : String := "";
       Search_Again : Boolean := False) return Files.Operation_Results.Operation_Result;
 
-   --  Put a fresh listing of the view in place of the items shown -- how a
-   --  folder read again here after an operation is installed, and anything
-   --  the background refresh or an operation's helper read again (a folder,
-   --  the Recent view, search results; without background transfers,
-   --  Operations.Support rebuilds the last two in place) -- keeping where
-   --  the user was:
+   --  Put a fresh listing of the view in place of the items shown -- the
+   --  one way a view read again is installed: a folder, the Recent view or
+   --  search results, read again here after an operation, by the
+   --  background refresh or by an operation's helper, or a new search's
+   --  results -- keeping where the user was:
    --  the selection (or the item asked for), the scroll, the info pane on
    --  the same item and a Quick Look whose item is still there; and noting
    --  the signature the watch compares with, and the images still lacking a
    --  thumbnail as a forced background listing owed
-   --  (Files.Model.Note_Owed_Refresh) when the listing deferred them.
+   --  (Files.Model.Note_Owed_Refresh) when the listing deferred them. It
+   --  ends as every view shown anew does: the error line set to Error_Line
+   --  and the selected item's details read (Ensure_Selected_Item_Extra).
    --
    --  @param Model Window whose view is read again.
    --  @param Items The fresh listing.
@@ -55,6 +56,9 @@ package Files.Refresh is
    --    forced reload: a settings change, an explicit refresh).
    --  @param Owe_Thumbnails The listing deferred thumbnails: missing ones
    --    are owed to a background listing.
+   --  @param Show_Hidden Settings.Show_Hidden_Files, for the details read.
+   --  @param Error_Line The error line the view is shown with: "", a
+   --    search's notice, or an error kept from before the read.
    procedure Reinstall_Listing
      (Model          : in out Files.Model.Window_Model;
       Items          : Files.Items.Item_Vectors.Vector;
@@ -67,7 +71,9 @@ package Files.Refresh is
       Select_Name    : String := "";
       Keep_Selection : Boolean := True;
       Fresh_Details  : Boolean := False;
-      Owe_Thumbnails : Boolean := False);
+      Owe_Thumbnails : Boolean := False;
+      Show_Hidden    : Boolean;
+      Error_Line     : String := "");
 
    --  @param Model Window owning a pending read.
    --  @param Settings Current settings used to reject stale results.

@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Ada.Text_IO;
 with Files.IO.Durability.Testing;
 separate (Files_Suite.Recovery)
@@ -8,7 +9,8 @@ separate (Files_Suite.Recovery)
    procedure Test_A_Failed_Result_Publish_Leaves_No_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Directory : constant String := Join (Root, "result-publish");
-      Staged    : constant String := Join (Directory, Files.Jobs.Process.Staged_Name (Files.Jobs.Process.Result_File));
+      Staged    : constant String :=
+        Join (Directory, Files.Protocol_Names.Staged_Name (Files.Jobs.Process.Result_File));
       Published : constant String := Join (Directory, Files.Jobs.Process.Result_File);
       Refused   : Boolean := False;
 
@@ -19,7 +21,7 @@ separate (Files_Suite.Recovery)
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Directory);
-      Files.IO.Durability.Testing.Fail_Syncs_Ending_With (Files.Jobs.Process.Staged_Name
+      Files.IO.Durability.Testing.Fail_Syncs_Ending_With (Files.Protocol_Names.Staged_Name
         (Files.Jobs.Process.Result_File));
       begin
          Files.Jobs.Records.Publish_Result (Directory, Write_Record'Access);

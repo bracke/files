@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 separate (Files_Suite.Settings)
    --  Resetting a command whose built-in secondary another command now holds
    --  leaves that chord with its new owner: Redo gets Ctrl+Shift+Z back, not
@@ -10,10 +11,11 @@ separate (Files_Suite.Settings)
         [Guikit.Input.Control_Key | Guikit.Input.Shift_Key => True, others => False];
       Map : Files.Commands.Keymap := Files.Commands.Default_Keymap;
    begin
-      Files.Commands.Set_Shortcut_Override (Map, Files.Commands.Redo_Command, (True, Guikit.Input.Key_R, Ctrl_Shift));
-      Files.Commands.Set_Shortcut_Override
+      Files.Commands.Testing.Set_Shortcut_Override
+        (Map, Files.Commands.Redo_Command, (True, Guikit.Input.Key_R, Ctrl_Shift));
+      Files.Commands.Testing.Set_Shortcut_Override
         (Map, Files.Commands.Toggle_Folder_Tree_Command, (True, Guikit.Input.Key_Y, Ctrl));
-      Files.Commands.Clear_Shortcut_Override (Map, Files.Commands.Redo_Command);
+      Files.Commands.Testing.Clear_Shortcut_Override (Map, Files.Commands.Redo_Command);
       Assert
         (Files.Commands.Find_By_Shortcut (Map, Guikit.Input.Key_Y, Ctrl) = Files.Commands.Toggle_Folder_Tree_Command,
          "Ctrl+Y stays with the command it was bound to");
@@ -25,8 +27,8 @@ separate (Files_Suite.Settings)
               "without the secondary that is now taken");
 
       --  With the chord free again, a reset brings the secondary back.
-      Files.Commands.Clear_Shortcut_Override (Map, Files.Commands.Toggle_Folder_Tree_Command);
-      Files.Commands.Clear_Shortcut_Override (Map, Files.Commands.Redo_Command);
+      Files.Commands.Testing.Clear_Shortcut_Override (Map, Files.Commands.Toggle_Folder_Tree_Command);
+      Files.Commands.Testing.Clear_Shortcut_Override (Map, Files.Commands.Redo_Command);
       Assert (Files.Commands.Find_By_Shortcut (Map, Guikit.Input.Key_Y, Ctrl) = Files.Commands.Redo_Command,
               "a free secondary returns with the reset");
    end Test_Shortcut_Reset_Keeps_Taken_Secondary;

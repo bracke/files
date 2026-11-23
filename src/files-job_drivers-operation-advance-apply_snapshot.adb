@@ -11,7 +11,9 @@ begin
          Searched    =>
            (if Done.Kind = Search_Names then Files.UI_Types.Search_Names else Files.UI_Types.Search_Contents),
          Query       => To_String (Work.Query),
-         New_Results => True);
+         New_Results => True,
+         Show_Hidden => Settings.Show_Hidden_Files,
+         Error_Line  => To_String (Done.Visible_Error));
    else
       --  The view the operation ran in, read again by the helper: search
       --  results it searched again keep the window's selection where it
@@ -23,6 +25,8 @@ begin
          Query          => To_String (Work.Query),
          Select_Name    => To_String (Done.Selection),
          Keep_Selection => Done.Searched /= Files.UI_Types.Filter_Here,
-         Owe_Thumbnails => Done.Searched = Files.UI_Types.Filter_Here and then not Done.Recent);
+         Owe_Thumbnails => Done.Searched = Files.UI_Types.Filter_Here and then not Done.Recent,
+         Show_Hidden    => Settings.Show_Hidden_Files,
+         Error_Line     => To_String (Done.Visible_Error));
    end if;
 end Apply_Snapshot;

@@ -274,6 +274,32 @@ package body Files.Commands is
       end if;
    end Clear_Shortcut_Override;
 
+   function Rebind (Map : in out Keymap; Id : Command_Id; Chord : Shortcut) return Rebind_Outcome is
+   begin
+      if Chord.Present then
+         for Other in Registered_Command_Id loop
+            if Other /= Id and then Shortcut_For (Map, Other) = Chord then
+               return Conflict;
+            end if;
+         end loop;
+         declare
+            Owner : constant Command_Id := Find_By_Shortcut (Map, Chord.Key, Chord.Modifiers);
+         begin
+            --  Only a built-in secondary can hold it now: the owner keeps
+            --  its primary alone (an override drops the secondary).
+            if Owner /= No_Command and then Owner /= Id then
+               Set_Shortcut_Override (Map, Owner, Shortcut_For (Map, Owner));
+            end if;
+         end;
+      end if;
+      if Chord = Default_Shortcut_For (Id) then
+         Clear_Shortcut_Override (Map, Id);
+      else
+         Set_Shortcut_Override (Map, Id, Chord);
+      end if;
+      return Rebound;
+   end Rebind;
+
    function Shortcut_Override (Map : Keymap; Id : Command_Id; Is_Set : out Boolean) return Shortcut is
    begin
       Is_Set := Map.Override_Set (Id);

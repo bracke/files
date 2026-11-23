@@ -2,7 +2,6 @@ with Files.Preference_Types;
 with Files.Diagnostics;
 with Files.Settings.Path_References;
 with Files.Settings.Open_Actions;
-with Files.Text_Case;
 
 separate (Files.Settings)
    function Parse
@@ -104,12 +103,18 @@ separate (Files.Settings)
         (Name  : String;
          Named : out Settings_Section)
          return Boolean is separate;
+
+      --  One line of the file, without its line feed: a comment or blank
+      --  line is skipped, a header opens its section, and an entry goes to
+      --  its section's handler (Line_Handlers). Err is the key of what
+      --  makes the file unreadable, else empty.
+      procedure Parse_Line (Raw_Line : String; Err : out Unbounded_String) is separate;
+
+      function Failed (Error_Key : String) return Settings_Parse_Result is
+        (Success => False, Settings => Settings, Error_Key => To_Unbounded_String (Error_Key));
    begin
       if Text'Length > Max_Settings_Text_Bytes or else Contains_Nul (Text) then
-         return
-           (Success   => False,
-            Settings  => Settings,
-            Error_Key => To_Unbounded_String ("error.settings.invalid"));
+         return Failed ("error.settings.invalid");
       end if;
 
       --  The file is authoritative for filetype/icon/open-action mappings:
@@ -145,65 +150,11 @@ separate (Files.Settings)
          end loop;
 
          declare
-            Raw_Line : constant String := Text (Line_First .. Line_Last - 1);
-            Line     : constant String := Trim (Raw_Line);
-            Equals   : Natural;
+            Err : Unbounded_String;
          begin
-            if Raw_Line'Length > Max_Settings_Line_Bytes then
-               return
-                 (Success   => False,
-                  Settings  => Settings,
-                  Error_Key => To_Unbounded_String ("error.settings.invalid"));
-            elsif Line = "" or else Line (Line'First) = '#' then
-               null;
-            elsif Line (Line'First) = '[' and then Line (Line'Last) = ']' then
-               declare
-                  Name : constant String :=
-                    Files.Text_Case.To_Lower_Ascii (Trim (Line (Line'First + 1 .. Line'Last - 1)));
-                  Named : Settings_Section;
-               begin
-                  if Section_Named (Name, Named) then
-                     Section := Named;
-                  else
-                     return
-                       (Success   => False,
-                        Settings  => Settings,
-                        Error_Key => To_Unbounded_String ("error.settings.unknown_section"));
-                  end if;
-               end;
-            else
-               if Entry_Count >= Max_Settings_Entries then
-                  return
-                    (Success   => False,
-                     Settings  => Settings,
-                     Error_Key => To_Unbounded_String ("error.settings.invalid"));
-               end if;
-               Entry_Count := Entry_Count + 1;
-
-               Equals := Ada.Strings.Fixed.Index (Line, "=");
-               if Equals = 0 then
-                  return
-                    (Success   => False,
-                     Settings  => Settings,
-                     Error_Key => To_Unbounded_String ("error.settings.expected_equals"));
-               end if;
-
-               declare
-                  Key       : constant String := Trim (Line (Line'First .. Equals - 1));
-                  Setting_Key : constant String := Files.Text_Case.To_Lower_Ascii (Key);
-                  Raw_Value : constant String := Trim (Line (Equals + 1 .. Line'Last));
-                  Value     : constant String := Strip_Quotes (Raw_Value);
-                  Err       : Unbounded_String := Null_Unbounded_String;
-               begin
-                  Line_Handlers (Section).all (Key, Setting_Key, Value, Raw_Value, Err);
-
-                  if Length (Err) > 0 then
-                     return
-                       (Success   => False,
-                        Settings  => Settings,
-                        Error_Key => Err);
-                  end if;
-               end;
+            Parse_Line (Text (Line_First .. Line_Last - 1), Err);
+            if Length (Err) > 0 then
+               return (Success => False, Settings => Settings, Error_Key => Err);
             end if;
          end;
 
@@ -230,8 +181,5 @@ separate (Files.Settings)
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Settings");
-         return
-           (Success   => False,
-            Settings  => Settings,
-            Error_Key => To_Unbounded_String ("error.settings.invalid"));
+         return Failed ("error.settings.invalid");
    end Parse;

@@ -25,4 +25,10 @@ package body Files.Commands.Testing is
 
    procedure Reset_Shortcut_Overrides renames Files.Commands.Reset_Shortcut_Overrides;
 
+   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut)
+     renames Files.Commands.Set_Shortcut_Override;
+
+   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id)
+     renames Files.Commands.Clear_Shortcut_Override;
+
 end Files.Commands.Testing;

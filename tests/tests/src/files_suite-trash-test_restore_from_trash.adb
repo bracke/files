@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -38,7 +39,7 @@ separate (Files_Suite.Trash)
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "restore navigates into trash files directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Files.Operations.Settle_Current_Is_Trash (Model);
+      Files.Operations.Testing.Settle_Current_Is_Trash (Model);
       Assert (Files.Model.Current_Is_Trash (Model), "entering the trash settles that it is the trash");
       Assert
         (not Files.Model.Current_Is_Trash (Files_Suite.Support.Models.Sample_Model),
@@ -72,7 +73,7 @@ separate (Files_Suite.Trash)
       Load := Files_Suite.Listings.Load_Directory
         (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Files.Operations.Settle_Current_Is_Trash (Model);
+      Files.Operations.Testing.Settle_Current_Is_Trash (Model);
       Select_Name (Model, "restore-me.txt");
       Result :=
         Files.Controller.Execute_Non_Settings_Command

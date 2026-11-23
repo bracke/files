@@ -65,6 +65,7 @@ separate (Files.Interaction)
             --  keystroke never leaks a glyph into a focused text field.
             Result.Clear_Pending_Text := True;
          end;
+         Finish_Dispatch (Model, Settings, Settings_Path, Result);
          return;
       end if;
 

@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Trash;
@@ -57,7 +58,7 @@ separate (Files_Suite.Trash)
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "empty-trash setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Files.Operations.Settle_Current_Is_Trash (Model);
+      Files.Operations.Testing.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed items");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
@@ -99,7 +100,7 @@ separate (Files_Suite.Trash)
          Assert (Files.File_System.Trash.Move_To_Trash (Source_A).Success, "an item is trashed beside them");
          Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-         Files.Operations.Settle_Current_Is_Trash (Model);
+         Files.Operations.Testing.Settle_Current_Is_Trash (Model);
          Files_Suite.Support.Discard (
            Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings));
          Assert (not Ada.Directories.Exists (Old_Orphan), "an old info file describing nothing is removed");

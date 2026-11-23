@@ -212,15 +212,18 @@ package body Files.Interaction is
       Tree_Page_Rows    : Natural := 0) is separate;
 
    procedure Append_Text
-     (Model  : in out Files.Model.Window_Model;
-      Text   : String;
-      Result : out Interaction_Result)
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Text          : String;
+      Result        : out Interaction_Result)
    is
       Outcome : constant Files.Controller.Controller_Result := Files.Controller.Append_Focused_Text (Model, Text);
    begin
       --  A character runs no command: the edit or the type-ahead move is in
       --  the model, which the next frame draws.
       Result := (Status => Outcome.Status, others => <>);
+      Finish_Dispatch (Model, Settings, Settings_Path, Result);
    end Append_Text;
 
    procedure Import_Drops

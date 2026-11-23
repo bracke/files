@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files_Suite.Support.Guards;
@@ -72,7 +73,7 @@ separate (Files_Suite.Context_Menu)
          Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize
            (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Disk.Root);
-         Files.Operations.Settle_Current_Is_Trash (Model);
+         Files.Operations.Testing.Settle_Current_Is_Trash (Model);
          Files_Suite.Support.Models.Select_Name (Model, "restore-me.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command

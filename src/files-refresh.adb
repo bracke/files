@@ -58,7 +58,7 @@ package body Files.Refresh is
       Items : Files.Items.Item_Vectors.Vector;
       Signature : Files.File_System_Types.Directory_Signature;
       Error_Key : Files.Types.UString;
-      --  A search's notice (Files.File_System.Search.Notice_Of), or "".
+      --  A search's notice (as Files.File_System.Search.Search_Folder gives it), or "".
       Notice : Files.Types.UString;
    end record;
 
@@ -261,6 +261,19 @@ package body Files.Refresh is
          Files.Model.Note_Owed_Refresh (Model, False, "");
    end Owe_Reload;
 
+   --  How every view shown anew ends: Error_Line on the error line (set
+   --  only when it differs) and the selected item's details read.
+   procedure Settle_Shown
+     (Model       : in out Files.Model.Window_Model;
+      Error_Line  : String;
+      Show_Hidden : Boolean) is
+   begin
+      if Files.Model.Last_Error_Key (Model) /= Error_Line then
+         Files.Model.Set_Error (Model, Error_Line);
+      end if;
+      Ensure_Selected_Item_Extra (Model, Show_Hidden);
+   end Settle_Shown;
+
    procedure Reinstall_Listing
      (Model          : in out Files.Model.Window_Model;
       Items          : Files.Items.Item_Vectors.Vector;
@@ -273,7 +286,9 @@ package body Files.Refresh is
       Select_Name    : String := "";
       Keep_Selection : Boolean := True;
       Fresh_Details  : Boolean := False;
-      Owe_Thumbnails : Boolean := False) is separate;
+      Owe_Thumbnails : Boolean := False;
+      Show_Hidden    : Boolean;
+      Error_Line     : String := "") is separate;
 
    function Advance
      (Model : in out Files.Model.Window_Model;

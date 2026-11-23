@@ -1,7 +1,6 @@
 with Files.Model.Jobs;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
-with Files.Name_Parts;
 
 separate (Files.Operations.Paste)
 function Advance_Paste_Execution
@@ -65,6 +64,22 @@ is
       end if;
    end Advance_Background_Paste;
 
+   --  Settle one finished action, whichever ran it (a helper, or this
+   --  window when there are no background transfers): the original it
+   --  replaced recorded for undo, its copy recorded -- or kept aside, when
+   --  a failed move left its source -- and the paste finalized when the
+   --  action failed, was cancelled or recovered, or the paste was cancelled.
+   --
+   --  @param Action The action that ran.
+   --  @param Result What it did.
+   --  @param Ended True when the paste is over; Outcome is then its result.
+   --  @param Outcome The finalized paste's result when Ended.
+   procedure Settle_Action
+     (Action  : Files.Paste.Resolved_Action;
+      Result  : Files.Transfer_Jobs.Job_Result;
+      Ended   : out Boolean;
+      Outcome : out Operation_Result) is separate;
+
 begin
    if not Files.Model.Pasting.Execution_Is_Active (Model) then
       return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
@@ -83,97 +98,35 @@ begin
       begin
          if Action.Skip then
             Files.Model.Pasting.Skip_Action (Model);
-         elsif Files.Model.Jobs.Background_Transfers (Model) then
-            declare
-               Finished : Boolean;
-               Result   : Files.Transfer_Jobs.Job_Result;
-               Kept     : Kept_Copy := No_Kept_Copy;
-            begin
-               Advance_Background_Paste (Model, Finished, Result);
-               if not Finished then
-                  return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
-               end if;
-               if Length (Result.Trashed) > 0 then
-                  Record_Paste_Replaced_Trash
-                    (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
-               end if;
-               --  A move that failed yet kept its copy at the destination:
-               --  the copy is recorded so the paste's undo covers it -- as a
-               --  move when its source is gone, as a copy when it remains.
-               if not Result.Mutation.Success and then Length (Result.Created_Identity) > 0 then
-                  if Source_Remains (Action) then
-                     Kept :=
-                       (Action.Dest_Path, Action.Source_Path, Result.Created_Identity, Result.Created_Tree_Revision);
-                  else
-                     Record_Paste_Write
-                       (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
-                        To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
-                  end if;
-               end if;
-               if Result.Cancelled then
-                  return Finalize_Paste_Execution (Model, Settings, "", Kept);
-               elsif not Result.Mutation.Success then
-                  return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key), Kept);
-               end if;
-               Record_Paste_Write
-                 (Model, Action.Dest_Path, Action.Source_Path,
-                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
-                  To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
-                  Retain_Verified_Snapshot => Result.Recovered);
-               if Result.Recovered then
-                  return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
-               end if;
-               if Files.Model.Pasting.Execution_Cancelled (Model) then
-                  return Finalize_Paste_Execution (Model, Settings, "");
-               end if;
-            end;
          else
             declare
-               Replaced_Trash, Replaced_Identity : Files.Types.UString;
-               Created_Identity, Created_Tree_Revision : Files.Types.UString;
-               Mutation : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Transfer.Import_Replacing
-                   (Source                => To_String (Action.Source_Path),
-                    Destination           => To_String (Action.Dest_Path),
-                    Mode                  => Files.Model.Pasting.Execution_Mode (Model),
-                    Replace               => Action.Replaced,
-                    Replaced              => Replaced_Trash,
-                    Replaced_Identity     => Replaced_Identity,
-                    Created_Identity      => Created_Identity,
-                    Created_Tree_Revision => Created_Tree_Revision,
-                    Batch                 => Files.Model.Pasting.Execution_Copy_Context (Model));
+               Finished : Boolean := True;
+               Result   : Files.Transfer_Jobs.Job_Result;
+               Ended    : Boolean;
+               Outcome  : Operation_Result;
             begin
-               --  An original still held after the action (the write
-               --  succeeded, or neither it nor putting it back did) is
-               --  tracked so the paste's undo entry can restore it.
-               if Length (Replaced_Trash) > 0 then
-                  Record_Paste_Replaced_Trash
-                    (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
-               end if;
-               if not Mutation.Success then
-                  --  A move that failed yet kept its copy at the destination:
-                  --  the copy is recorded so the paste's undo covers it -- as
-                  --  a move when its source is gone, as a copy when it remains.
-                  if Length (Created_Identity) > 0 and then Source_Remains (Action) then
-                     return Finalize_Paste_Execution
-                       (Model, Settings, To_String (Mutation.Error_Key),
-                        (Action.Dest_Path, Action.Source_Path, Created_Identity, Created_Tree_Revision));
-                  elsif Length (Created_Identity) > 0 then
-                     Record_Paste_Write
-                       (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
-                        To_String (Created_Identity), To_String (Created_Tree_Revision));
+               if Files.Model.Jobs.Background_Transfers (Model) then
+                  Advance_Background_Paste (Model, Finished, Result);
+                  if not Finished then
+                     return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
                   end if;
-                  return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
+               else
+                  Result.Mutation :=
+                    Files.File_System.Transfer.Import_Replacing
+                      (Source                => To_String (Action.Source_Path),
+                       Destination           => To_String (Action.Dest_Path),
+                       Mode                  => Files.Model.Pasting.Execution_Mode (Model),
+                       Replace               => Action.Replaced,
+                       Replaced              => Result.Trashed,
+                       Replaced_Identity     => Result.Trashed_Identity,
+                       Created_Identity      => Result.Created_Identity,
+                       Created_Tree_Revision => Result.Created_Tree_Revision,
+                       Batch                 => Files.Model.Pasting.Execution_Copy_Context (Model));
                end if;
-               Record_Paste_Write
-                 (Model,
-                  Action.Dest_Path,
-                  Action.Source_Path,
-                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
-                  To_String (Created_Identity),
-                  To_String (Created_Tree_Revision));
+               Settle_Action (Action, Result, Ended, Outcome);
+               if Ended then
+                  return Outcome;
+               end if;
             end;
          end if;
       end;

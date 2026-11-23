@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Files.File_System.Permissions.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -59,7 +60,7 @@ separate (Files_Suite.Trash)
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "partial-empty setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Files.Operations.Settle_Current_Is_Trash (Model);
+      Files.Operations.Testing.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed entries");
 
       --  Emptying must never crash; the ordinary file is always removed.

@@ -62,4 +62,29 @@ package body Files.File_System.Search is
       return Recursive_Search_Result
    is separate;
 
+   function Search_Folder
+     (Root_Path : String;
+      Query     : String;
+      Scope     : Files.UI_Types.Tree_Search_Scope;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options)
+      return Folder_Search_Result
+   is
+      use type Files.UI_Types.Search_Scope;
+      Found : constant Recursive_Search_Result :=
+        (if Scope = Files.UI_Types.Search_Contents
+         then Search_Contents (Root_Path, Query, Classes, Options)
+         else Search_Names (Root_Path, Query, Classes, Options));
+   begin
+      if not Found.Success then
+         return (Success => False, Error_Key => Found.Error_Key, others => <>);
+      end if;
+      return
+        (Success   => True,
+         Items     => Found.Items,
+         Error_Key => Null_Unbounded_String,
+         Notice    => To_Unbounded_String (Notice_Of (Found)),
+         Signature => Directory_State (Root_Path));
+   end Search_Folder;
+
 end Files.File_System.Search;

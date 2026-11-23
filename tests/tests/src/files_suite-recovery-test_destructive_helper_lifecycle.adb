@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Files.Refresh.Watch;
 with Files.Application.Windows.Testing;
 with Files.Operations.History.Testing;
@@ -159,7 +160,7 @@ separate (Files_Suite.Recovery)
       Paths := Files.Model.History.Undo_From_Paths (Model);
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Navigate_To (Model, Files.File_System.Trash.Trash_Files_Directory, Load.Items);
-      Files.Operations.Settle_Current_Is_Trash (Model);
+      Files.Operations.Testing.Settle_Current_Is_Trash (Model);
       Select_Name (Model, Ada.Directories.Simple_Name (To_String (Paths.First_Element)));
       Step := Complete_Operation
         (Model, Settings, Operation_Commands.Restore_Selected_From_Trash (Model, Settings));

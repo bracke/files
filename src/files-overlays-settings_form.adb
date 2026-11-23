@@ -20,7 +20,6 @@ package body Files.Overlays.Settings_Form is
    use type SP.Change_Kind;
    use all type Files.Settings.Scalar_Setting;
    use type Files.Commands.Command_Id;
-   use type Files.Commands.Shortcut;
 
    Shortcut_Key_Prefix : constant String := "shortcut.";
 
@@ -194,13 +193,11 @@ package body Files.Overlays.Settings_Form is
 
    --  Route a captured chord (Combo, empty to unbind) to the command named by a
    --  "shortcut.<identifier>" field Key, in the keymap the draft's Overrides
-   --  describe; the live keymap changes only when a save of the draft is
-   --  accepted. Applied is set when the binding changed; Conflict is set
-   --  instead when a different command's primary binding is the chord (the
-   --  binding is left untouched). A chord held only by another command's
-   --  built-in secondary is taken from it.
-   --  A binding equal to the built-in default clears the override so an untouched
-   --  keymap leaves no persisted [shortcuts] entry.
+   --  describe, by the keymap's rules (Files.Commands.Rebind); the live
+   --  keymap changes only when a save of the draft is accepted. Applied is
+   --  set when the binding changed; Conflict is set instead when a
+   --  different command's primary binding is the chord (the binding is
+   --  left untouched).
    procedure Apply_Shortcut
      (Overrides : in out Files.Settings.Shortcut_Override_Vectors.Vector;
       Field_Key : String;
@@ -224,38 +221,13 @@ package body Files.Overlays.Settings_Form is
          return;
       end if;
 
-      declare
-         Parsed : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut (Combo);
-      begin
-         if Parsed.Present then
-            --  Only bindings in force conflict. Another command's primary
-            --  does; its built-in secondary does not: the chord moves to Id
-            --  and that command keeps its primary alone (an override drops
-            --  its secondary).
-            for Other in Files.Commands.Registered_Command_Id loop
-               if Other /= Id and then Files.Commands.Shortcut_For (Map, Other) = Parsed then
-                  Conflict := True;
-                  return;
-               end if;
-            end loop;
-            declare
-               Owner : constant Files.Commands.Command_Id :=
-                 Files.Commands.Find_By_Shortcut (Map, Parsed.Key, Parsed.Modifiers);
-            begin
-               if Owner /= Files.Commands.No_Command and then Owner /= Id then
-                  Files.Commands.Set_Shortcut_Override (Map, Owner, Files.Commands.Shortcut_For (Map, Owner));
-               end if;
-            end;
-         end if;
-
-         if Parsed = Files.Commands.Default_Shortcut_For (Id) then
-            Files.Commands.Clear_Shortcut_Override (Map, Id);
-         else
-            Files.Commands.Set_Shortcut_Override (Map, Id, Parsed);
-         end if;
-         Overrides := Files.Commands.Keymap_Settings.Overrides_Of (Map);
-         Applied := True;
-      end;
+      case Files.Commands.Rebind (Map, Id, Files.Commands.Parse_Shortcut (Combo)) is
+         when Files.Commands.Conflict =>
+            Conflict := True;
+         when Files.Commands.Rebound =>
+            Overrides := Files.Commands.Keymap_Settings.Overrides_Of (Map);
+            Applied := True;
+      end case;
    end Apply_Shortcut;
 
    --  A full return to defaults: the draft's shortcut overrides go too (the

@@ -1,3 +1,5 @@
+with Files.UI_Types;
+
 --  Recursive name and content search below a folder. Clients with this,
 --  not the whole of Files.File_System.
 package Files.File_System.Search is
@@ -17,6 +19,45 @@ package Files.File_System.Search is
       Incomplete : Boolean := False;
    end record;
 
+   --  Whether Key is one of the notices a search's answer is shown with
+   --  ("search.truncated", "search.incomplete", "search.no_matches"): a notice about the results shown,
+   --  not an operation's diagnostic, so it does not outlive them.
+   --
+   --  @param Key An error line's key.
+   --  @return True for a search notice.
+   function Is_Notice (Key : String) return Boolean is
+     (Key in "search.truncated" | "search.incomplete" | "search.no_matches");
+
+   --  A folder searched to show its results: the answer, the notice it is
+   --  shown with and the folder's signature as the search left it.
+   type Folder_Search_Result is record
+      Success   : Boolean := False;
+      Items     : Item_Vectors.Vector;
+      Error_Key : UString;
+      Notice    : UString;
+      Signature : Directory_Signature;
+   end record;
+
+   --  The one search a view's results come from, in the window or in a
+   --  helper: Search_Names or Search_Contents by Scope, its Notice_Of, and
+   --  Directory_State of Root_Path when it answered.
+   --
+   --  @param Root_Path Directory where the search starts.
+   --  @param Query What to search for.
+   --  @param Scope By name or by content.
+   --  @param Classes Filetype and icon maps items are classified by.
+   --  @param Options Hidden-entry and sort policy.
+   --  @return The results with their notice and signature, or why the
+   --    search failed.
+   function Search_Folder
+     (Root_Path : String;
+      Query     : String;
+      Scope     : Files.UI_Types.Tree_Search_Scope;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options)
+      return Folder_Search_Result;
+private
+
    --  The notice a search's answer is shown with: "search.truncated" when a
    --  limit cut it short, "search.incomplete" when something went
    --  unsearched, "search.no_matches" when it found nothing, else "".
@@ -28,14 +69,6 @@ package Files.File_System.Search is
       elsif Found.Incomplete then "search.incomplete"
       elsif Found.Items.Is_Empty then "search.no_matches"
       else "");
-
-   --  Whether Key is one Notice_Of gives: a notice about the results shown,
-   --  not an operation's diagnostic, so it does not outlive them.
-   --
-   --  @param Key An error line's key.
-   --  @return True for a search notice.
-   function Is_Notice (Key : String) return Boolean is
-     (Key in "search.truncated" | "search.incomplete" | "search.no_matches");
 
    --  Search a directory tree recursively for item names matching Query.
    --  A folder below the root that cannot be read is skipped (Incomplete),
@@ -76,7 +109,6 @@ package Files.File_System.Search is
       Classes   : Files.File_Types.Classification;
       Options   : Files.Types.Listing_Options)
       return Recursive_Search_Result;
-private
 
    --  Whether Bytes, text and not binary, contain Query, ignoring case.
    --  UTF-16 and Windows-1252 text is searched as what it says

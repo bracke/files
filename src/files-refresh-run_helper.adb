@@ -11,24 +11,22 @@ separate (Files.Refresh)
    begin
       Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Jobs.Process.Request_File));
       if Work.Searched /= Files.UI_Types.Filter_Here then
-         --  The window shows search results: they are found again, as
-         --  Operations' Search_Current_Folder finds them.
+         --  The window shows search results: they are found again, by the
+         --  one search a view's results come from.
          declare
-            Root    : constant String := To_String (Work.Root);
-            Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Work.Settings);
-            Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Work.Settings);
-            Found   : constant Files.File_System.Search.Recursive_Search_Result :=
-              (if Work.Searched = Files.UI_Types.Search_Contents
-               then Files.File_System.Search.Search_Contents (Root, To_String (Work.Query), Classes, Options)
-               else Files.File_System.Search.Search_Names (Root, To_String (Work.Query), Classes, Options));
+            Found : constant Files.File_System.Search.Folder_Search_Result :=
+              Files.File_System.Search.Search_Folder
+                (To_String (Work.Root), To_String (Work.Query), Work.Searched,
+                 Files.Settings.Classification_Of (Work.Settings),
+                 Files.Settings.Listing_Options_Of (Work.Settings));
          begin
             Done.Success := Found.Success;
             Done.Reloaded := Found.Success;
             Done.Error_Key := Found.Error_Key;
             if Found.Success then
                Done.Items := Found.Items;
-               Done.Notice := To_Unbounded_String (Files.File_System.Search.Notice_Of (Found));
-               Done.Signature := Files.File_System.Directory_State (Root);
+               Done.Notice := Found.Notice;
+               Done.Signature := Found.Signature;
             else
                Done.Signature := Work.Previous;
             end if;

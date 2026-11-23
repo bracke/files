@@ -172,6 +172,18 @@ package body Files.Controller is
       end;
    end Take_In_Settings;
 
+   --  Put After's shortcuts in force when they are not Before's: the one
+   --  way settings in force reach the live keymap after startup.
+   procedure Follow_Shortcuts
+     (Before : Files.Settings.Settings_Model;
+      After  : in out Files.Settings.Settings_Model) is
+      use type Files.Settings.Shortcut_Override_Vectors.Vector;
+   begin
+      if After.Shortcut_Overrides /= Before.Shortcut_Overrides then
+         Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (After);
+      end if;
+   end Follow_Shortcuts;
+
    --  Save already-applied settings (Files.Settings.Storage.Persist) and
    --  apply the outcome to this window: settings the save took in (another
    --  process's change, or a rebind not saved before) are made in force
@@ -186,7 +198,6 @@ package body Files.Controller is
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
-      use type Files.Settings.Shortcut_Override_Vectors.Vector;
       Taken_In : Boolean;
    begin
       declare
@@ -194,11 +205,9 @@ package body Files.Controller is
          Saved  : constant Files.Settings.Settings_Write_Result :=
            Files.Settings.Storage.Persist (Settings_Path, Settings, Taken_In);
       begin
-         --  A rebind another process saved meanwhile is put in force here.
-         if Taken_In and then Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
-            Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
-         end if;
          if Taken_In then
+            --  A rebind another process saved meanwhile is put in force here.
+            Follow_Shortcuts (Before, Settings);
             Take_In_Settings (Model, Before, Settings);
             Files.Model.Note_Settings_Changed (Model);
          end if;
@@ -243,13 +252,10 @@ package body Files.Controller is
             Files.Model.Set_Error (Model, "error.settings.full");
          when Files.Settings.Storage.Commit_Accepted =>
             declare
-               use type Files.Settings.Shortcut_Override_Vectors.Vector;
                Before : constant Files.Settings.Settings_Model := Settings;
             begin
                Settings := Updated;
-               if Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
-                  Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
-               end if;
+               Follow_Shortcuts (Before, Settings);
                Files.Model.Note_Settings_Changed (Model);
                if Take_In_All then
                   Take_In_Settings (Model, Before, Settings);
@@ -1359,6 +1365,24 @@ package body Files.Controller is
       Target : Files.Input_Actions.Scroll_Target;
       Lines  : Integer)
       return Controller_Result is separate;
+
+   procedure Scroll_To
+     (Model    : in out Files.Model.Window_Model;
+      Target   : Files.Input_Actions.Scroll_Target;
+      Position : Natural) is
+   begin
+      case Target is
+         when Files.Input_Actions.Scroll_Main_View =>
+            Files.Model.Set_Main_View_Scroll_Lines (Model, Position);
+         when Files.Input_Actions.Scroll_Info_Pane =>
+            Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Model, Position);
+         when Files.Input_Actions.Scroll_Tree_Panel =>
+            Files.Model.Tree_Panel.Set_Scroll_Rows (Model, Position);
+         when Files.Input_Actions.No_Scroll_Target
+            | Files.Input_Actions.Scroll_Settings_Pane
+            | Files.Input_Actions.Scroll_Command_Palette => null;
+      end case;
+   end Scroll_To;
 
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;

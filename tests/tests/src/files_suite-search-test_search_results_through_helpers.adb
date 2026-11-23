@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 with Ada.Environment_Variables;
 with Files.File_System.Trash;
 with Files.Model.Jobs;
@@ -44,7 +45,7 @@ separate (Files_Suite.Search)
            Files_Suite.Listings.Load_Directory (Folder, Settings);
       begin
          Files.Model.Initialize (Model, Folder, Load.Items, Root);
-         Files.Operations.Settle_Current_Is_Trash (Model);
+         Files.Operations.Testing.Settle_Current_Is_Trash (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Files.Model.Filtering.Set_Filter (Model, Query);
          Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);

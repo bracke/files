@@ -15,10 +15,6 @@ package Files.Jobs.Process is
    Request_File : constant String := Files.Protocol_Names.Request_File;
    Result_File  : constant String := Files.Protocol_Names.Result_File;
 
-   --  @param Name A result's published name.
-   --  @return The name it is written under before it is published.
-   function Staged_Name (Name : String) return String renames Files.Protocol_Names.Staged_Name;
-
    --  @param Job Session to reserve a private transport directory for.
    procedure Reserve (Job : in out Session);
 

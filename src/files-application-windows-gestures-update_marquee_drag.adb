@@ -1,3 +1,5 @@
+with Files.Controller;
+with Files.Input_Actions;
 with Files.Model.Selection;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
@@ -55,7 +57,7 @@ separate (Files.Application.Windows.Gestures)
             begin
                if New_Lines /= Current then
                   Runtime.Marquee.Auto_Scrolled := True;
-                  Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
+                  Files.Controller.Scroll_To (Runtime.Model, Files.Input_Actions.Scroll_Main_View, New_Lines);
                   Refresh_Snapshot (Runtime);
                   Layout := Files.Rendering.Layouts.Calculate_Layout
                     (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),

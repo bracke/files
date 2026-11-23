@@ -5,7 +5,8 @@ separate (Check_All)
       --  Every subprogram in Files.Model or any of its children that takes
       --  the Window_Model "in out" is a mutator; the list is derived from the
       --  specs, so a new child or a new mutator is covered without editing
-      --  this check. A dispatch is refused more: any subprogram outside
+      --  this check. The window's pointer gestures are refused the same
+      --  mutators. A dispatch is refused more: any subprogram outside
       --  Files.Controller (and Interaction's own family) that takes the
       --  model "in out" -- an operation, a refresh, an overlay's edit --
       --  changes it past the controller. A leading "Model." is read as
@@ -130,5 +131,13 @@ separate (Check_All)
       end loop;
       for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-interaction*.ad?", Generated_Directories) loop
          Check (To_String (Item), "a dispatch (it goes through Files.Controller)", Past_Controller);
+      end loop;
+      --  The window's pointer gestures (a scrollbar drag, a marquee) place
+      --  and select through the controller too (Controller.Scroll_To,
+      --  Select_Marquee_Rows), never by a model mutator.
+      for Item of Project_Tools.Files.List_Tree
+        (Root & "/src", "files-application-windows-gestures*.ad?", Generated_Directories)
+      loop
+         Check (To_String (Item), "a pointer gesture (it goes through Files.Controller)", Mutators);
       end loop;
    end Check_Rendering_Model_Reads;

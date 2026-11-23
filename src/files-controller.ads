@@ -572,6 +572,20 @@ package Files.Controller is
       Lines  : Integer)
       return Controller_Result;
 
+   --  Place Target at Position -- lines, or rows for the tree panel -- as
+   --  a scrollbar drag or a marquee's auto-scroll does: they place a region
+   --  where the pointer is, where Handle_Targeted_Scroll moves it by steps.
+   --  A region with no position of its own (the settings pane, the
+   --  palette) is left as it is.
+   --
+   --  @param Model Window model to update.
+   --  @param Target Scrollable area to place.
+   --  @param Position Its new position, clamped by the region.
+   procedure Scroll_To
+     (Model    : in out Files.Model.Window_Model;
+      Target   : Files.Input_Actions.Scroll_Target;
+      Position : Natural);
+
    --  Focus a text field from a mouse click and place its cursor.
    --
    --  @param Model Window model to update.

@@ -11,7 +11,9 @@ separate (Files.Refresh)
       Select_Name    : String := "";
       Keep_Selection : Boolean := True;
       Fresh_Details  : Boolean := False;
-      Owe_Thumbnails : Boolean := False)
+      Owe_Thumbnails : Boolean := False;
+      Show_Hidden    : Boolean;
+      Error_Line     : String := "")
    is
       use type Files.UI_Types.Search_Scope;
       Previous_Selection : constant Files.Types.String_Vectors.Vector :=
@@ -88,4 +90,5 @@ separate (Files.Refresh)
       if Owe_Thumbnails and then Files.File_System.Thumbnails_Missing (Items) then
          Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
       end if;
+      Settle_Shown (Model, Error_Line, Show_Hidden);
    end Reinstall_Listing;

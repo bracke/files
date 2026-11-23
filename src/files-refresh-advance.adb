@@ -72,18 +72,6 @@ separate (Files.Refresh)
          end if;
          return False;
       end if;
-      if Done.Reloaded then
-         Reinstall_Listing
-           (Model, Done.Items, Done.Signature,
-            Recent        => Work.Recent,
-            Searched      => Work.Searched,
-            Query         => To_String (Work.Query),
-            Select_Path   => To_String (Work.Select_Path),
-            Select_Name   => To_String (Work.Selection),
-            Fresh_Details => Work.Force);
-      else
-         Files.Model.Set_Directory_Signature (Model, Done.Signature);
-      end if;
       declare
          --  The error kept from before the read, else a search's notice.
          Wanted : constant String :=
@@ -91,11 +79,22 @@ separate (Files.Refresh)
             then To_String (Done.Notice)
             else To_String (Work.Error_Key));
       begin
-         if Files.Model.Last_Error_Key (Model) /= Wanted then
-            Files.Model.Set_Error (Model, Wanted);
+         if Done.Reloaded then
+            Reinstall_Listing
+              (Model, Done.Items, Done.Signature,
+               Recent        => Work.Recent,
+               Searched      => Work.Searched,
+               Query         => To_String (Work.Query),
+               Select_Path   => To_String (Work.Select_Path),
+               Select_Name   => To_String (Work.Selection),
+               Fresh_Details => Work.Force,
+               Show_Hidden   => Settings.Show_Hidden_Files,
+               Error_Line    => Wanted);
+         else
+            Files.Model.Set_Directory_Signature (Model, Done.Signature);
+            Settle_Shown (Model, Wanted, Settings.Show_Hidden_Files);
          end if;
       end;
-      Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
       return Done.Reloaded;
    exception
       when Swallowed : others =>

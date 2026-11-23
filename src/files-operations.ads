@@ -100,11 +100,13 @@ package Files.Operations is
       Home_Path      : String)
       return Operation_Result;
 
+private
+
    --  Settle whether the model's current directory is the trash's files
    --  directory, a disk check (the trash may be reached through another path
-   --  to the same directory). Every navigation here calls it after it changes
-   --  the directory; so must any other caller that sets the model's directory
-   --  through Files.Model directly.
+   --  to the same directory). Every view a navigation shows settles it
+   --  (Support.Load_And_Show); the suite, which sets a model's directory
+   --  through Files.Model directly, reaches it through Operations.Testing.
    --
    --  @param Model Window model whose trash flag is settled.
    procedure Settle_Current_Is_Trash

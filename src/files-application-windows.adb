@@ -257,7 +257,8 @@ package body Files.Application.Windows is
 
       --  The edit or type-ahead move is in the model, which the next frame
       --  draws: a character leaves the window nothing to follow up.
-      Files.Interaction.Append_Text (Runtime.Model, Text, Result);
+      Files.Interaction.Append_Text
+        (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path), Text, Result);
    end Dispatch_Text;
 
    --  Scroll the main view just far enough that the selected item is whole

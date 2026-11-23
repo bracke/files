@@ -14,7 +14,8 @@ with Hostkit.Fs;
 with Files.Model.Selection;
 with Files.Model.Filtering;
 with Files.File_System.Search;
-with Files.File_Types;
+with Files.Items;
+with Files.File_System_Types;
 with Files.Settings.Open_Actions;
 
 package body Files.Operations.Support is
@@ -135,74 +136,66 @@ package body Files.Operations.Support is
       end if;
       Reload_In_Place :
       declare
-         --  Only a reload here restores them: the background one above
-         --  restores its own, so a Select All is not copied for nothing.
-         Previous_Selection : constant Files.Types.String_Vectors.Vector :=
-           Files.Model.Selection.Selected_Paths (Model);
-         Previous_Primary : constant String :=
-           To_String (Files.Model.Selection.Selected_Item (Model).Full_Path);
+         use type Files.UI_Types.Search_Scope;
+         --  The Recent view has no backing directory (Current_Path is
+         --  empty): it is rebuilt from the recorded recent paths
+         --  (Load_Recent_Items), not loaded. Search results have no folder
+         --  listing to reload: the search runs again, so what the
+         --  operation changed shows among them and they stay shown.
+         Recent   : constant Boolean := Files.Model.Recent.In_Recent_View (Model);
+         Searched : constant Files.UI_Types.Search_Scope :=
+           (if not Recent and then Files.Model.Filtering.Search_Results_Are_Active (Model)
+            then Files.Model.Filtering.Search_Scope_Of (Model)
+            else Files.UI_Types.Filter_Here);
+         Root      : constant String := Files.Model.Current_Path (Model);
+         Items     : Files.Items.Item_Vectors.Vector;
+         Signature : Files.File_System_Types.Directory_Signature := Files.Model.Directory_Signature_Of (Model);
+         Notice    : Unbounded_String;
       begin
-         --  The Recent view has no backing directory (Current_Path is empty), so a
-         --  directory load would spuriously fail and a mutation performed from
-         --  Recent would be reported as failed with the view left stale. Rebuild it
-         --  from the recorded recent paths instead (Load_Recent_Items).
-         if Files.Model.Recent.In_Recent_View (Model) then
-            Files.Model.Navigate_Recent (Model, Files.Refresh.Load_Recent_Items (Settings));
-            if Preserve_Selection and then Select_Name = "" then
-               Files.Model.Selection.Restore
-                 (Model, Previous_Selection, Previous_Primary);
-            end if;
-            Files.Model.Set_Error (Model, "");
-            return Make_Result (Operation_Success);
-         end if;
-
-         --  Search results have no folder listing to reload: the search runs
-         --  again, so what the operation changed shows among them and they
-         --  stay shown (a folder listing put in their place left the view
-         --  saying it held results).
-         if Files.Model.Filtering.Search_Results_Are_Active (Model) then
+         if Recent then
+            Items := Files.Refresh.Load_Recent_Items (Settings);
+         elsif Searched /= Files.UI_Types.Filter_Here then
             declare
-               Searched : constant Operation_Result :=
-                 Search_Current_Folder
-                   (Model, Settings,
-                    Files.UI_Types.Tree_Search_Scope (Files.Model.Filtering.Search_Scope_Of (Model)),
-                    Files.Model.Filtering.Search_Query (Model));
+               Found : constant Files.File_System.Search.Folder_Search_Result :=
+                 Files.File_System.Search.Search_Folder
+                   (Root, Files.Model.Filtering.Search_Query (Model), Searched,
+                    Files.Settings.Classification_Of (Settings), Files.Settings.Listing_Options_Of (Settings));
             begin
-               if Searched.Status = Operation_Success then
-                  if Select_Path /= "" then
-                     Files.Model.Selection.Restore
-                       (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1),
-                        Select_Path);
-                  else
-                     Files.Model.Selection.Restore (Model, Previous_Selection, Previous_Primary);
-                  end if;
+               if not Found.Success then
+                  Files.Model.Set_Error (Model, To_String (Found.Error_Key));
+                  return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
                end if;
-               return Searched;
+               Items := Found.Items;
+               Signature := Found.Signature;
+               Notice := Found.Notice;
+            end;
+         else
+            declare
+               Load : constant Files.File_System.Directory_Load_Result := Load_Folder (Settings, Root);
+            begin
+               if not Load.Success then
+                  Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+                  return Make_Result (Operation_Failed, To_String (Load.Error_Key), Root);
+               end if;
+               Items := Load.Items;
+               Signature := Load.Signature;
             end;
          end if;
-
-         declare
-            Load : constant Files.File_System.Directory_Load_Result :=
-              Load_Folder (Settings, Files.Model.Current_Path (Model));
-         begin
-            if not Load.Success then
-               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-               return
-                 Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
-            end if;
-
-            --  A reload runs after every operation: it must not decode each
-            --  new image while the UI waits, as no folder shown does.
-            Files.Refresh.Reinstall_Listing
-              (Model, Load.Items, Load.Signature,
-               Select_Path    => Select_Path,
-               Select_Name    => Select_Name,
-               Keep_Selection => Preserve_Selection,
-               Owe_Thumbnails => True);
-            Files.Model.Set_Error (Model, "");
-            Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
-            return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
-         end;
+         --  A reload runs after every operation: it must not decode each
+         --  new image while the UI waits, as no folder shown does. Search
+         --  results keep their selection where it still is.
+         Files.Refresh.Reinstall_Listing
+           (Model, Items, Signature,
+            Recent         => Recent,
+            Searched       => Searched,
+            Query          => Files.Model.Filtering.Search_Query (Model),
+            Select_Path    => Select_Path,
+            Select_Name    => Select_Name,
+            Keep_Selection => Preserve_Selection or else Searched /= Files.UI_Types.Filter_Here,
+            Owe_Thumbnails => not Recent and then Searched = Files.UI_Types.Filter_Here,
+            Show_Hidden    => Settings.Show_Hidden_Files,
+            Error_Line     => To_String (Notice));
+         return Make_Result (Operation_Success, Path => Root);
       end Reload_In_Place;
    end Reload_Current_Directory;
 
@@ -213,28 +206,27 @@ package body Files.Operations.Support is
       Query    : String)
       return Operation_Result
    is
-      use type Files.UI_Types.Search_Scope;
-      Root    : constant String := Files.Model.Current_Path (Model);
-      Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
-      Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
-      Found   : constant Files.File_System.Search.Recursive_Search_Result :=
-        (if Scope = Files.UI_Types.Search_Contents
-         then Files.File_System.Search.Search_Contents (Root, Query, Classes, Options)
-         else Files.File_System.Search.Search_Names (Root, Query, Classes, Options));
+      Root  : constant String := Files.Model.Current_Path (Model);
+      Found : constant Files.File_System.Search.Folder_Search_Result :=
+        Files.File_System.Search.Search_Folder
+          (Root, Query, Scope,
+           Files.Settings.Classification_Of (Settings), Files.Settings.Listing_Options_Of (Settings));
    begin
       if not Found.Success then
          Files.Model.Set_Error (Model, To_String (Found.Error_Key));
          return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
       end if;
-      Files.Model.Replace_Items (Model, Found.Items);
-      Files.Model.Filtering.Note_Search_Results (Model, Scope, Query);
-      --  The results are the view now: a listing owed to the folder would
-      --  only search them again.
-      Files.Model.Clear_Owed_Refresh (Model);
-      Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
-      --  A partial answer is still shown, with a notice that it is one: a
-      --  limit cut it short, or something under the root went unsearched.
-      Files.Model.Set_Error (Model, Files.File_System.Search.Notice_Of (Found));
+      --  New results are the view now, a listing owed to the folder
+      --  settled; a partial answer is still shown, with a notice that it is
+      --  one: a limit cut it short, or something under the root went
+      --  unsearched.
+      Files.Refresh.Reinstall_Listing
+        (Model, Found.Items, Found.Signature,
+         Searched    => Scope,
+         Query       => Query,
+         New_Results => True,
+         Show_Hidden => Settings.Show_Hidden_Files,
+         Error_Line  => To_String (Found.Notice));
       return Make_Result (Operation_Success, Path => Root);
    end Search_Current_Folder;
 

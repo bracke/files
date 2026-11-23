@@ -67,4 +67,17 @@ package Files.Commands.Testing is
    --  Clear every override of the live keymap.
    procedure Reset_Shortcut_Overrides;
 
+   --  Override a command's shortcut in Map (Value.Present False unbinds it).
+   --
+   --  @param Map The keymap to change.
+   --  @param Id Command identifier.
+   --  @param Value Shortcut to bind.
+   procedure Set_Shortcut_Override (Map : in out Keymap; Id : Command_Id; Value : Shortcut);
+
+   --  Clear a command's override in Map, its secondary back unless taken.
+   --
+   --  @param Map The keymap to change.
+   --  @param Id Command identifier.
+   procedure Clear_Shortcut_Override (Map : in out Keymap; Id : Command_Id);
+
 end Files.Commands.Testing;

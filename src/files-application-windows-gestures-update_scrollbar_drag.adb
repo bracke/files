@@ -1,4 +1,4 @@
-with Files.Model.Info_Pane;
+with Files.Controller;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
@@ -76,17 +76,17 @@ separate (Files.Application.Windows.Gestures)
 
          procedure Set_Main_Lines (Lines : Natural) is
          begin
-            Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
+            Files.Controller.Scroll_To (Runtime.Model, Files.Input_Actions.Scroll_Main_View, Lines);
          end Set_Main_Lines;
 
          procedure Set_Info_Lines (Lines : Natural) is
          begin
-            Files.Model.Info_Pane.Set_Info_Pane_Scroll_Lines (Runtime.Model, Lines);
+            Files.Controller.Scroll_To (Runtime.Model, Files.Input_Actions.Scroll_Info_Pane, Lines);
          end Set_Info_Lines;
 
          procedure Set_Tree_Rows (Rows : Natural) is
          begin
-            Files.Model.Tree_Panel.Set_Scroll_Rows (Runtime.Model, Rows);
+            Files.Controller.Scroll_To (Runtime.Model, Files.Input_Actions.Scroll_Tree_Panel, Rows);
          end Set_Tree_Rows;
       begin
          case Runtime.Scrollbar_Drag_Target is

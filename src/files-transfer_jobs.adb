@@ -425,7 +425,7 @@ package body Files.Transfer_Jobs is
          Result.Trashed := To_Unbounded_String (Backup);
          Result.Trashed_Identity := To_Unbounded_String (Backup_Identity);
          --  One checkpoint per job: a second, or a stray staged copy, is refused.
-         if Taken (Files.Jobs.Process.Staged_Name (Files.Protocol_Names.Replaced_File))
+         if Taken (Files.Protocol_Names.Staged_Name (Files.Protocol_Names.Replaced_File))
            or else Taken (Files.Protocol_Names.Replaced_File)
          then
             raise Ada.Directories.Use_Error;
