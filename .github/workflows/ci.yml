@@ -386,6 +386,8 @@ jobs:
       # A failure here is not fatal by itself: those tests then skip, and the
       # FILES_TEST_EXPECTED_SKIPS list on the test step turns that into a red job.
       - name: Mount a second volume for cross-device tests (macOS)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 5
         if: runner.os == 'macOS'
         continue-on-error: true
         shell: bash
@@ -405,6 +407,8 @@ jobs:
           echo "FILES_TEST_OTHER_VOLUME=/Volumes/FilesTestVol" >> "$GITHUB_ENV"
 
       - name: Mount a second volume for cross-device tests (Windows)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 5
         if: runner.os == 'Windows'
         continue-on-error: true
         shell: pwsh
@@ -431,6 +435,8 @@ jobs:
       # FILES_TEST_STREAMLESS_VOLUME. Not fatal here either: without it that
       # test skips, which FILES_TEST_EXPECTED_SKIPS turns red.
       - name: Mount a volume without named streams (Windows)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 5
         if: runner.os == 'Windows'
         continue-on-error: true
         shell: pwsh
@@ -462,6 +468,8 @@ jobs:
       # names fold case as the test root's do not; without it that test
       # skips unlisted too.
       - name: Mount a FAT volume (Linux)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 5
         if: runner.os == 'Linux'
         continue-on-error: true
         shell: bash
@@ -486,6 +494,8 @@ jobs:
       # Fetched from a fixed revision, never main: noto-emoji has moved its
       # fonts on main before, and the old path then served a 404 page.
       - name: Install Noto Color Emoji for the user (Windows and macOS)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 5
         if: runner.os != 'Linux'
         shell: bash
         run: |
@@ -496,7 +506,7 @@ jobs:
           # under 2D/fonts there.
           url=https://raw.githubusercontent.com/googlefonts/noto-emoji/1ffdd21391dd1f25c081fa93a9dea0c7c029442b/2D/fonts/NotoColorEmoji.ttf
           font="$RUNNER_TEMP/NotoColorEmoji.ttf"
-          if ! curl -fsSL --retry 3 -o "$font" "$url"; then
+          if ! curl -fsSL --retry 3 --connect-timeout 20 --max-time 120 -o "$font" "$url"; then
             echo "::error::the pinned NotoColorEmoji.ttf could not be fetched"
             exit 1
           fi
@@ -543,6 +553,8 @@ jobs:
           Remove-Item -Recurse -Force $dir
 
       - name: Build and run the test suite
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 45
         shell: bash
         working-directory: files/tests
         env:
@@ -605,10 +617,10 @@ jobs:
             ./bin/tests.exe || status=$?
             if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
               echo "::warning::tests.exe exited with $status; rerunning under gdb for a backtrace"
-              /c/msys64/usr/bin/pacman -S --noconfirm --needed mingw-w64-x86_64-gdb > /dev/null || true
+              /c/msys64/usr/bin/timeout 300 /c/msys64/usr/bin/pacman -S --noconfirm --needed mingw-w64-x86_64-gdb > /dev/null || true
               # The crash surfaces inside Windows' unwinder, looping; the
               # outermost frames of the faulting thread name the Ada code.
-              gdb -batch -ex 'handle SIGSEGV stop print' -ex run \
+              /c/msys64/usr/bin/timeout 900 gdb -batch -ex 'handle SIGSEGV stop print' -ex run \
                   -ex 'thread apply all bt 40' -ex 'thread 1' -ex 'bt -60' ./bin/tests.exe 2>&1 | tail -400 || true
             fi
             exit "$status"
@@ -632,6 +644,8 @@ jobs:
           retention-days: 3
 
       - name: Run the test suite's C fixture under UBSan and the static analyzer (Linux)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 30
         # What this covers: files.gpr is Ada-only, so FILES_CFLAGS reaches
         # exactly one C unit -- the suite's own native fixture,
         # tests/tests/src/files_test_metadata.c (its lsetxattr
@@ -676,6 +690,8 @@ jobs:
           ./bin/tests
 
       - name: Run the test suite instrumented for coverage (Linux)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 40
         # The coverage run is a test run like the others, so a failing test
         # fails the job here; only the report below is allowed to be soft.
         # Its log is kept out of the job page unless the run fails.
@@ -701,6 +717,8 @@ jobs:
           fi
 
       - name: Line coverage of src/ (Linux)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 15
         # Which of the application's code the suite runs. The summary goes
         # to the job page; tests/coverage-floor.txt holds the percentage the
         # run must not fall below (recorded a little under a measured run:
@@ -1522,6 +1540,8 @@ jobs:
           fi
 
       - name: Repository lint and architecture guardrails (check_all, Linux)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 30
         # Source-level validation that build+test do not cover: style, format,
         # GNATdoc, hard-coded user-visible text, localization-key existence, and
         # the architecture guardrails (rendering/window/events must-not-do-X,
